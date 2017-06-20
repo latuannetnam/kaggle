@@ -1,0 +1,5 @@
+.ipynb_checkpoints
+**/data-temp
+secret_twitter_credentials.pkl
+.DS_Store
+Icon_
