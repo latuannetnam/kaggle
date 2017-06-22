@@ -3,3 +3,4 @@
 secret_twitter_credentials.pkl
 .DS_Store
 Icon_
+*.pyc

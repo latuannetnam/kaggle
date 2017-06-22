@@ -15,6 +15,20 @@ from sklearn.metrics import mean_squared_error, make_scorer
 from math import sqrt
 from scipy import stats
 import datetime
+import sys
+from inspect import getsourcefile
+import os.path
+# sys.path.insert(0, '..')
+current_path = os.path.abspath(getsourcefile(lambda: 0))
+current_dir = os.path.dirname(current_path)
+parent_dir = current_dir[:current_dir.rfind(os.path.sep)]
+sys.path.insert(0, parent_dir)
+model_dir = parent_dir + "/model"
+sys.path.insert(0, model_dir)
+print("parent dir:", parent_dir)
+
+import NNRegressor
+from NNRegressor import NNRegressor
 
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
@@ -87,6 +101,33 @@ def random_forest_model():
     return 'RandomForest', model
 
 
+def deepNN_model():
+    # RMSE: RMSE: 0.21037404583781194
+    # Your submission scored 0.22743
+    # Rank: 1801
+    NUM_LAYERS = 4
+    NUM_HIDDEN_NODES = 256
+    MINI_BATCH_SIZE = 10
+    NUM_EPOCHS = 10000
+    LEARNING_RATE = 0.003
+    TRAIN_SPLIT = 1.
+    X_train_arr = X_train.values.astype(float)
+    Y_train_arr = Y_train.values.astype(float)
+    Y_train_arr = np.reshape(Y_train_arr, (-1, 1))
+    model = NNRegressor(X_train_arr, Y_train_arr,
+                        NUM_LAYERS, NUM_HIDDEN_NODES,
+                        LEARNING_RATE,
+                        NUM_EPOCHS, MINI_BATCH_SIZE,
+                        TRAIN_SPLIT)
+    model.dump_input()
+    model.fit()
+    model.plot(X_train.values.astype(float), np.reshape(
+        Y_train.values.astype(float), (-1, 1)))
+    model.plot(X_test.values.astype(float), np.reshape(
+        Y_test.values.astype(float), (-1, 1)))
+    return 'DeepNN', model
+
+
 def rmse(model):
     scorer = make_scorer(mean_squared_error, greater_is_better=False)
     RMSE2 = np.sqrt(-cross_val_score(model, X_test,
@@ -97,7 +138,7 @@ def rmse(model):
 def plot_prediction():
     plt.scatter(Y_prediction, Y_test, c="b",
                 marker="s", label="Validation data")
-    plt.title("Linear regression")
+    plt.title(model_name)
     plt.xlabel("Predicted values")
     plt.ylabel("Real values")
     plt.legend(loc="upper left")
@@ -113,7 +154,7 @@ def export_saleprice():
     X_eval['TotalBsmtSF'].fillna(X_eval['TotalBsmtSF'].mean(), inplace=True)
     # X_eval['GarageArea'][:5]
     print("Predict SalePrice for test data. Use numpy.exp to transform SalePrice to normal (model predicts on log of SalePrice)")
-    Y_eval_log = model.predict(X_eval)
+    Y_eval_log = model.predict(X_eval.values.astype(float))
     # Transform SalePrice to normal
     Y_eval = np.exp(Y_eval_log.ravel())
     print(Y_eval[:5])
@@ -141,14 +182,16 @@ X_train, X_test, Y_train, Y_test = prepare_data()
 print("Model building ......")
 # model_name, model = linear_model()
 # model_name, model = decision_tree_model()
-model_name, model = random_forest_model()
+# model_name, model = random_forest_model()
+model_name, model = deepNN_model()
 
 print("Predict Sale price to training data using:", model_name)
-Y_prediction = model.predict(X_test)
+Y_prediction = model.predict(X_test.values.astype(float))
 print(Y_prediction[:5])
-print("RMSE:", rmse(model))
+# RMSE = rmse(model))
+RMSE = sqrt(mean_squared_error(y_true=Y_test, y_pred=Y_prediction))
+print("RMSE:", RMSE)
 # plot prediction data
 plot_prediction()
-
 # Export predicted sale price of evaluation data to submit to competition
 export_saleprice()
