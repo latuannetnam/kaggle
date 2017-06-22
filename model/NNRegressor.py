@@ -106,8 +106,8 @@ class NNRegressor:
                 else:
                     activation = tf.nn.relu
                 initializer = tf.contrib.layers.xavier_initializer()
-                # regularizer = tf.contrib.layers.l2_regularizer(0.5)
-                regularizer = None
+                regularizer = tf.contrib.layers.l2_regularizer(0.5)
+                # regularizer = None
                 last_layer = X
                 n_neurals = self.n_neurals
                 for n_layer in range(1, self.n_layers + 1):
