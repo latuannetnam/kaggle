@@ -102,13 +102,14 @@ def random_forest_model():
 
 
 def deepNN_model():
-    # RMSE: RMSE: 0.21037404583781194
+    # RMSE: 0.21037404583781194
+    # RMSE: 0.216011400876183
     # Your submission scored 0.22743
     # Rank: 1801
     NUM_LAYERS = 4
     NUM_HIDDEN_NODES = 256
     MINI_BATCH_SIZE = 10
-    NUM_EPOCHS = 10000
+    NUM_EPOCHS = 3000
     LEARNING_RATE = 0.003
     TRAIN_SPLIT = 1.
     X_train_arr = X_train.values.astype(float)
