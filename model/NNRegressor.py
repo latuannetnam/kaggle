@@ -20,12 +20,16 @@ class NNRegressor:
                  n_layers=5, n_neurals=50,
                  learning_rate=0.1,
                  epochs=100, batch_size=100,
-                 split_ratio=1):
+                 split_ratio=1,
+                 convert=True
+                 ):
         # self.sess = tf.Session(config=tf.ConfigProto(
         #     intra_op_parallelism_threads=NNRegressor.NUM_THREADS))
         self.sess = tf.Session()
         self.logs_path = NNRegressor.LOG_ROOT_DIR + "nnregressor"
-
+        if convert:
+            input_X = input_X.values.astype(float)
+            label_Y = np.reshape(label_Y.values.astype(float), (-1, 1))
         self.input_X = input_X
         self.label_Y = label_Y
 
@@ -241,7 +245,9 @@ class NNRegressor:
             tf.convert_to_tensor(X), reuse=True)
         return Y_predicted
 
-    def predict(self, X):
+    def predict(self, X, convert=True):
+        if convert:
+            X = X.values.astype(float)
         return self.sess.run(self.predict_model(X))
 
     def fit(self):  # run loop to train model
