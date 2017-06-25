@@ -94,9 +94,10 @@ def decision_tree_model():
 
 
 def random_forest_model():
-    # RMSE: 0.220141683969
-    # Your submission scored 0.21609, which is an improvement ofyour previous score of 0.22756. Great job!
-    # Rank: 1801
+    # RMSE1: 0.220141683969
+    # RMSE2: 0.18198 => added Year build
+    # Your submission scored 0.18198
+    # Rank: 1:1801 => 2:1656
     model = RandomForestRegressor(n_estimators=500)
     model.fit(X_train, Y_train)
     return 'RandomForest', model
@@ -211,7 +212,7 @@ def export_saleprice():
 train_data = pd.read_csv(DATA_DIR + "/train.csv")
 eval_data = pd.read_csv(DATA_DIR + "/test.csv")
 label = 'SalePrice'
-features = ['GrLivArea', 'GarageArea', 'TotalBsmtSF', '1stFlrSF']
+features = ['GrLivArea', 'GarageArea', 'TotalBsmtSF', '1stFlrSF', 'YearBuild']
 # exploring train data
 explore_data()
 train_data = clean_data(train_data)
