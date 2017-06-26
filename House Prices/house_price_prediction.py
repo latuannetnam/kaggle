@@ -105,6 +105,7 @@ def random_forest_model():
 
 def xgboost_model():
     # RMSE: 0.2103118478317821
+    # RMSE2: 0.18213109708173356
     # Your submission scored 0.21315, which is an improvement ofyour previous score of 0.21609. Great job!
     # Rank: 1794
     model = XGBRegressor(max_depth=3, n_estimators=100)
