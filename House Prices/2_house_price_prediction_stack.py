@@ -1,4 +1,4 @@
-# Predict house price.
+# Predict house price. Using stacked model.
 # House Prices: Advanced Regression Techniques competition:
 # https://www.kaggle.com/c/house-prices-advanced-regression-techniques/kernels?userId=1075113
 import pandas as pd
@@ -9,7 +9,7 @@ from scipy.stats import norm
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression
-from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor
+from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
 from sklearn.model_selection import cross_val_score, train_test_split, learning_curve, validation_curve
 from sklearn.metrics import mean_squared_error, make_scorer
 from sklearn.grid_search import GridSearchCV
@@ -31,11 +31,14 @@ model_dir = parent_dir + "/model"
 sys.path.insert(0, model_dir)
 print("parent dir:", parent_dir)
 
-# import NNRegressor
-# from NNRegressor import NNRegressor
+import NNRegressor
+from NNRegressor import NNRegressor
 
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
+
+# Filter out feature with score < threshold in percent
+IMPORTANT_THRESHOLD = 20
 
 
 def explore_data():
@@ -90,6 +93,7 @@ def transform_data(train_data, eval_data, features):
     combine_data.drop(drop_columns, axis=1, inplace=True)
     print("Number of features:", len(combine_data.columns))
 
+    print("Filling NaN values ...")
     # Get data with column type is number
     numeric_data = combine_data.select_dtypes(include=[np.number])
     # For each NaN, fill with mean of columns'value
@@ -116,14 +120,30 @@ def transform_data(train_data, eval_data, features):
     print("After fillNaN")
     print(null_data[null_data > 0])
 
+    print("Feature scaling ...")
+    # Standarlize object data with Label Encoder
+    object_data_standardlized = combine_data[object_features].apply(
+        LabelEncoder().fit_transform)
+    combine_data.update(object_data_standardlized)
 
-def prepare_data():
-    X = train_data[features]
+    std_scale = StandardScaler().fit_transform(combine_data.astype(float).values)
+    combine_data_scale = pd.DataFrame(
+        std_scale, index=combine_data.index, columns=combine_data.columns)
+
+    # split train_set and evaluation set
+    train_set = combine_data_scale.loc['train']
+    eval_set = combine_data_scale.loc['eval']
+
+    return train_set, eval_set
+
+
+def split_train_set(train_set, target):
+    X = train_set
     # Label data: using logarithm to transform skewed data
     #  -> increase ML efficiency
-    Y = np.log(train_data[label])
+    Y = target
     x_train, x_test, y_train, y_test = train_test_split(
-        X, Y, test_size=0.33, random_state=324)
+        X, Y, test_size=0.31, random_state=324)
     print("train size:", len(x_train))
     print("test size:", len(x_test))
     print("Split ratio", len(x_test) / len(x_train))
@@ -134,14 +154,14 @@ def linear_model():
     # RMSE: 0.206124028461
     # Submission score: 0.22756
     model = LinearRegression()
-    model.fit(X_train, Y_train)
+    # model.fit(X_train, Y_train)
     return 'LinearRegression', model
 
 
 def decision_tree_model():
     # RMSE: 0.303670257561
     model = DecisionTreeRegressor(max_depth=20)
-    model.fit(X_train, Y_train)
+    # model.fit(X_train, Y_train)
     return 'DecisionTree', model
 
 
@@ -150,8 +170,8 @@ def random_forest_model():
     # RMSE2: 0.18198 => added Year build
     # Your submission scored 0.18198
     # Rank: 1:1801 => 2:1656
-    model = RandomForestRegressor(n_estimators=500)
-    model.fit(X_train, Y_train)
+    model = RandomForestRegressor(n_estimators=500, n_jobs=-1)
+    # model.fit(X_train, Y_train)
     return 'RandomForest', model
 
 
@@ -160,12 +180,13 @@ def xgboost_model():
     # RMSE2: 0.18213109708173356
     # Your submission scored 0.21315, which is an improvement ofyour previous score of 0.21609. Great job!
     # Rank: 1794
-    model = XGBRegressor(max_depth=3, n_estimators=100)
-    model.fit(X_train, Y_train)
+    # model = XGBRegressor(max_depth=3, n_estimators=100)
+    model = XGBRegressor(n_estimators=500, max_depth=5, n_jobs=-1)
+    # model.fit(X_train, Y_train)
     return 'XGBoost', model
 
 
-def deepNN_model():
+def deepNN_model(x, y):
     # RMSE: 0.21037404583781194
     # RMSE: 0.216011400876183
     # Your submission scored 0.22743
@@ -173,29 +194,211 @@ def deepNN_model():
     NUM_LAYERS = 4
     NUM_HIDDEN_NODES = 256
     MINI_BATCH_SIZE = 10
-    NUM_EPOCHS = 30
-    LEARNING_RATE = 0.003
+    NUM_EPOCHS = 10000
+    LEARNING_RATE = 0.1
     TRAIN_SPLIT = 1.
 
-    model = NNRegressor(X_train, Y_train,
+    model = NNRegressor(x, y,
                         NUM_LAYERS, NUM_HIDDEN_NODES,
                         LEARNING_RATE,
                         NUM_EPOCHS, MINI_BATCH_SIZE,
                         TRAIN_SPLIT)
     model.dump_input()
     model.fit()
-    model.plot(X_train.values.astype(float), np.reshape(
-        Y_train.values.astype(float), (-1, 1)))
-    model.plot(X_test.values.astype(float), np.reshape(
-        Y_test.values.astype(float), (-1, 1)))
+    # model.plot(x.values.astype(float), np.reshape(
+    #     y.values.astype(float), (-1, 1)))
     return 'DeepNN', model
 
 
-def rmse(model):
+def rmse(y_true, y_prediction):
+    return sqrt(mean_squared_error(y_true=y_true, y_pred=y_prediction))
+
+
+def rmse2(model):
     scorer = make_scorer(mean_squared_error, greater_is_better=False)
     RMSE2 = np.sqrt(-cross_val_score(model, X_test,
                                      Y_test, scoring=scorer, cv=10))
     return RMSE2.mean()
+
+
+def importance_features(model, x, y, threshold):
+    model.fit(x, y)
+    features_score = pd.Series(
+        model.feature_importances_, index=x.columns.values)
+    # Drop features with score below threshold
+    # features = features_score[features_score >= threshold].index
+    features = features_score[features_score >=
+                              np.percentile(features_score, threshold)].index
+    return features
+
+
+def build_model(model_name, model):
+    # features = importance_features(
+    #     model, train_set, target_log, IMPORTANT_THRESHOLD)
+    features = train_set.columns.values
+    print("Model:", model_name, "Importance features:", len(features))
+
+    model_boost = AdaBoostRegressor(
+        base_estimator=model, n_estimators=200, random_state=200)
+    # print(features)
+    model_dict = {
+        'model_name': model_name,
+        'model': model,
+        'features': features
+    }
+    return model_dict
+
+
+def build_models(train_set, target):
+    # model_name, model = linear_model()
+    # model_name, model = decision_tree_model()
+    # model_name, model = random_forest_model()
+    # model_name, model = deepNN_model()
+    models = []
+
+    # XGBoost
+    model_name, model = xgboost_model()
+    model_dict = build_model(model_name, model)
+    # models.append(model_dict.copy())
+
+    # Random forrest
+    model_name, model = random_forest_model()
+    model_dict = build_model(model_name, model)
+    models.append(model_dict.copy())
+
+    # Decision Tree
+    model_name, model = decision_tree_model()
+    model_dict = build_model(model_name, model)
+    models.append(model_dict.copy())
+    return models
+
+
+def train_models(models):
+    model_test_pred_dict = {}
+    model_train_pred_dict = {}
+    y_train = Y_train
+    y_test = Y_test
+    for model_dict in models:
+        # print(model_dict.keys())
+        model_name = model_dict['model_name']
+        model = model_dict['model']
+        features = model_dict['features']
+        x_train = X_train[features]
+        x_test = X_test[features]
+        model.fit(x_train, y_train)
+        y_train_prediction = model.predict(X[features])
+        y_prediction = model.predict(x_test)
+        rmse1 = rmse(y_test, y_prediction)
+        model_dict['y_prediction'] = y_prediction
+        model_dict['rmse'] = rmse1
+        print("Model:", model_name, " RMSE:", rmse1)
+        model_test_pred_dict[model_name] = y_prediction
+        model_train_pred_dict[model_name] = y_train_prediction
+    model_test_predictions = pd.DataFrame(model_test_pred_dict)
+    model_train_predictions = pd.DataFrame(model_train_pred_dict)
+    return model_train_predictions, model_test_predictions
+
+
+def train_models_alldata(models):
+    model_test_pred_dict = {}
+    model_train_pred_dict = {}
+    y_train = Y
+    y_test = Y_test
+    for model_dict in models:
+        # print(model_dict.keys())
+        model_name = model_dict['model_name']
+        model = model_dict['model']
+        features = model_dict['features']
+        x_train = X[features]
+        x_test = X_test[features]
+        model.fit(x_train, y_train)
+        y_train_prediction = model.predict(x_train)
+        y_prediction = model.predict(x_test)
+        rmse1 = rmse(y_test, y_prediction)
+        model_dict['y_prediction'] = y_prediction
+        model_dict['rmse'] = rmse1
+        print("Model:", model_name, " RMSE:", rmse1)
+        model_test_pred_dict[model_name] = y_prediction
+        model_train_pred_dict[model_name] = y_train_prediction
+    model_test_predictions = pd.DataFrame(model_test_pred_dict)
+    model_train_predictions = pd.DataFrame(model_train_pred_dict)
+    return model_train_predictions, model_test_predictions
+
+
+def predict_eval_set(models, eval_set):
+    model_predictions = pd.DataFrame()
+    model_pred_dict = {}
+    for model_dict in models:
+        # print(model_dict.keys())
+        model_name = model_dict['model_name']
+        model = model_dict['model']
+        features = model_dict['features']
+        x_eval = eval_set[features]
+        y_eval = model.predict(x_eval)
+        print("Model:", model_name, "prediction:", y_eval[:5])
+        model_pred_dict[model_name] = y_eval
+    model_predictions = pd.DataFrame(model_pred_dict)
+    return model_predictions
+
+
+def model_stacking_deepNN():
+    print("Model stacking using DeepNN  ....")
+    model_name, model = deepNN_model(model_train_predictions, Y_train)
+    y_prediction = model.predict(model_test_predictions)
+    print(model_name, ":", rmse(Y_test, y_prediction))
+    model.plot(model_predictions.values.astype(float), np.reshape(
+        Y_test.values.astype(float), (-1, 1)))
+
+    print("Round 2: Predicting for evaluation data using model stacking ...")
+    y_prediction = model.predict(model_eval_predictions)
+    print(y_prediction[:5])
+    return y_prediction
+
+
+def model_stacking_avg():
+    print("Model stacking using AVG....")
+    print("Round 2: Predicting for evaluation data using model stacking ...")
+    model_eval_predictions['mean_predict'] = model_eval_predictions.mean(
+        axis=1)
+    print(model_eval_predictions[:5])
+    return model_eval_predictions['mean_predict'].values
+
+
+def model_stacking_boost():
+    # Best score: 0.13484
+    # Your submission scored 0.13544, which is not an improvement of your best score. Keep trying!
+    # Boost RMSE: 0.13833503274760703
+    # score. Keep trying!
+    print("Model stacking using boosting....")
+    x_train, x_test, y_train, y_test = train_test_split(
+        model_train_predictions, Y, test_size=0.31, random_state=324)
+    model = GradientBoostingRegressor(n_estimators=500)
+    model_boost = AdaBoostRegressor(
+        base_estimator=model, n_estimators=200, random_state=200)
+    model_boost.fit(x_train, y_train)
+    y_prediction = model_boost.predict(x_test)
+    print("Boost:", rmse(y_test, y_prediction))
+    print("Round 2: Predicting for evaluation data using model stacking ...")
+    y_prediction = model_boost.predict(model_eval_predictions)
+    print(y_prediction[:5])
+    return y_prediction
+
+
+def model_stacking_xgboost():
+    # Best score: 0.13484
+    print("Model stacking using xgboosting....")
+    x_train, x_test, y_train, y_test = train_test_split(
+        model_train_predictions, Y, test_size=0.31, random_state=324)
+    model_name, model = xgboost_model()
+    model_boost = AdaBoostRegressor(
+        base_estimator=model, n_estimators=200, random_state=200)
+    model_boost.fit(x_train, y_train)
+    y_prediction = model_boost.predict(x_test)
+    print("Boost:", rmse(y_test, y_prediction))
+    print("Round 2: Predicting for evaluation data using model stacking ...")
+    y_prediction = model_boost.predict(model_eval_predictions)
+    print(y_prediction[:5])
+    return y_prediction
 
 
 def plot_prediction():
@@ -236,27 +439,16 @@ def plot_learning_curve():
     plt.show()
 
 
-def export_saleprice():
-    X_eval = eval_data[features]
-    isnull_data = X_eval.isnull().any()
-    print(isnull_data[isnull_data == True].sort_index())
-    # filling Null daa
-    X_eval['GarageArea'].fillna(X_eval['GarageArea'].mean(), inplace=True)
-    X_eval['TotalBsmtSF'].fillna(X_eval['TotalBsmtSF'].mean(), inplace=True)
-    # X_eval['GarageArea'][:5]
-    print("Predict SalePrice for test data. Use numpy.exp to transform SalePrice to normal (model predicts on log of SalePrice)")
-    # Uncomment if using with TensorFlow
-    # Y_eval_log = model.predict(X_eval.values.astype(float))
-    Y_eval_log = model.predict(X_eval)
+def export_saleprice(y_prediction):
     # Transform SalePrice to normal
-    Y_eval = np.exp(Y_eval_log.ravel())
+    Y_eval = np.exp(y_prediction.ravel())
     print(Y_eval[:5])
     # save predicted sale price to CSV
     eval_output = pd.DataFrame({'Id': eval_data['Id'], 'SalePrice': Y_eval})
     print("Evaluation output len:", len(eval_output))
     today = str(datetime.date.today())
     eval_output.to_csv(DATA_DIR + '/' + today + '-' +
-                       model_name + '.csv', index=False)
+                       'export' + '.csv', index=False)
 
 
 # ---- Main program --------------
@@ -266,38 +458,42 @@ train_data = pd.read_csv(DATA_DIR + "/train.csv")
 eval_data = pd.read_csv(DATA_DIR + "/test.csv")
 # exploring train data
 explore_data()
+
+# Label and Ground trust
 label = 'SalePrice'
-eval_data_columns = eval_data.columns.values
+target = train_data[label]
+target_log = np.log(target)
+
 # Store eval_id
 eval_data_id = eval_data['Id']
+
+# Features
+eval_data_columns = eval_data.columns.values
 features = eval_data_columns
-# features = ['GrLivArea', 'GarageArea', 'TotalBsmtSF', '1stFlrSF', 'YearBuild']
-transform_data(train_data, eval_data, features)
-quit()
-# train_data = clean_data(train_data)
-# prepare data for modeling
-# X, Y, X_train, X_test, Y_train, Y_test = prepare_data()
+features = np.setdiff1d(features, ['Id'])
+print("Features:", len(features))
+
+# transform data: fillNa, feature scaling
+train_set, eval_set = transform_data(train_data, eval_data, features)
+print(train_set.iloc[:5, :5])
+
+# split train set data for modeling
+X, Y, X_train, X_test, Y_train, Y_test = split_train_set(
+    train_set, target_log)
 
 print("Model building ......")
-# model_name, model = linear_model()
-# model_name, model = decision_tree_model()
-# model_name, model = random_forest_model()
-# model_name, model = deepNN_model()
-model_name, model = xgboost_model()
+models = build_models(train_set, target_log)
+print("Training model ...")
+model_train_predictions, model_test_predictions = train_models(models)
+print(model_test_predictions.head(5))
+print("Round 1:Predicting for evaluation data")
+model_eval_predictions = predict_eval_set(models, eval_set)
+print(model_eval_predictions.head(5))
 
-print("Predict Sale price to training data using:", model_name)
+# Use DeepNNModel to stack models
+y_prediction = model_stacking_xgboost()
+# y_prediction = model_stacking2()
 
-# Uncomment if using with TensorFlow
-# Y_prediction = model.predict(X_test.values.astype(float))
-Y_prediction = model.predict(X_test)
-print(Y_prediction[:5])
-# RMSE = rmse(model))
-RMSE = sqrt(mean_squared_error(y_true=Y_test, y_pred=Y_prediction))
-print("RMSE:", RMSE)
-# plot prediction data
-plot_prediction()
 
-# plot learning curve
-plot_learning_curve()
 # Export predicted sale price of evaluation data to submit to competition
-export_saleprice()
+export_saleprice(y_prediction)
