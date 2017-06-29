@@ -1,6 +1,9 @@
 # Predict house price. Using stacked model.
 # House Prices: Advanced Regression Techniques competition:
 # https://www.kaggle.com/c/house-prices-advanced-regression-techniques/kernels?userId=1075113
+# Credit:
+# https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
+
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
@@ -10,7 +13,7 @@ from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor
-from sklearn.model_selection import cross_val_score, train_test_split, learning_curve, validation_curve
+from sklearn.model_selection import cross_val_score, train_test_split, learning_curve, validation_curve, KFold
 from sklearn.metrics import mean_squared_error, make_scorer
 from sklearn.grid_search import GridSearchCV
 from sklearn.preprocessing import LabelEncoder, StandardScaler
@@ -37,8 +40,16 @@ from NNRegressor import NNRegressor
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
 
-# Filter out feature with score < threshold in percent
-IMPORTANT_THRESHOLD = 20
+# Filter out feature with score <= threshold in percent
+IMPORTANT_THRESHOLD_PERCENT = 20
+
+# Filter out feature with score <= threshold
+IMPORTANT_THRESHOLD = 0.00
+
+# Filter out feature with NaN percent > threshold
+NAN_THRESHOLD = 0.9
+# number of kfolds
+N_FOLDS = 10
 
 
 def explore_data():
@@ -86,7 +97,9 @@ def transform_data(train_data, eval_data, features):
                ).sort_values(ascending=False)
     missing_data = pd.concat([total, percent], axis=1,
                              keys=['Total', 'Percent'])
-    high_percent_miss_data = missing_data[missing_data['Percent'] > 0.4]
+    high_percent_miss_data = missing_data[missing_data['Percent']
+                                          > NAN_THRESHOLD]
+    print("high percent missing:", high_percent_miss_data)
     # Drop high percent NaN columns
     drop_columns = high_percent_miss_data.index.values
     print("Drop columns:", drop_columns)
@@ -153,7 +166,7 @@ def split_train_set(train_set, target):
 def linear_model():
     # RMSE: 0.206124028461
     # Submission score: 0.22756
-    model = LinearRegression()
+    model = LinearRegression(n_jobs=-1)
     # model.fit(X_train, Y_train)
     return 'LinearRegression', model
 
@@ -184,6 +197,11 @@ def xgboost_model():
     model = XGBRegressor(n_estimators=500, max_depth=5, n_jobs=-1)
     # model.fit(X_train, Y_train)
     return 'XGBoost', model
+
+
+def gbm_model():
+    model = GradientBoostingRegressor(n_estimators=500)
+    return 'GradientBoost', model
 
 
 def deepNN_model(x, y):
@@ -225,31 +243,35 @@ def importance_features(model, x, y, threshold):
     model.fit(x, y)
     features_score = pd.Series(
         model.feature_importances_, index=x.columns.values)
+    print("Feature importance:", features_score.describe())
     # Drop features with score below threshold
-    # features = features_score[features_score >= threshold].index
-    features = features_score[features_score >=
-                              np.percentile(features_score, threshold)].index
+    features = features_score[features_score > threshold].index
+    # features = features_score[features_score >=
+    #                           np.percentile(features_score, threshold)].index
+    print("Remain features:", len(features))
     return features
 
 
-def build_model(model_name, model):
+def build_model(model_name, model, boost=False):
     # features = importance_features(
     #     model, train_set, target_log, IMPORTANT_THRESHOLD)
     features = train_set.columns.values
     print("Model:", model_name, "Importance features:", len(features))
-
-    model_boost = AdaBoostRegressor(
-        base_estimator=model, n_estimators=200, random_state=200)
     # print(features)
     model_dict = {
         'model_name': model_name,
         'model': model,
         'features': features
     }
+    if (boost):
+        model_boost = AdaBoostRegressor(
+            base_estimator=model, n_estimators=200, random_state=200)
+        model_dict['model'] = model_boost
+
     return model_dict
 
 
-def build_models(train_set, target):
+def build_models():
     # model_name, model = linear_model()
     # model_name, model = decision_tree_model()
     # model_name, model = random_forest_model()
@@ -259,9 +281,9 @@ def build_models(train_set, target):
     # XGBoost
     model_name, model = xgboost_model()
     model_dict = build_model(model_name, model)
-    # models.append(model_dict.copy())
+    models.append(model_dict.copy())
 
-    # Random forrest
+    # Random forest
     model_name, model = random_forest_model()
     model_dict = build_model(model_name, model)
     models.append(model_dict.copy())
@@ -270,75 +292,199 @@ def build_models(train_set, target):
     model_name, model = decision_tree_model()
     model_dict = build_model(model_name, model)
     models.append(model_dict.copy())
+
+    # Linear decision
+    model_name, model = linear_model()
+    model_dict = build_model(model_name, model, True)
+    models.append(model_dict.copy())
+
+    # Gradient Boost
+    model_name, model = gbm_model()
+    model_dict = build_model(model_name, model)
+    models.append(model_dict.copy())
     return models
 
 
-def train_models(models):
-    model_test_pred_dict = {}
-    model_train_pred_dict = {}
-    y_train = Y_train
-    y_test = Y_test
-    for model_dict in models:
-        # print(model_dict.keys())
+# def train_models(models):
+#     model_test_pred_dict = {}
+#     model_train_pred_dict = {}
+#     y_train = Y_train
+#     y_test = Y_test
+#     for model_dict in models:
+#         # print(model_dict.keys())
+#         model_name = model_dict['model_name']
+#         model = model_dict['model']
+#         features = model_dict['features']
+#         x_train = X_train[features]
+#         x_test = X_test[features]
+#         model.fit(x_train, y_train)
+#         y_train_prediction = model.predict(X[features])
+#         y_prediction = model.predict(x_test)
+#         rmse1 = rmse(y_test, y_prediction)
+#         model_dict['y_prediction'] = y_prediction
+#         model_dict['rmse'] = rmse1
+#         print("Model:", model_name, " RMSE:", rmse1)
+#         model_test_pred_dict[model_name] = y_prediction
+#         model_train_pred_dict[model_name] = y_train_prediction
+#     model_test_predictions = pd.DataFrame(model_test_pred_dict)
+#     model_train_predictions = pd.DataFrame(model_train_pred_dict)
+#     return model_train_predictions, model_test_predictions
+
+
+# def train_models_alldata(models):
+#     model_test_pred_dict = {}
+#     model_train_pred_dict = {}
+#     y_train = Y
+#     y_test = Y_test
+#     for model_dict in models:
+#         # print(model_dict.keys())
+#         model_name = model_dict['model_name']
+#         model = model_dict['model']
+#         features = model_dict['features']
+#         x_train = X[features]
+#         x_test = X_test[features]
+#         model.fit(x_train, y_train)
+#         y_train_prediction = model.predict(x_train)
+#         y_prediction = model.predict(x_test)
+#         rmse1 = rmse(y_test, y_prediction)
+#         model_dict['y_prediction'] = y_prediction
+#         model_dict['rmse'] = rmse1
+#         print("Model:", model_name, " RMSE:", rmse1)
+#         model_test_pred_dict[model_name] = y_prediction
+#         model_train_pred_dict[model_name] = y_train_prediction
+#     model_test_predictions = pd.DataFrame(model_test_pred_dict)
+#     model_train_predictions = pd.DataFrame(model_train_pred_dict)
+#     return model_train_predictions, model_test_predictions
+
+
+# def predict_eval_set(models, eval_set):
+#     model_predictions = pd.DataFrame()
+#     model_pred_dict = {}
+#     for model_dict in models:
+#         # print(model_dict.keys())
+#         model_name = model_dict['model_name']
+#         model = model_dict['model']
+#         features = model_dict['features']
+#         x_eval = eval_set[features]
+#         y_eval = model.predict(x_eval)
+#         print("Model:", model_name, "prediction:", y_eval[:5])
+#         model_pred_dict[model_name] = y_eval
+#     model_predictions = pd.DataFrame(model_pred_dict)
+#     return model_predictions
+
+# Fit and predict for stacking model
+def stack_fit_predict(models, stack_model, X, Y, T):
+    kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
+    S_train = np.zeros((X.shape[0], len(models)))
+    S_test = np.zeros((T.shape[0], len(models)))
+    print("S_train shape:", S_train.shape, " S_test shape:",
+          S_test.shape)
+    for i, model_dict in enumerate(models):
         model_name = model_dict['model_name']
         model = model_dict['model']
         features = model_dict['features']
-        x_train = X_train[features]
-        x_test = X_test[features]
-        model.fit(x_train, y_train)
-        y_train_prediction = model.predict(X[features])
-        y_prediction = model.predict(x_test)
-        rmse1 = rmse(y_test, y_prediction)
-        model_dict['y_prediction'] = y_prediction
-        model_dict['rmse'] = rmse1
-        print("Model:", model_name, " RMSE:", rmse1)
-        model_test_pred_dict[model_name] = y_prediction
-        model_train_pred_dict[model_name] = y_train_prediction
-    model_test_predictions = pd.DataFrame(model_test_pred_dict)
-    model_train_predictions = pd.DataFrame(model_train_pred_dict)
-    return model_train_predictions, model_test_predictions
+        print("Base model:", model_name)
+        S_test_i = np.zeros((T.shape[0], N_FOLDS))
+        total_rmse = 0
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
+            X_train = X[train_idx]
+            y_train = Y[train_idx]
+            X_holdout = X[test_idx]
+            y_holdout = Y[test_idx]
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_holdout)[:]
+            S_train[test_idx, i] = y_pred
+            S_test_i[:, j] = model.predict(T)[:]
+            rmse1 = rmse(y_holdout, y_pred)
+            total_rmse = total_rmse + rmse1
+            print("fold:", j + 1, "rmse:", rmse1)
+
+        S_test[:, i] = S_test_i.mean(1)
+        print("Avg rmse:", total_rmse / (j + 1))
+
+    print("Predict final value with stack_model")
+    x_train, x_test, y_train, y_test = train_test_split(
+        S_train, Y, test_size=0.31, random_state=324)
+    print("Trainning ...")
+    stack_model.fit(x_train, y_train)
+    y_test_pred = stack_model.predict(x_test)
+    print("rmse:", rmse(y_test, y_test_pred))
+    y_pred = stack_model.predict(S_test)[:]
+    return y_pred
 
 
-def train_models_alldata(models):
-    model_test_pred_dict = {}
-    model_train_pred_dict = {}
-    y_train = Y
-    y_test = Y_test
-    for model_dict in models:
-        # print(model_dict.keys())
-        model_name = model_dict['model_name']
-        model = model_dict['model']
-        features = model_dict['features']
-        x_train = X[features]
-        x_test = X_test[features]
-        model.fit(x_train, y_train)
-        y_train_prediction = model.predict(x_train)
-        y_prediction = model.predict(x_test)
-        rmse1 = rmse(y_test, y_prediction)
-        model_dict['y_prediction'] = y_prediction
-        model_dict['rmse'] = rmse1
-        print("Model:", model_name, " RMSE:", rmse1)
-        model_test_pred_dict[model_name] = y_prediction
-        model_train_pred_dict[model_name] = y_train_prediction
-    model_test_predictions = pd.DataFrame(model_test_pred_dict)
-    model_train_predictions = pd.DataFrame(model_train_pred_dict)
-    return model_train_predictions, model_test_predictions
+# Kfold, Fit and predict for model
+def kfold_fit_predict(model, X, Y, T):
+    kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
+    total_rmse = 0
+    for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
+        X_train = X[train_idx]
+        y_train = Y[train_idx]
+        X_holdout = X[test_idx]
+        y_holdout = Y[test_idx]
+        model.fit(X_train, y_train)
+        y_pred = model.predict(X_holdout)[:]
+        rmse1 = rmse(y_holdout, y_pred)
+        total_rmse = total_rmse + rmse1
+        print("fold:", j, "rmse:", rmse1)
+    print("Avg rmse:", total_rmse / (j + 1))
+
+    print("Predict final value")
+    y_pred = model.predict(T)[:]
+    return y_pred
 
 
-def predict_eval_set(models, eval_set):
-    model_predictions = pd.DataFrame()
-    model_pred_dict = {}
-    for model_dict in models:
-        # print(model_dict.keys())
-        model_name = model_dict['model_name']
-        model = model_dict['model']
-        features = model_dict['features']
-        x_eval = eval_set[features]
-        y_eval = model.predict(x_eval)
-        print("Model:", model_name, "prediction:", y_eval[:5])
-        model_pred_dict[model_name] = y_eval
-    model_predictions = pd.DataFrame(model_pred_dict)
-    return model_predictions
+def model_stacking_avg():
+    print("Model stacking using AVG....")
+    print("Round 2: Predicting for evaluation data using model stacking ...")
+    model_eval_predictions['mean_predict'] = model_eval_predictions.mean(
+        axis=1)
+    print(model_eval_predictions[:5])
+    return model_eval_predictions['mean_predict'].values
+
+
+def model_stacking_boost():
+    # rmse: 0.15889702534474967, LB score:  0.14223
+    # Boost all models, rmse: 0.15941960738055486, LB Score: 0.14033
+    print("Model stacking using GBM....")
+    model = GradientBoostingRegressor(n_estimators=500)
+    model_boost = AdaBoostRegressor(
+        base_estimator=model, n_estimators=200, random_state=200)
+
+    features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
+    X_in = X[features].values
+    Y_in = Y.values
+    T = eval_set[features].values
+
+    y_prediction = stack_fit_predict(models, model_boost, X_in, Y_in, T)
+    print(y_prediction[:5])
+    return y_prediction
+
+
+def model_stacking_xgboost():
+    # AdaBoost(XGB)=> stack (ZXB + RF + LR(boost), 5 kfolds)
+    # rmse:0.16098025986999429, LB score: 0.14577
+    # AdaBoost(XGB)=> stack (ZXB + RF + LR(boost), 10 kfolds)
+    # rmse:0.16145689394773224, LB score: 0.13951
+    # AdaBoost(XGB)=> stack (ZXB + RF + LR(boost) + GBM, 10 kfolds)
+    # rmse:0.1555152075958718, LB score:
+    # AdaBoost(XGB)=> stack (ZXB + GBM, 10 kfolds)
+    # rmse:0.16145230381256545, LB score:
+    # AdaBoost(XGB)=> stack (ZXB + RF + LR(boost) + DT + GBM, 10 kfolds)
+    # rmse:0.15018237407328916, LB score: 0.13643
+
+    print("Model stacking using xgboosting....")
+    model_name, model = xgboost_model()
+    model_boost = AdaBoostRegressor(
+        base_estimator=model, n_estimators=200, random_state=200)
+    features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
+    X_in = X[features].values
+    Y_in = Y.values
+    T = eval_set[features].values
+
+    y_prediction = stack_fit_predict(models, model_boost, X_in, Y_in, T)
+    print(y_prediction[:5])
+    return y_prediction
 
 
 def model_stacking_deepNN():
@@ -355,48 +501,23 @@ def model_stacking_deepNN():
     return y_prediction
 
 
-def model_stacking_avg():
-    print("Model stacking using AVG....")
-    print("Round 2: Predicting for evaluation data using model stacking ...")
-    model_eval_predictions['mean_predict'] = model_eval_predictions.mean(
-        axis=1)
-    print(model_eval_predictions[:5])
-    return model_eval_predictions['mean_predict'].values
+def model_kfold_xgboost():
+    # rmse: 0.12772005156128946
+    # Best score: 0.13676
+    # rmse: 0.12225599896729336
+    # Best score: 0.13659
 
-
-def model_stacking_boost():
-    # Best score: 0.13484
-    # Your submission scored 0.13544, which is not an improvement of your best score. Keep trying!
-    # Boost RMSE: 0.13833503274760703
-    # score. Keep trying!
-    print("Model stacking using boosting....")
-    x_train, x_test, y_train, y_test = train_test_split(
-        model_train_predictions, Y, test_size=0.31, random_state=324)
-    model = GradientBoostingRegressor(n_estimators=500)
-    model_boost = AdaBoostRegressor(
-        base_estimator=model, n_estimators=200, random_state=200)
-    model_boost.fit(x_train, y_train)
-    y_prediction = model_boost.predict(x_test)
-    print("Boost:", rmse(y_test, y_prediction))
-    print("Round 2: Predicting for evaluation data using model stacking ...")
-    y_prediction = model_boost.predict(model_eval_predictions)
-    print(y_prediction[:5])
-    return y_prediction
-
-
-def model_stacking_xgboost():
-    # Best score: 0.13484
     print("Model stacking using xgboosting....")
-    x_train, x_test, y_train, y_test = train_test_split(
-        model_train_predictions, Y, test_size=0.31, random_state=324)
     model_name, model = xgboost_model()
     model_boost = AdaBoostRegressor(
         base_estimator=model, n_estimators=200, random_state=200)
-    model_boost.fit(x_train, y_train)
-    y_prediction = model_boost.predict(x_test)
-    print("Boost:", rmse(y_test, y_prediction))
-    print("Round 2: Predicting for evaluation data using model stacking ...")
-    y_prediction = model_boost.predict(model_eval_predictions)
+    # model_boost.fit(x_train, y_train)
+    features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
+    X_in = X[features].values
+    Y_in = Y.values
+    T = eval_set[features].values
+
+    y_prediction = kfold_fit_predict(model_boost, X_in, Y_in, T)
     print(y_prediction[:5])
     return y_prediction
 
@@ -448,7 +569,7 @@ def export_saleprice(y_prediction):
     print("Evaluation output len:", len(eval_output))
     today = str(datetime.date.today())
     eval_output.to_csv(DATA_DIR + '/' + today + '-' +
-                       'export' + '.csv', index=False)
+                       'stack' + '.csv', index=False)
 
 
 # ---- Main program --------------
@@ -481,19 +602,20 @@ print(train_set.iloc[:5, :5])
 X, Y, X_train, X_test, Y_train, Y_test = split_train_set(
     train_set, target_log)
 
-print("Model building ......")
-models = build_models(train_set, target_log)
-print("Training model ...")
-model_train_predictions, model_test_predictions = train_models(models)
-print(model_test_predictions.head(5))
-print("Round 1:Predicting for evaluation data")
-model_eval_predictions = predict_eval_set(models, eval_set)
-print(model_eval_predictions.head(5))
+# print("Model building ......")
+models = build_models()
+# print("Training model ...")
+# model_train_predictions, model_test_predictions = train_models(models)
+# print(model_test_predictions.head(5))
+# print("Round 1:Predicting for evaluation data")
+# model_eval_predictions = predict_eval_set(models, eval_set)
+# print(model_eval_predictions.head(5))
 
 # Use DeepNNModel to stack models
 y_prediction = model_stacking_xgboost()
-# y_prediction = model_stacking2()
+# y_prediction = model_stacking_boost()
 
+# y_prediction = model_kfold_xgboost()
 
 # Export predicted sale price of evaluation data to submit to competition
 export_saleprice(y_prediction)
