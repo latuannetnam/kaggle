@@ -276,7 +276,7 @@ def build_model(model_name, model, boost=False):
     return model_dict
 
 
-def build_models():
+def build_models_level1():
     # model_name, model = linear_model()
     # model_name, model = decision_tree_model()
     # model_name, model = random_forest_model()
@@ -394,18 +394,33 @@ def model_stacking_avg():
 
 
 def model_stacking_boost():
-    # rmse: 0.15889702534474967, LB score:  0.14223
-    # Boost all models, rmse: 0.15941960738055486, LB Score: 0.14033
+    # GDM(n=100, depth=1, loss='huber')=> stack (XB + RF + LR(boost) + DT(boost) + GBM + ET(boost), 10 kfolds)
+    # rmse: 0.1392549, LB score:
     print("Model stacking using GBM....")
-    model = GradientBoostingRegressor(n_estimators=500)
+    model = GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
     model_boost = AdaBoostRegressor(
         base_estimator=model, n_estimators=200, random_state=200)
-
-    features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
+    # features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
+    features = X.columns.values
     X_in = X[features].values
     Y_in = Y.values
-    T = eval_set[features].values
-    y_prediction = stack_fit_predict(models, model_boost, X_in, Y_in, T)
+    T_in = eval_set[features].values
+    X_out, T_out = model_stack_train(models, X_in, Y_in, T_in)
+
+    # find best param
+    # 'min_child_weight':  [1, 2, 5, 10]
+    # print("Finding best param for model ....")
+    # param_grid = {"n_estimators": [50, 100, 200, 500],
+    #               "max_depth": [1, 5, 10, 50],
+    #               "loss": ['ls', 'lad', 'huber', 'quantile']
+    #               }
+    # grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
+    # grid_search.fit(X_out, Y_in)
+    # print(grid_search.best_params_)
+    # quit()
+
+    print("Predict final value with stacking model")
+    y_prediction = model_train_predict(model, X_out, Y_in, T_out)
     print(y_prediction[:5])
     return y_prediction
 
@@ -575,7 +590,7 @@ X, Y, X_train, X_test, Y_train, Y_test = split_train_set(
     train_set, target_log)
 
 # print("Model building ......")
-models = build_models()
+models = build_models_level1
 # print("Training model ...")
 # model_train_predictions, model_test_predictions = train_models(models)
 # print(model_test_predictions.head(5))
@@ -584,8 +599,8 @@ models = build_models()
 # print(model_eval_predictions.head(5))
 
 # Use DeepNNModel to stack models
-y_prediction = model_stacking_xgboost()
-# y_prediction = model_stacking_boost()
+# y_prediction = model_stacking_xgboost()
+y_prediction = model_stacking_boost()
 
 # y_prediction = model_kfold_xgboost()
 
