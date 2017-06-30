@@ -306,7 +306,7 @@ def build_models_level1():
     # Linear decision
     model_name, model = linear_model()
     model_dict = build_model(model_name, model, True)
-    models.append(model_dict.copy())
+    # models.append(model_dict.copy())
 
     # Gradient Boost
     model_name, model = gbm_model()
@@ -316,10 +316,11 @@ def build_models_level1():
 
 
 # Kfold, train for each model, stack result
-def model_stack_train(models, X, Y, T):
-    kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
-    S_train = np.zeros((X.shape[0], len(models)))
-    S_test = np.zeros((T.shape[0], len(models)))
+def model_stack_train(models, X_in, Y_in, T_in):
+    n_folds = len(models)
+    kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
+    S_train = np.zeros((X_in.shape[0], len(models)))
+    S_test = np.zeros((T_in.shape[0], len(models)))
     print("S_train shape:", S_train.shape, " S_test shape:",
           S_test.shape)
     for i, model_dict in enumerate(models):
@@ -327,17 +328,17 @@ def model_stack_train(models, X, Y, T):
         model = model_dict['model']
         features = model_dict['features']
         print("Base model:", model_name)
-        S_test_i = np.zeros((T.shape[0], N_FOLDS))
+        S_test_i = np.zeros((T_in.shape[0], n_folds))
         total_rmse = 0
-        for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
-            X_train = X[train_idx]
-            y_train = Y[train_idx]
-            X_holdout = X[test_idx]
-            y_holdout = Y[test_idx]
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
+            X_train = X_in[train_idx]
+            y_train = Y_in[train_idx]
+            X_holdout = X_in[test_idx]
+            y_holdout = Y_in[test_idx]
             model.fit(X_train, y_train)
             y_pred = model.predict(X_holdout)[:]
             S_train[test_idx, i] = y_pred
-            S_test_i[:, j] = model.predict(T)[:]
+            S_test_i[:, j] = model.predict(T_in)[:]
             rmse1 = rmse(y_holdout, y_pred)
             total_rmse = total_rmse + rmse1
             print("fold:", j + 1, "rmse:", rmse1)
@@ -345,21 +346,21 @@ def model_stack_train(models, X, Y, T):
         S_test[:, i] = S_test_i.mean(1)
         print("Avg rmse:", total_rmse / (j + 1))
 
-    print("Detect zero value")
-    print(np.where(S_train == 0))
-    print(np.where(S_test == 0))
+    # print("Detect zero value")
+    # print(np.where(S_train == 0))
+    # print(np.where(S_test == 0))
     return S_train, S_test
 
 
 # train and predict with given model, X: input, Y:label, T: test set
-def model_train_predict(model, X, Y, T):
+def model_train_predict(model, X_in, Y_in, T_in):
     x_train, x_test, y_train, y_test = train_test_split(
-        X, Y, test_size=0.31, random_state=324)
+        X_in, Y_in, test_size=0.31, random_state=324)
     print("Trainning ...")
     model.fit(x_train, y_train)
     y_test_pred = model.predict(x_test)
     print("rmse:", rmse(y_test, y_test_pred))
-    y_pred = model.predict(T)[:]
+    y_pred = model.predict(T_in)[:]
     return y_pred
 
 
@@ -394,8 +395,11 @@ def model_stacking_avg():
 
 
 def model_stacking_boost():
-    # GDM(n=100, depth=1, loss='huber')=> stack (XB + RF + LR(boost) + DT(boost) + GBM + ET(boost), 10 kfolds)
-    # rmse: 0.1392549, LB score:
+    # GDM(n=100, depth=1, loss='huber')=> stack (XB + RF  + DT(boost) + GBM + ET(boost), 5 kfolds)
+    # rmse: 0.14104798652556305, LB score: 0.13001 => Best score
+    # ADABoost(GDM(n=100, depth=1, loss='huber')) => stack (XB + RF  + DT(boost) + GBM + ET(boost), 5 kfolds)
+    # rmse: 0.1439142743659034, LB score: 
+
     print("Model stacking using GBM....")
     model = GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
     model_boost = AdaBoostRegressor(
@@ -446,6 +450,8 @@ def model_stacking_xgboost():
     # rmse:  0.14513938, LB score: 0.13643
     # XBoost(n=200, depth=1)=> stack (XB + RF + LR(boost) + DT(boost) + GBM + ET(boost), 10 kfolds)
     # rmse:  0.145002692, LB score: 0.13643
+    # XBoost(n=200, depth=1)=> stack (XB + RF + DT(boost) + GBM + ET(boost), 5 kfolds)
+    # rmse:  rmse: 0.1436956018730716, LB score:  0.13155
 
     print("Model stacking using xgboosting....")
     model = XGBRegressor(n_estimators=200, max_depth=1, n_jobs=-1)
@@ -590,7 +596,7 @@ X, Y, X_train, X_test, Y_train, Y_test = split_train_set(
     train_set, target_log)
 
 # print("Model building ......")
-models = build_models_level1
+models = build_models_level1()
 # print("Training model ...")
 # model_train_predictions, model_test_predictions = train_models(models)
 # print(model_test_predictions.head(5))

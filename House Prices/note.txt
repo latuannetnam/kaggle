@@ -1,0 +1,14 @@
+1. 2017-06-30
+- Best score:  0.13001, Rank: 901 (top 47%)
+- rmse: 0.14104798652556305
+- Base models:
+    + XGBRegressor(n_estimators=500, max_depth=5, n_jobs=-1)
+    + GradientBoostingRegressor(n_estimators=500)
+    + ExtraTreesRegressor(n_estimators=500, n_jobs=-1)
+    + DecisionTreeRegressor(max_depth=20)
+    + RandomForestRegressor(n_estimators=500, n_jobs=-1)
+    + Kfolds = 5
+    + n_features = 77
+- Stack model:
+    + GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+
