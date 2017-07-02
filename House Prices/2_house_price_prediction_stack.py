@@ -47,7 +47,8 @@ IMPORTANT_THRESHOLD_PERCENT = 20
 IMPORTANT_THRESHOLD = 0.00
 
 # Filter out feature with NaN percent > threshold
-NAN_THRESHOLD = 0.9
+# NAN_THRESHOLD = 0.9
+NAN_THRESHOLD = 0
 # number of kfolds
 N_FOLDS = 5
 
@@ -116,17 +117,12 @@ class StackRegression:
         self.train_data = self.train_data.drop(
             self.train_data[self.train_data['Id'] == 1025].index)
 
-    def transform_data(self):
-        # Seperate input and label from train_data
-        input_data = self.train_data[self.features]
-
-        # Combine train + eval data
-        combine_data = pd.concat(
-            [input_data, self.eval_data], keys=['train', 'eval'])
-        combine_data.head(5)
+    def fill_null_values(self, data):
+        # credit to:Tanner Carbonati
+        # (https://www.kaggle.com/tannercarbonati/detailed-data-analysis-ensemble-modeling)
 
         # Get high percent of NaN data
-        null_data = combine_data.isnull()
+        null_data = data.isnull()
         total = null_data.sum().sort_values(ascending=False)
         percent = (null_data.sum() / null_data.count()
                    ).sort_values(ascending=False)
@@ -134,40 +130,48 @@ class StackRegression:
                                  keys=['Total', 'Percent'])
         high_percent_miss_data = missing_data[missing_data['Percent']
                                               > NAN_THRESHOLD]
-        print("high percent missing:", high_percent_miss_data)
+        print("high percent missing:", len(high_percent_miss_data))
         # Drop high percent NaN columns
         drop_columns = high_percent_miss_data.index.values
-        print("Drop columns:", drop_columns)
-        combine_data.drop(drop_columns, axis=1, inplace=True)
-        print("Number of features:", len(combine_data.columns))
-
+        # print("Drop columns:", drop_columns)
+        # data.drop(drop_columns, axis=1, inplace=True)
         print("Filling NaN values ...")
         # Get data with column type is number
-        numeric_data = combine_data.select_dtypes(include=[np.number])
+        numeric_data = data.select_dtypes(include=[np.number])
         # For each NaN, fill with mean of columns'value
-        null_data = numeric_data.isnull().sum().sort_values(ascending=False)
-        # print("Before fillNaN")
-        # print(null_data[null_data>0])
         cols = numeric_data.columns.values
         numeric_features = cols
         for col in cols:
-            combine_data[col].fillna(combine_data[col].mean(), inplace=True)
+            data[col].fillna(data[col].mean(), inplace=True)
 
         # Get data with column type is object
-        object_data = combine_data.select_dtypes(include=['object'])
-        # For each NaN, fill with mean of columns'value
-        null_data = object_data.isnull().sum().sort_values(ascending=False)
-        # print("Before fillNaN")
-        # print(null_data[null_data>0])
+        object_data = data.select_dtypes(include=['object'])
         cols = object_data.columns.values
         object_features = cols
-        for col in cols:
-            combine_data[col].fillna(combine_data[col].mode()[0], inplace=True)
+        print('Object columns', len(cols))
+        object_data = data[cols].fillna(value='None')
+        data.update(object_data)
+        print(object_data['Alley'].head(5))
+        # For each NaN, fill with mean of columns'value
+        # for col in cols:
+        #     data[col].fillna(data[col].mode()[0], inplace=True)
 
-        null_data = combine_data.isnull().sum().sort_values(ascending=False)
+        null_data = data.isnull().sum().sort_values(ascending=False)
         print("After fillNaN")
         print(null_data[null_data > 0])
+        print("Number of features:", len(data.columns))
 
+        return object_features
+
+    def transform_data(self):
+        # Seperate input and label from train_data
+        input_data = self.train_data[self.features]
+
+        # Combine train + eval data
+        combine_data = pd.concat(
+            [input_data, self.eval_data], keys=['train', 'eval'])
+        object_features = self.fill_null_values(combine_data)
+        # print(combine_data['Alley'].head(5))
         print("Feature scaling ...")
         # Standarlize object data with Label Encoder
         object_data_standardlized = combine_data[object_features].apply(
@@ -184,17 +188,9 @@ class StackRegression:
         self.train_set_scale = combine_data_scale.loc['train']
         self.eval_set_scale = combine_data_scale.loc['eval']
         print("Before transform:")
-        print(self.train_data.iloc[:5, :5])
+        print(self.train_set.iloc[:5, :5])
         print("After transform:")
         print(self.train_set_scale.iloc[:5, :5])
-
-    def split_train_set(self, X, Y):
-        x_train, x_test, y_train, y_test = train_test_split(
-            X, Y, test_size=0.31, random_state=324)
-        print("train size:", len(x_train))
-        print("test size:", len(x_test))
-        print("Split ratio", len(x_test) / len(x_train))
-        return x_train, x_test, y_train, y_test
 
     def deepNN_model(self, x, y):
         # RMSE: 0.21037404583781194
@@ -241,7 +237,7 @@ class StackRegression:
         return features
 
     def build_models_level1(self):
-        print('Bulding models ..')
+        print('Bulding models level 1..')
         models = []
         # model_name = model.__class__.__name__
         # XGBoost
@@ -298,6 +294,64 @@ class StackRegression:
         print('Total model:', len(models))
         return models
 
+    def build_models_level2(self):
+        print('Bulding models level 2 ..')
+        models = []
+        # model_name = model.__class__.__name__
+        # XGBoost
+        model_dict = {
+            # 'model': XGBRegressor(n_estimators=500, max_depth=5, n_jobs=-1),
+            'model': XGBRegressor(n_estimators=100, max_depth=1, n_jobs=-1, random_state=123),
+            'model_param': {"n_estimators": [50, 100, 200, 500],
+                            "max_depth": [1, 3, 5, 10],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # Extra Tree Boostt
+        model_dict = {
+            # 'model': ExtraTreesRegressor(n_estimators=500, n_jobs=-1),
+            'model': ExtraTreesRegressor(n_estimators=50, max_depth=10, n_jobs=-1, random_state=456),
+            'model_param': {"n_estimators": [50, 100, 200, 500],
+                            "max_depth": [1, 3, 5, 10],
+                            },
+            'boost': False
+        }
+        # models.append(model_dict.copy())
+
+        # Random forest
+        model_dict = {
+            # 'model': RandomForestRegressor(n_estimators=500, n_jobs=-1, random_state=200),
+            'model': RandomForestRegressor(n_estimators=500, max_depth=10, n_jobs=-1, random_state=789),
+            'model_param': {"n_estimators": [50, 100, 200, 500],
+                            "max_depth": [1, 3, 5, 10],
+                            },
+            'boost': False
+        }
+        # models.append(model_dict.copy())
+
+        # Decision Tree
+        model_dict = {
+            'model': DecisionTreeRegressor(max_depth=10, random_state=146),
+            'model_param': {"max_depth": [1, 10, 20, 50],
+                            },
+            'boost': True
+        }
+        # models.append(model_dict.copy())
+
+        # Gradient Boost
+        model_dict = {
+            'model': GradientBoostingRegressor(n_estimators=200, max_depth=1, random_state=357),
+            'model_param': {"n_estimators": [50, 100, 200, 500],
+                            "max_depth": [1, 10, 20, 50],
+                            },
+            'boost': True
+        }
+        models.append(model_dict.copy())
+        print('Total model:', len(models))
+        return models
+
     def search_best_params(self, models, X, Y):
         for model_dict in models:
             model = model_dict['model']
@@ -307,7 +361,7 @@ class StackRegression:
             grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
             grid_search.fit(X, Y)
             print(grid_search.best_params_)
-            quit()
+        quit()
 
     # Kfold, train for each model, stack result
     def model_stack_train(self, models, X_in, Y_in, T_in):
@@ -346,22 +400,11 @@ class StackRegression:
 
             S_test[:, i] = S_test_i.mean(1)
             print("Model rmse:", model_rmse / (j + 1))
-        print("All AVG rmse", all_rmse / (j + 1) / len(models))
+        print("All AVG rmse:", all_rmse / (j + 1) / len(models))
         # print("Detect zero value")
         # print(np.where(S_train == 0))
         # print(np.where(S_test == 0))
         return S_train, S_test
-
-    # train and predict with given model, X: input, Y:label, T: test set
-    def model_train_predict(self, model, X_in, Y_in, T_in):
-        x_train, x_test, y_train, y_test = train_test_split(
-            X_in, Y_in, test_size=0.31, random_state=324)
-        print("Trainning ...")
-        model.fit(x_train, y_train)
-        y_test_pred = model.predict(x_test)
-        print("rmse:", self.rmse(y_test, y_test_pred))
-        y_pred = model.predict(T_in)[:]
-        return y_pred
 
     def save_train_data(self, level, X_in, Y_in, T_in):
         save_dir = DATA_DIR + "/" + level
@@ -393,20 +436,67 @@ class StackRegression:
         print(T_in[:5])
         return X_in, Y_in, T_in
 
-    def train_level1(self):
-        level = LEVEL_1
-        # features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
-        X = self.train_set
-        Y = self.target_log
-        T = self.eval_set
+    def train_level1_single_dataset(self, X, Y, T):
         features = X.columns.values
         X_in = X[features].values
         Y_in = Y.values
         T_in = T[features].values
         models_level1 = self.build_models_level1()
+        # self.search_best_params(models, X, Y)
         X_out, T_out = self.model_stack_train(models_level1, X_in, Y_in, T_in)
-        self.save_train_data(level, X_out, Y_in, T_out)
-        return models_level1, X_out, T_out
+        # print("X")
+        # print(X.iloc[:5, :5])
+        # print("X_out")
+        # print(X_out[:5])
+        # print("T_out")
+        # print(T_out[:5])
+        return X_out, T_out
+
+    def train_level1(self):
+        level = LEVEL_1
+        # features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
+        print("Training for non-scale data ...")
+        X = self.train_set
+        Y = self.target
+        T = self.eval_set
+        X_out_no_scale, T_out_no_scale = self.train_level1_single_dataset(
+            X, Y, T)
+
+        print("Training for scaled data ...")
+        X = self.train_set_scale
+        Y = self.target_log
+        T = self.eval_set_scale
+        X_out_scale, T_out_scale = self.train_level1_single_dataset(X, Y, T)
+
+        print("Combine 2 sets of data")
+        X_out = np.concatenate((X_out_no_scale, X_out_scale), axis=1)
+        T_out = np.concatenate((T_out_no_scale, T_out_scale), axis=1)
+        print(X_out[:5])
+        self.save_train_data(level, X_out, Y, T_out)
+        return X_out, T_out
+
+    def train_level2(self, load_data=True):
+        print("Training for level 2 ...")
+        level = LEVEL_2
+        if load_data:
+            X, Y, T = self.load_pretrained_data(LEVEL_1)
+        models_level2 = self.build_models_level2()
+        # self.search_best_params(models_level2, X, Y)
+        X_out, T_out = self.model_stack_train(models_level2, X, Y, T)
+        print(X_out[:5])
+        self.save_train_data(level, X_out, Y, T_out)
+        return X_out, T_out
+
+    # train and predict with given model, X: input, Y:label, T: test set
+    def model_train_predict(self, model, X_in, Y_in, T_in):
+        x_train, x_test, y_train, y_test = train_test_split(
+            X_in, Y_in, test_size=0.31, random_state=324)
+        print("Trainning ...")
+        model.fit(x_train, y_train)
+        y_test_pred = model.predict(x_test)
+        print("rmse:", self.rmse(y_test, y_test_pred))
+        y_pred = model.predict(T_in)[:]
+        return y_pred
 
     def model_stacking(self, model_choice=1, boost=False, level=LEVEL_1, load_data=True):
         models = []
@@ -520,16 +610,21 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 1
+option = 4
 if option == 1:
     # Run from begining to level 1
     stack_regression.load_data()
     stack_regression.transform_data()
-    # stack_regression.train_level1()
+    stack_regression.train_level1()
 elif option == 2:
-    # load data and run for level 2
-    # X_in, Y_in, T_in = stack_regression.load_pretrained_data(LEVEL_1)
-    stack_regression.model_stacking(model_choice=1)
+    # Train data for model level 2. Must run option = 1 first
+    stack_regression.train_level2()
+elif option == 3:
+    # load data from level 1 and predict. Must run option = 1 first
+    stack_regression.model_stacking(model_choice=1, level=LEVEL_1)
+elif option == 4:
+    # load data from level 2 and predict. Must run option = 2 first
+    stack_regression.model_stacking(model_choice=1, level=LEVEL_2)
 elif option == 5:
     stack_regression.load_data()
     stack_regression.transform_data()

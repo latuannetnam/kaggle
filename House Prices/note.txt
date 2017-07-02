@@ -1,3 +1,6 @@
+0. Best score:
+  - 2017-07-01: Round 7, Best score:0.12909, Rank: 882, Top 46%
+  - 2017-07-02: Round 9, Best score:0.12889, Rank: 872, Top 45%
 1. 2017-06-30
 - Rank 1: 0.01557
 - Rank 2: 0.105672
@@ -53,3 +56,52 @@
     + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber') => Boost
     + Stack RMSE:  0.1437158036472
     + score: 0.13299 < Round 4        
+ -Round 6: 
+    + data: non-scale features
+    + Boost: AdaBoostRegressor(base_estimator=model_temp, n_estimators=200, random_state=200)
+    + XGBRegressor(n_estimators=500, max_depth=3, n_jobs=-1, random_state=123),: RMSE=0.125400659888
+    + ExtraTreesRegressor(n_estimators=50, max_depth=10, n_jobs=-1, random_state=456): RMSE= 0.143059197779
+    + RandomForestRegressor(n_estimators=500, max_depth=10, n_jobs=-1, random_state=789): RMSE=0.142867999289
+    + DecisionTreeRegressor(max_depth=10, random_state=146) => Boost: RMSE= 0.1414896008944
+    + GradientBoostingRegressor(n_estimators=500, max_depth=1, random_state=357) => Boost : RMSE0.1432036356539
+    + Kfolds = 5
+    + n_features = 77 
+    + AVG RMSE: 0.1392042187011
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE: 0.13831248511251
+    + score:  0.13057 < 0.13018   
+  -Round 7: Best score:0.12909, Rank: 882, Top 46%
+    + num features: 77
+    + data: non-scale features (Y) + scale features (log(Y))
+    + Boost: AdaBoostRegressor(base_estimator=model_temp, n_estimators=200, random_state=200)
+    + XGBRegressor(n_estimators=500, max_depth=3, n_jobs=-1, random_state=123),: RMSE=0.125400659888
+    + ExtraTreesRegressor(n_estimators=50, max_depth=10, n_jobs=-1, random_state=456): RMSE= 0.143059197779
+    + RandomForestRegressor(n_estimators=500, max_depth=10, n_jobs=-1, random_state=789): RMSE=0.142867999289
+    + DecisionTreeRegressor(max_depth=10, random_state=146) => Boost: RMSE= 0.1414896008944
+    + GradientBoostingRegressor(n_estimators=500, max_depth=1, random_state=357) => Boost : RMSE0.1432036356539
+    + Kfolds = 5
+    + n_features = 77 
+    + AVG RMSE: 0.138798761786
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE: 0.138849117235557
+    + score:  0.12909 => Best   
+ - Round 8: (base models = Round 7)
+    + num features: 80    
+    + AVG RMSE:  0.13863344205998
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:   0.1391573479766
+    + score: 0.13049 < Round 7        
+    
+ 4. 2017-07-02:
+ - Round 9:
+    + base models level 1:
+        * models: Round 8 
+        * AVG RMSE:  0.13863344205998
+        * num features level 1: 80    
+    + base model level 2:
+        * XGBRegressor(n_estimators=100, max_depth=1, n_jobs=-1, random_state=123). RMSE: 0.13074541917
+        * GradientBoostingRegressor(n_estimators=200, max_depth=1, random_state=357). RMSE: 0.13404585765347
+        * AVG RMSE: 0.132395638412
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:   0.14031113935
+    + score: 0.12889 => Best
