@@ -83,8 +83,9 @@ class StackRegression:
 
         # Features
         eval_data_columns = self.eval_data.columns.values
-        features = eval_data_columns
-        self.features = np.setdiff1d(features, ['Id'])
+        # features = eval_data_columns
+        # self.features = np.setdiff1d(features, ['Id'])
+        self.features = eval_data_columns
         print("Features:", len(self.features))
 
     def explore_data(self):
@@ -117,10 +118,52 @@ class StackRegression:
         self.train_data = self.train_data.drop(
             self.train_data[self.train_data['Id'] == 1025].index)
 
-    def fill_null_values(self, data):
+    def fill_null_special_columns(self, data):
         # credit to:Tanner Carbonati
         # (https://www.kaggle.com/tannercarbonati/detailed-data-analysis-ensemble-modeling)
+        print("Filling NaN value for special columns ...")
+        # PoolQC
+        col = 'PoolQC'
+        print("Fill NaN for:", col)
+        data.loc[data['Id'] == 2421, col] = 'Ex'
+        data.loc[data['Id'] == 2504, col] = 'Ex'
+        data.loc[data['Id'] == 2600, col] = 'Fa'
 
+        # Check GarageYrBlt & YearBuilt
+        col = 'GarageYrBlt'
+        print("Fill NaN for:", col)
+        # print("Number of same YearBuild=", col, ":",
+        #   len(data[data[col] == data['YearBuilt']]))
+        # Update GarageYrBlt = YearBuilt
+        data.loc[data[col].isnull(), col] = data.loc[data[col].isnull(),
+                                                     'YearBuilt']
+        # print(data[['Id', col, 'YearBuilt']].loc[data['Id'] == 40])
+        # Garage columns
+        cols = ['GarageArea', 'GarageCars', 'GarageQual',
+                'GarageFinish', 'GarageCond', 'GarageType']
+        print("Fill NaN for:", cols)
+        for col in cols:
+            # print(col, ":", data[col].dtype)
+            if data[col].dtype == 'object':
+                data.loc[:, col] = 'None'
+            else:
+                data.loc[:, col] = 0
+
+        # KitchenQual: Kitchen quality
+        col = 'KitchenQual'
+        print("Fill NaN for:", col)
+        null_data = data[data[col].isnull()]
+        data.loc[data[col].isnull(), col] = 'TA'
+
+        # Electrical: Electrical system
+        col = 'Electrical'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'SBrkr'
+
+        # Alley
+        col = 'Alley'
+
+    def fill_null_values(self, data):
         # Get high percent of NaN data
         null_data = data.isnull()
         total = null_data.sum().sort_values(ascending=False)
@@ -132,7 +175,7 @@ class StackRegression:
                                               > NAN_THRESHOLD]
         print("high percent missing:", len(high_percent_miss_data))
         # Drop high percent NaN columns
-        drop_columns = high_percent_miss_data.index.values
+        # drop_columns = high_percent_miss_data.index.values
         # print("Drop columns:", drop_columns)
         # data.drop(drop_columns, axis=1, inplace=True)
         print("Filling NaN values ...")
@@ -151,7 +194,7 @@ class StackRegression:
         print('Object columns', len(cols))
         object_data = data[cols].fillna(value='None')
         data.update(object_data)
-        print(object_data['Alley'].head(5))
+
         # For each NaN, fill with mean of columns'value
         # for col in cols:
         #     data[col].fillna(data[col].mode()[0], inplace=True)
@@ -166,10 +209,12 @@ class StackRegression:
     def transform_data(self):
         # Seperate input and label from train_data
         input_data = self.train_data[self.features]
-
+        print("Input columns:", len(input_data.columns.values),
+              " Eval columns:", len(self.eval_data.columns.values))
         # Combine train + eval data
         combine_data = pd.concat(
             [input_data, self.eval_data], keys=['train', 'eval'])
+        self.fill_null_special_columns(combine_data)
         object_features = self.fill_null_values(combine_data)
         # print(combine_data['Alley'].head(5))
         print("Feature scaling ...")
@@ -181,7 +226,9 @@ class StackRegression:
         std_scale = StandardScaler().fit_transform(combine_data.astype(float).values)
         combine_data_scale = pd.DataFrame(
             std_scale, index=combine_data.index, columns=combine_data.columns)
-
+        # Remove ID from features
+        self.features = np.setdiff1d(self.features, ['Id'])
+        combine_data = combine_data[self.features]
         # split train_set and evaluation set
         self.train_set = combine_data.loc['train']
         self.eval_set = combine_data.loc['eval']
@@ -610,12 +657,12 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 4
+option = 1
 if option == 1:
     # Run from begining to level 1
     stack_regression.load_data()
     stack_regression.transform_data()
-    stack_regression.train_level1()
+    # stack_regression.train_level1()
 elif option == 2:
     # Train data for model level 2. Must run option = 1 first
     stack_regression.train_level2()
