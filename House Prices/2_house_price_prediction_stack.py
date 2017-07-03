@@ -452,8 +452,8 @@ class StackRegression:
         print('Total model:', len(models))
         return models
 
-    def build_models_level2(self):
-        print('Bulding models level 2..')
+    def build_models_level3(self):
+        print('Bulding models level 3..')
         models = []
         # model_name = model.__class__.__name__
 
@@ -498,8 +498,8 @@ class StackRegression:
         print('Total model:', len(models))
         return models
 
-    def build_models_level3(self):
-        print('Bulding models level 3 ..')
+    def build_models_level2(self):
+        print('Bulding models level 2 ..')
         models = []
         # model_name = model.__class__.__name__
         # XGBoost
@@ -655,12 +655,12 @@ class StackRegression:
     def train_level1(self):
         level = LEVEL_1
         # features = importance_features(model, X, Y, IMPORTANT_THRESHOLD)
-        print("Training for non-scale data ...")
-        X = self.train_set
-        Y = self.target
-        T = self.eval_set
-        X_out_no_scale, T_out_no_scale = self.train_level1_single_dataset(
-            X, Y, T)
+        # print("Training for non-scale data ...")
+        # X = self.train_set
+        # Y = self.target
+        # T = self.eval_set
+        # X_out_no_scale, T_out_no_scale = self.train_level1_single_dataset(
+        #     X, Y, T)
 
         print("Training for scaled data ...")
         X = self.train_set_scale
@@ -668,9 +668,11 @@ class StackRegression:
         T = self.eval_set_scale
         X_out_scale, T_out_scale = self.train_level1_single_dataset(X, Y, T)
 
-        print("Combine 2 sets of data")
-        X_out = np.concatenate((X_out_no_scale, X_out_scale), axis=1)
-        T_out = np.concatenate((T_out_no_scale, T_out_scale), axis=1)
+        # print("Combine 2 sets of data")
+        # X_out = np.concatenate((X_out_no_scale, X_out_scale), axis=1)
+        # T_out = np.concatenate((T_out_no_scale, T_out_scale), axis=1)
+        X_out = X_out_scale
+        T_out = T_out_scale
         print(X_out[:5])
         self.save_train_data(level, X_out, Y, T_out)
         return X_out, T_out
@@ -708,6 +710,26 @@ class StackRegression:
         y_test_pred = model.predict(x_test)
         print("rmse:", self.rmse(y_test, y_test_pred))
         y_pred = model.predict(T_in)[:]
+        return y_pred
+
+    # Kfold, Fit and predict for model
+    def kfold_fit_predict(self, model, X, Y, T):
+        kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
+        total_rmse = 0
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
+            X_train = X[train_idx]
+            y_train = Y[train_idx]
+            X_holdout = X[test_idx]
+            y_holdout = Y[test_idx]
+            model.fit(X_train, y_train)
+            y_pred = model.predict(X_holdout)[:]
+            rmse1 = self.rmse(y_holdout, y_pred)
+            total_rmse = total_rmse + rmse1
+            print("fold:", j, "rmse:", rmse1)
+        print("Avg rmse:", total_rmse / (j + 1))
+
+        print("Predict final value")
+        y_pred = model.predict(T)[:]
         return y_pred
 
     def model_stacking(self, model_choice=1, boost=False, level=LEVEL_1, load_data=True):
@@ -749,7 +771,8 @@ class StackRegression:
             model_temp = model
             model = AdaBoostRegressor(
                 base_estimator=model_temp, n_estimators=500, learning_rate=0.1, random_state=200)
-        y_prediction = self.model_train_predict(model, X, Y, T)
+        # y_prediction = self.model_train_predict(model, X, Y, T)
+        y_prediction = self.kfold_fit_predict(model, X, Y, T)
         self.export_prediction(y_prediction)
 
     def model_stacking_deepNN(self):
@@ -764,26 +787,6 @@ class StackRegression:
         y_prediction = model.predict(model_eval_predictions)
         print(y_prediction[:5])
         return y_prediction
-
-    # Kfold, Fit and predict for model
-    def kfold_fit_predict(self, model, X, Y, T):
-        kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
-        total_rmse = 0
-        for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
-            X_train = X[train_idx]
-            y_train = Y[train_idx]
-            X_holdout = X[test_idx]
-            y_holdout = Y[test_idx]
-            model.fit(X_train, y_train)
-            y_pred = model.predict(X_holdout)[:]
-            rmse1 = self.rmse(y_holdout, y_pred)
-            total_rmse = total_rmse + rmse1
-            print("fold:", j, "rmse:", rmse1)
-        print("Avg rmse:", total_rmse / (j + 1))
-
-        print("Predict final value")
-        y_pred = model.predict(T)[:]
-        return y_pred
 
     def model_kfold_xgboost(self):
         # rmse: 0.12772005156128946
@@ -822,7 +825,8 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 1
+option = 10
+model_choice = 1
 if option == 1:
     # Run from begining to level 1
     stack_regression.load_data()
@@ -836,13 +840,13 @@ elif option == 3:
     stack_regression.train_level3()
 elif option == 10:
     # load data from level 1 and predict. Must run option = 1 first
-    stack_regression.model_stacking(model_choice=1, level=LEVEL_1)
+    stack_regression.model_stacking(model_choice=model_choice, level=LEVEL_1)
 elif option == 11:
     # load data from level 2 and predict. Must run option = 2 first
-    stack_regression.model_stacking(model_choice=1, level=LEVEL_2)
+    stack_regression.model_stacking(model_choice=model_choice, level=LEVEL_2)
 elif option == 12:
     # load data from level 3 and predict. Must run option = 3 first
-    stack_regression.model_stacking(model_choice=1, level=LEVEL_3)
+    stack_regression.model_stacking(model_choice=model_choice, level=LEVEL_3)
 elif option == 20:
     # Train and predict with 1 level
     stack_regression.load_data()

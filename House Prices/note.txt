@@ -200,10 +200,48 @@
         * refined value transformation
         * AVG RMSE: 0.14001361287 => 0.13924047849100
     + base model level 2: Round 13
-        * AVG RMSE: 0.143643700101
+        * AVG RMSE: 0.143643700101 => 0.1434566227
     + base model level 3: Round 13
-        * AVG RMSE: 0.13052384489765   
+        * AVG RMSE: 0.13052384489765 => 0.12975319761   
     + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
-    + Stack RMSE:  0.14179591521
-    + score: 0.13245             
+    + Stack RMSE:  0.14179591521 => 0.14329289771467
+    + score: 0.13245 => 0.13274            
+- Round 15:
+    + base models level 1: Round 13
+        * use scale features only
+        * AVG RMSE: 0.13924047849100 => 0.139240478491
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.14329289771467 => 0.14049318180020
+    + score: 0.13274 => 0.12902     
+- Round 16:
+    + base models level 1: Round 13
+        * use scale features only
+        * AVG RMSE: 0.13924047849100 => 0.139240478491
+    + base model level 2:
+        * XGBRegressor(n_estimators=100, max_depth=1, n_jobs=-1, random_state=123). RMSE: 0.13074541917
+        * GradientBoostingRegressor(n_estimators=200, max_depth=1, random_state=357). RMSE: 0.13404585765347
+        * AVG RMSE: 0.13681841404           
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.14049318180020 =>  0.14171050626484
+    + score: 0.12902 => 0.13137        
+- Round 17:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + base model level 2: Round 16
+        * AVG RMSE: 0.13681841404           
+    + Stack model: 
+        * GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+        * kfold_fit_predict. Kfold = 5
+        * RMSE: 0.14171050626484 => 0.13380050134
+    + score: 0.13137  => 0.13122
+- Round 18:
+    + base models level 1: Round 17
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+        * kfold_fit_predict. Kfold = 5
+        * RMSE: 0.14171050626484 => 0.12797831410
+    + score: 0.12902  => 0.13095            
 
