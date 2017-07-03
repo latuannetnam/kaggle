@@ -195,4 +195,15 @@
     + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
     + Stack RMSE:  0.14179591521
     + score: 0.13245         
+- Round 14:
+    + base models level 1: Round 13
+        * refined value transformation
+        * AVG RMSE: 0.14001361287 => 0.13924047849100
+    + base model level 2: Round 13
+        * AVG RMSE: 0.143643700101
+    + base model level 3: Round 13
+        * AVG RMSE: 0.13052384489765   
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.14179591521
+    + score: 0.13245             
 

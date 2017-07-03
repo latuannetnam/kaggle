@@ -295,6 +295,31 @@ class StackRegression:
 
         return object_features
 
+    def transform_object_columns(self, data):
+        print("Transform object values based on mean of ", self.label)
+        object_data = data.select_dtypes(include=['object'])
+        object_features = object_data.columns.values
+        for col in object_features:
+            # get numeric value of col based on mean of label
+            data_st = self.train_data[[col, self.label]].groupby(
+                col, as_index=False).mean()
+            data_sr = pd.Series(data_st.index.values, index=data_st[col])
+            data_dict = data_sr.to_dict()
+            data_tf = data[col].map(data_dict)
+            data[col].update(data_tf)
+            # Update None = 0
+            data.loc[data[col] == 'None', col] = 0
+        # print(data[object_features][:20])
+
+    def transform_numeric_columns(self, data):
+        numeric_data = data.select_dtypes(include=[np.number])
+        std_scale = StandardScaler().fit_transform(numeric_data.values)
+        numeric_data_scale = pd.DataFrame(std_scale, index=numeric_data.index, columns=numeric_data.columns)
+        # numeric_data_scale[:20]
+        data_scale = data.copy()
+        data_scale.update(numeric_data_scale)
+        return data_scale
+
     def transform_data(self):
         # Seperate input and label from train_data
         input_data = self.train_data[self.features]
@@ -307,17 +332,14 @@ class StackRegression:
         object_features = self.fill_null_values(combine_data)
         # print(combine_data['Alley'].head(5))
         print("Feature scaling ...")
-        # Standarlize object data with Label Encoder
-        object_data_standardlized = combine_data[object_features].apply(
-            LabelEncoder().fit_transform)
-        combine_data.update(object_data_standardlized)
+        # Transform object data 
+        self.transform_object_columns(combine_data)
         # Transform numerial data
-        std_scale = StandardScaler().fit_transform(combine_data.astype(float).values)
-        combine_data_scale = pd.DataFrame(
-            std_scale, index=combine_data.index, columns=combine_data.columns)
+        combine_data_scale = self.transform_numeric_columns(combine_data)
         # Remove ID from features
         self.features = np.setdiff1d(self.features, ['Id'])
         combine_data = combine_data[self.features]
+        combine_data_scale = combine_data_scale[self.features]
         # split train_set and evaluation set
         self.train_set = combine_data.loc['train']
         self.eval_set = combine_data.loc['eval']
@@ -800,7 +822,7 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 12
+option = 1
 if option == 1:
     # Run from begining to level 1
     stack_regression.load_data()
