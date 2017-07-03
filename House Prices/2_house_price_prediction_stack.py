@@ -11,7 +11,7 @@ import numpy as np
 from scipy.stats import norm
 from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeRegressor
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Ridge, Lasso, ElasticNet, BayesianRidge, ARDRegression
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor, ExtraTreesRegressor
 from sklearn.model_selection import cross_val_score, train_test_split, learning_curve, validation_curve, KFold
 from sklearn.metrics import mean_squared_error, make_scorer
@@ -25,6 +25,7 @@ import datetime
 import sys
 from inspect import getsourcefile
 import os.path
+import re
 # sys.path.insert(0, '..')
 current_path = os.path.abspath(getsourcefile(lambda: 0))
 current_dir = os.path.dirname(current_path)
@@ -121,6 +122,9 @@ class StackRegression:
     def fill_null_special_columns(self, data):
         # credit to:Tanner Carbonati
         # (https://www.kaggle.com/tannercarbonati/detailed-data-analysis-ensemble-modeling)
+        # refer to: https://github.com/latuannetnam/kaggle/blob/master/House%20Prices/House%20price%20analysis%20-%20version%204.ipynb
+        # for full detailed analysis
+
         print("Filling NaN value for special columns ...")
         # PoolQC
         col = 'PoolQC'
@@ -145,9 +149,9 @@ class StackRegression:
         for col in cols:
             # print(col, ":", data[col].dtype)
             if data[col].dtype == 'object':
-                data.loc[:, col] = 'None'
+                data.loc[data[col].isnull(), col] = 'None'
             else:
-                data.loc[:, col] = 0
+                data.loc[data[col].isnull(), col] = 0
 
         # KitchenQual: Kitchen quality
         col = 'KitchenQual'
@@ -160,8 +164,92 @@ class StackRegression:
         print("Fill NaN for:", col)
         data.loc[data[col].isnull(), col] = 'SBrkr'
 
+        # BsmtExposure
+        col = 'BsmtExposure'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'No'
+
+        # Select cols with name match *Bsmt*
+        all_cols = data.columns.values
+        r = re.compile("Bsmt")
+        cols = list(filter(r.search, all_cols))
+        for col in cols:
+            if data[col].dtype == 'object':
+                data.loc[data[col].isnull(), col] = 'None'
+            else:
+                data.loc[data[col].isnull(), col] = 0
+
+        # Exterior1st
+        col = 'Exterior1st'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'None'
+
+        # Exterior2md
+        col = 'Exterior2nd'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'None'
+
+        # SaleType
+        col = 'SaleType'
+        # print(data.loc[data[col].isnull(), [col, 'SaleCondition']])
+        # # Use crosstab to see relationship between SaleType and SaleCondition
+        # pd.crosstab(data['SaleCondition'], data[col])
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'WD'
+
+        # Functional
+        col = 'Functional'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'Typ'
+
+        # Utilities
+        col = 'Utilities'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'AllPub'
+
+        # MSZoning
+        col = 'MSZoning'
+        print("Fill NaN for:", col)
+        # (1) Check relationship between MSZoning and MSSubClass for NaN values
+        # data.loc[data[col].isnull(), ['Id', col, 'MSSubClass']]
+        # Use crosstab to see frequency between MSZoning and MSSubClass
+        # (2) pd.crosstab(data[col], data['MSSubClass'])
+        # combine (1) and (2) to guess NaN value for MSZoning
+        data.loc[(data['Id'] == 2217) | (data['Id'] == 2905), col] = 'RL'
+        data.loc[data['Id'] == 1916, col] = 'RM'
+        data.loc[data['Id'] == 2251, col] = 'RM'
+
+        # Check for null MSZoning
+        col = 'MasVnrType'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 'None'
+
+        # MasVnrArea
+        col = 'MasVnrArea'
+        print("Fill NaN for:", col)
+        data.loc[data[col].isnull(), col] = 0
+
+        # Fence
+        col = 'Fence'
+        print("Fill NaN for:", col)
+        data[col].fillna('None', inplace=True)
+
+        # MiscFeature
+        col = 'MiscFeature'
+        print("Fill NaN for:", col)
+        data[col].fillna('None', inplace=True)
+
+        # FireplaceQu
+        col = 'FireplaceQu'
+        print("Fill NaN for:", col)
+        # Check relationship between FireplaceQu and Fireplaces for NaN values
+        # data.loc[data[col].isnull(), ['Id', col, 'Fireplaces']][:5]
+        data[col].fillna('None', inplace=True)
+
         # Alley
         col = 'Alley'
+        print("Fill NaN for:", col)
+        data[col].fillna('None', inplace=True)
 
     def fill_null_values(self, data):
         # Get high percent of NaN data
@@ -174,6 +262,7 @@ class StackRegression:
         high_percent_miss_data = missing_data[missing_data['Percent']
                                               > NAN_THRESHOLD]
         print("high percent missing:", len(high_percent_miss_data))
+        print(high_percent_miss_data.index.values)
         # Drop high percent NaN columns
         # drop_columns = high_percent_miss_data.index.values
         # print("Drop columns:", drop_columns)
@@ -287,6 +376,52 @@ class StackRegression:
         print('Bulding models level 1..')
         models = []
         # model_name = model.__class__.__name__
+
+        # Ridge
+        model_dict = {
+            'model': Ridge(),
+            'model_param': {"alpha": [0.3, 0.5, 1.0],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # Lasso
+        model_dict = {
+            'model': Lasso(max_iter=2000, random_state=200),
+            'model_param': {"alpha": [1.0, 2.0, 5.0],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # ElasticNet
+        model_dict = {
+            'model': ElasticNet(random_state=200),
+            'model_param': {"alpha": [1.0, 2.0, 5.0],
+                            "l1_ratio": [0.5, 1.0],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # BayesianRidge
+        model_dict = {
+            'model': BayesianRidge(),
+            'model_param': {"fit_intercept": [True, False],
+                            "normalize": [True, False],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        print('Total model:', len(models))
+        return models
+
+    def build_models_level2(self):
+        print('Bulding models level 2..')
+        models = []
+        # model_name = model.__class__.__name__
         # XGBoost
         model_dict = {
             # 'model': XGBRegressor(n_estimators=500, max_depth=5, n_jobs=-1),
@@ -341,8 +476,8 @@ class StackRegression:
         print('Total model:', len(models))
         return models
 
-    def build_models_level2(self):
-        print('Bulding models level 2 ..')
+    def build_models_level3(self):
+        print('Bulding models level 3 ..')
         models = []
         # model_name = model.__class__.__name__
         # XGBoost
@@ -412,6 +547,8 @@ class StackRegression:
 
     # Kfold, train for each model, stack result
     def model_stack_train(self, models, X_in, Y_in, T_in):
+        # Credit
+        # to:https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
         n_folds = len(models)
         kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
         S_train = np.zeros((X_in.shape[0], len(models)))
@@ -488,15 +625,9 @@ class StackRegression:
         X_in = X[features].values
         Y_in = Y.values
         T_in = T[features].values
-        models_level1 = self.build_models_level1()
+        models = self.build_models_level1()
         # self.search_best_params(models, X, Y)
-        X_out, T_out = self.model_stack_train(models_level1, X_in, Y_in, T_in)
-        # print("X")
-        # print(X.iloc[:5, :5])
-        # print("X_out")
-        # print(X_out[:5])
-        # print("T_out")
-        # print(T_out[:5])
+        X_out, T_out = self.model_stack_train(models, X_in, Y_in, T_in)
         return X_out, T_out
 
     def train_level1(self):
@@ -527,9 +658,21 @@ class StackRegression:
         level = LEVEL_2
         if load_data:
             X, Y, T = self.load_pretrained_data(LEVEL_1)
-        models_level2 = self.build_models_level2()
+        models = self.build_models_level2()
         # self.search_best_params(models_level2, X, Y)
-        X_out, T_out = self.model_stack_train(models_level2, X, Y, T)
+        X_out, T_out = self.model_stack_train(models, X, Y, T)
+        print(X_out[:5])
+        self.save_train_data(level, X_out, Y, T_out)
+        return X_out, T_out
+
+    def train_level3(self, load_data=True):
+        print("Training for level 2 ...")
+        level = LEVEL_3
+        if load_data:
+            X, Y, T = self.load_pretrained_data(LEVEL_2)
+        models = self.build_models_level3()
+        # self.search_best_params(models_level2, X, Y)
+        X_out, T_out = self.model_stack_train(models, X, Y, T)
         print(X_out[:5])
         self.save_train_data(level, X_out, Y, T_out)
         return X_out, T_out
@@ -657,22 +800,29 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 1
+option = 12
 if option == 1:
     # Run from begining to level 1
     stack_regression.load_data()
     stack_regression.transform_data()
-    # stack_regression.train_level1()
+    stack_regression.train_level1()
 elif option == 2:
     # Train data for model level 2. Must run option = 1 first
     stack_regression.train_level2()
 elif option == 3:
+    # Train data for model level 3. Must run option = 2 first
+    stack_regression.train_level3()
+elif option == 10:
     # load data from level 1 and predict. Must run option = 1 first
     stack_regression.model_stacking(model_choice=1, level=LEVEL_1)
-elif option == 4:
+elif option == 11:
     # load data from level 2 and predict. Must run option = 2 first
     stack_regression.model_stacking(model_choice=1, level=LEVEL_2)
-elif option == 5:
+elif option == 12:
+    # load data from level 3 and predict. Must run option = 3 first
+    stack_regression.model_stacking(model_choice=1, level=LEVEL_3)
+elif option == 20:
+    # Train and predict with 1 level
     stack_regression.load_data()
     stack_regression.transform_data()
     stack_regression.model_kfold_xgboost()
