@@ -161,7 +161,7 @@
         * RandomForestRegressor(n_estimators=500, max_depth=10, n_jobs=-1, random_state=789): RMSE=0.142867999289
         * DecisionTreeRegressor(max_depth=10, random_state=146) => Boost: RMSE= 0.1414896008944
         * GradientBoostingRegressor(n_estimators=500, max_depth=1, random_state=357) => Boost : RMSE0.1432036356539
-        * Kfolds = 4 
+        * Kfolds = 5 
         * AVG RMSE: 0.14290463506
     + base model level 3:
         * XGBRegressor(n_estimators=100, max_depth=1, n_jobs=-1, random_state=123). RMSE: 0.13074541917
@@ -169,5 +169,30 @@
         * AVG RMSE: 0.145246950   
     + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
     + Stack RMSE:  0.1565321638  
-    + score: 0.14536     
+    + score: 0.14536    
+- Round 13:
+    + base models level 1:
+        * num features level 1: 80
+        * Boost: AdaBoostRegressor(base_estimator=model_temp, n_estimators=200, random_state=200)
+        * XGBRegressor(n_estimators=500, max_depth=3, n_jobs=-1, random_state=123),: RMSE=0.125400659888
+        * ExtraTreesRegressor(n_estimators=50, max_depth=10, n_jobs=-1, random_state=456): RMSE= 0.143059197779
+        * RandomForestRegressor(n_estimators=500, max_depth=10, n_jobs=-1, random_state=789): RMSE=0.142867999289
+        * DecisionTreeRegressor(max_depth=10, random_state=146) => Boost: RMSE= 0.1414896008944
+        * GradientBoostingRegressor(n_estimators=500, max_depth=1, random_state=357) => Boost : RMSE0.1432036356539
+        * Kfolds = 5  
+        * AVG RMSE: 0.14001361287
+    + base model level 2:
+        * Ridge(): RMSE: 0.15786116707
+        * Lasso(max_iter=2000, random_state=200). RMSE: 0.39956022133
+        * ElasticNet(random_state=200). RMSE: 0.399560221333
+        * BayesianRidge(). RMSE: 0.15345511789  
+        * Kfolds = 4 
+        * AVG RMSE: 0.143643700101
+    + base model level 3:
+        * XGBRegressor(n_estimators=100, max_depth=1, n_jobs=-1, random_state=123). RMSE: 0.13074541917
+        * GradientBoostingRegressor(n_estimators=200, max_depth=1, random_state=357). RMSE: 0.13404585765347
+        * AVG RMSE: 0.13052384489765   
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.14179591521
+    + score: 0.13245         
 

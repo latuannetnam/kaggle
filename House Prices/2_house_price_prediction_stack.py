@@ -376,52 +376,6 @@ class StackRegression:
         print('Bulding models level 1..')
         models = []
         # model_name = model.__class__.__name__
-
-        # Ridge
-        model_dict = {
-            'model': Ridge(),
-            'model_param': {"alpha": [0.3, 0.5, 1.0],
-                            },
-            'boost': False
-        }
-        models.append(model_dict.copy())
-
-        # Lasso
-        model_dict = {
-            'model': Lasso(max_iter=2000, random_state=200),
-            'model_param': {"alpha": [1.0, 2.0, 5.0],
-                            },
-            'boost': False
-        }
-        models.append(model_dict.copy())
-
-        # ElasticNet
-        model_dict = {
-            'model': ElasticNet(random_state=200),
-            'model_param': {"alpha": [1.0, 2.0, 5.0],
-                            "l1_ratio": [0.5, 1.0],
-                            },
-            'boost': False
-        }
-        models.append(model_dict.copy())
-
-        # BayesianRidge
-        model_dict = {
-            'model': BayesianRidge(),
-            'model_param': {"fit_intercept": [True, False],
-                            "normalize": [True, False],
-                            },
-            'boost': False
-        }
-        models.append(model_dict.copy())
-
-        print('Total model:', len(models))
-        return models
-
-    def build_models_level2(self):
-        print('Bulding models level 2..')
-        models = []
-        # model_name = model.__class__.__name__
         # XGBoost
         model_dict = {
             # 'model': XGBRegressor(n_estimators=500, max_depth=5, n_jobs=-1),
@@ -473,6 +427,52 @@ class StackRegression:
             'boost': True
         }
         models.append(model_dict.copy())
+        print('Total model:', len(models))
+        return models
+
+    def build_models_level2(self):
+        print('Bulding models level 2..')
+        models = []
+        # model_name = model.__class__.__name__
+
+        # Ridge
+        model_dict = {
+            'model': Ridge(),
+            'model_param': {"alpha": [0.3, 0.5, 1.0],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # Lasso
+        model_dict = {
+            'model': Lasso(max_iter=2000, random_state=200),
+            'model_param': {"alpha": [1.0, 2.0, 5.0],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # ElasticNet
+        model_dict = {
+            'model': ElasticNet(random_state=200),
+            'model_param': {"alpha": [1.0, 2.0, 5.0],
+                            "l1_ratio": [0.5, 1.0],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
+        # BayesianRidge
+        model_dict = {
+            'model': BayesianRidge(),
+            'model_param': {"fit_intercept": [True, False],
+                            "normalize": [True, False],
+                            },
+            'boost': False
+        }
+        models.append(model_dict.copy())
+
         print('Total model:', len(models))
         return models
 
