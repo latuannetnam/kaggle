@@ -232,16 +232,75 @@
         * AVG RMSE: 0.13681841404           
     + Stack model: 
         * GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
-        * kfold_fit_predict. Kfold = 5
+        * train_predict_kfold. Kfold = 5
         * RMSE: 0.14171050626484 => 0.13380050134
     + score: 0.13137  => 0.13122
 - Round 18:
-    + base models level 1: Round 17
+    + base models level 1: Round 16
         * use scale features only
         * AVG RMSE: 0.139240478491
     + Stack model: 
         * GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
-        * kfold_fit_predict. Kfold = 5
+        * train_predict_kfold. Kfold = 5
         * RMSE: 0.14171050626484 => 0.12797831410
     + score: 0.12902  => 0.13095            
 
+6. 2017-07-04:
+- Round 19:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 4, NUM_HIDDEN_NODES = 256, NUM_EPOCHS = 200, LEARNING_RATE = 0.01, TRAIN_SPLIT = 0.7) 
+        * RMSE: 0.14700643125096
+    + score: 0.13234                
+- Round 20:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 4, NUM_HIDDEN_NODES = 256, NUM_EPOCHS = 1000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
+        * RMSE: 0.14700643125096 =>  0.1434306788652 
+    + score: 0.13234 => 0.13133                 
+- Round 21: =>
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 5, NUM_HIDDEN_NODES = 512, NUM_EPOCHS = 1000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
+        * RMSE: 0.1434306788652 => 0.147927218428
+    + score: 0.13133 =>
+- Round 22:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 6, NUM_HIDDEN_NODES = 512, NUM_EPOCHS = 2000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
+        * RMSE: 0.147927218428 => 0.142672623445815
+    + score: 0.13133 =>                                                       
+- Round 23:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 8, NUM_HIDDEN_NODES = 512, NUM_EPOCHS = 5000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
+        * RMSE: 0.142672623445815 => 0.14209155585
+    + score: 0.13133 =>   0.13025                                                          
+- Round 24:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 8, NUM_HIDDEN_NODES = 1024, NUM_EPOCHS = 2000, LEARNING_RATE = 0.001, TRAIN_SPLIT = 0.7)
+        * Change cost function: tf.sqrt(tf.reduce_mean(tf.squared_difference(Y, Y_predicted))) 
+        * RMSE: 0.14209155585 =>  0.1681132212845
+    + score: 0.13157                                                              
+- Round 25:
+    + base models level 1: Round 16
+        * use scale features only
+        * AVG RMSE: 0.139240478491
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 8, NUM_HIDDEN_NODES = 1024, NUM_EPOCHS = 10000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7)
+        * Change cost function: tf.sqrt(tf.reduce_mean(tf.squared_difference(Y, Y_predicted))) 
+        * RMSE: 0.14209155585 =>  0.1681132212845
+    + score: 0.13157    

@@ -301,8 +301,10 @@ class StackRegression:
         object_features = object_data.columns.values
         for col in object_features:
             # get numeric value of col based on mean of label
-            data_st = self.train_data[[col, self.label]].groupby(
-                col, as_index=False).mean()
+            # data_st = self.train_data[[col, self.label]].groupby(
+            #     col, as_index=False).mean()
+            data_st = train_data[[col, label]].groupby(
+                col, as_index=False).mean().sort_values(label).reset_index()
             data_sr = pd.Series(data_st.index.values, index=data_st[col])
             data_dict = data_sr.to_dict()
             data_tf = data[col].map(data_dict)
@@ -314,7 +316,8 @@ class StackRegression:
     def transform_numeric_columns(self, data):
         numeric_data = data.select_dtypes(include=[np.number])
         std_scale = StandardScaler().fit_transform(numeric_data.values)
-        numeric_data_scale = pd.DataFrame(std_scale, index=numeric_data.index, columns=numeric_data.columns)
+        numeric_data_scale = pd.DataFrame(
+            std_scale, index=numeric_data.index, columns=numeric_data.columns)
         # numeric_data_scale[:20]
         data_scale = data.copy()
         data_scale.update(numeric_data_scale)
@@ -332,7 +335,7 @@ class StackRegression:
         object_features = self.fill_null_values(combine_data)
         # print(combine_data['Alley'].head(5))
         print("Feature scaling ...")
-        # Transform object data 
+        # Transform object data
         self.transform_object_columns(combine_data)
         # Transform numerial data
         combine_data_scale = self.transform_numeric_columns(combine_data)
@@ -349,29 +352,6 @@ class StackRegression:
         print(self.train_set.iloc[:5, :5])
         print("After transform:")
         print(self.train_set_scale.iloc[:5, :5])
-
-    def deepNN_model(self, x, y):
-        # RMSE: 0.21037404583781194
-        # RMSE: 0.216011400876183
-        # Your submission scored 0.22743
-        # Rank: 1801
-        NUM_LAYERS = 4
-        NUM_HIDDEN_NODES = 256
-        MINI_BATCH_SIZE = 10
-        NUM_EPOCHS = 10000
-        LEARNING_RATE = 0.1
-        TRAIN_SPLIT = 1.
-
-        model = NNRegressor(x, y,
-                            NUM_LAYERS, NUM_HIDDEN_NODES,
-                            LEARNING_RATE,
-                            NUM_EPOCHS, MINI_BATCH_SIZE,
-                            TRAIN_SPLIT)
-        model.dump_input()
-        model.fit()
-        # model.plot(x.values.astype(float), np.reshape(
-        #     y.values.astype(float), (-1, 1)))
-        return 'DeepNN', model
 
     def rmse(self, y_true, y_prediction):
         return sqrt(mean_squared_error(y_true=y_true, y_pred=y_prediction))
@@ -568,7 +548,7 @@ class StackRegression:
         quit()
 
     # Kfold, train for each model, stack result
-    def model_stack_train(self, models, X_in, Y_in, T_in):
+    def train_base_models(self, models, X_in, Y_in, T_in):
         # Credit
         # to:https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
         n_folds = len(models)
@@ -612,7 +592,7 @@ class StackRegression:
         # print(np.where(S_test == 0))
         return S_train, S_test
 
-    def save_train_data(self, level, X_in, Y_in, T_in):
+    def save_trained_data(self, level, X_in, Y_in, T_in):
         save_dir = DATA_DIR + "/" + level
         if not os.path.exists(save_dir):
             os.makedirs(save_dir)
@@ -649,7 +629,7 @@ class StackRegression:
         T_in = T[features].values
         models = self.build_models_level1()
         # self.search_best_params(models, X, Y)
-        X_out, T_out = self.model_stack_train(models, X_in, Y_in, T_in)
+        X_out, T_out = self.train_base_models(models, X_in, Y_in, T_in)
         return X_out, T_out
 
     def train_level1(self):
@@ -674,7 +654,7 @@ class StackRegression:
         X_out = X_out_scale
         T_out = T_out_scale
         print(X_out[:5])
-        self.save_train_data(level, X_out, Y, T_out)
+        self.save_trained_data(level, X_out, Y, T_out)
         return X_out, T_out
 
     def train_level2(self, load_data=True):
@@ -684,9 +664,9 @@ class StackRegression:
             X, Y, T = self.load_pretrained_data(LEVEL_1)
         models = self.build_models_level2()
         # self.search_best_params(models_level2, X, Y)
-        X_out, T_out = self.model_stack_train(models, X, Y, T)
+        X_out, T_out = self.train_base_models(models, X, Y, T)
         print(X_out[:5])
-        self.save_train_data(level, X_out, Y, T_out)
+        self.save_trained_data(level, X_out, Y, T_out)
         return X_out, T_out
 
     def train_level3(self, load_data=True):
@@ -696,13 +676,13 @@ class StackRegression:
             X, Y, T = self.load_pretrained_data(LEVEL_2)
         models = self.build_models_level3()
         # self.search_best_params(models_level2, X, Y)
-        X_out, T_out = self.model_stack_train(models, X, Y, T)
+        X_out, T_out = self.train_base_models(models, X, Y, T)
         print(X_out[:5])
-        self.save_train_data(level, X_out, Y, T_out)
+        self.save_trained_data(level, X_out, Y, T_out)
         return X_out, T_out
 
     # train and predict with given model, X: input, Y:label, T: test set
-    def model_train_predict(self, model, X_in, Y_in, T_in):
+    def train_predict_model(self, model, X_in, Y_in, T_in):
         x_train, x_test, y_train, y_test = train_test_split(
             X_in, Y_in, test_size=0.31, random_state=324)
         print("Trainning ...")
@@ -713,7 +693,7 @@ class StackRegression:
         return y_pred
 
     # Kfold, Fit and predict for model
-    def kfold_fit_predict(self, model, X, Y, T):
+    def train_predict_kfold(self, model, X, Y, T):
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         total_rmse = 0
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
@@ -732,7 +712,7 @@ class StackRegression:
         y_pred = model.predict(T)[:]
         return y_pred
 
-    def model_stacking(self, model_choice=1, boost=False, level=LEVEL_1, load_data=True):
+    def train_predict_stacking_model(self, model_choice=1, boost=False, level=LEVEL_1, load_data=True):
         models = []
         if model_choice == 1:
             model = GradientBoostingRegressor(
@@ -771,24 +751,30 @@ class StackRegression:
             model_temp = model
             model = AdaBoostRegressor(
                 base_estimator=model_temp, n_estimators=500, learning_rate=0.1, random_state=200)
-        # y_prediction = self.model_train_predict(model, X, Y, T)
-        y_prediction = self.kfold_fit_predict(model, X, Y, T)
+        # y_prediction = self.train_predict_model(model, X, Y, T)
+        y_prediction = self.train_predict_kfold(model, X, Y, T)
         self.export_prediction(y_prediction)
 
-    def model_stacking_deepNN(self):
+    def train_predict_stacking_model_deepNN(self, level=LEVEL_1, load_data=True):
         print("Model stacking using DeepNN  ....")
-        model_name, model = deepNN_model(model_train_predictions, Y_train)
-        y_prediction = model.predict(model_test_predictions)
-        print(model_name, ":", rmse(Y_test, y_prediction))
-        model.plot(model_predictions.values.astype(float), np.reshape(
-            Y_test.values.astype(float), (-1, 1)))
+        if load_data:
+            X, Y, T = self.load_pretrained_data(level)
+        NUM_LAYERS = 8
+        NUM_HIDDEN_NODES = 1024
+        MINI_BATCH_SIZE = 10
+        NUM_EPOCHS = 10000
+        LEARNING_RATE = 0.003
+        TRAIN_SPLIT = 0.7
+        model = NNRegressor(NUM_LAYERS, NUM_HIDDEN_NODES,
+                            LEARNING_RATE,
+                            NUM_EPOCHS, MINI_BATCH_SIZE,
+                            TRAIN_SPLIT)
+        # model.dump_input()
+        model.fit(X, Y)
+        y_prediction = model.predict(T)
+        self.export_prediction(y_prediction)
 
-        print("Round 2: Predicting for evaluation data using model stacking ...")
-        y_prediction = model.predict(model_eval_predictions)
-        print(y_prediction[:5])
-        return y_prediction
-
-    def model_kfold_xgboost(self):
+    def train_predict_xgboost(self):
         # rmse: 0.12772005156128946
         # Best score: 0.13676
 
@@ -798,14 +784,14 @@ class StackRegression:
         model_boost = AdaBoostRegressor(
             base_estimator=model, n_estimators=200, random_state=200)
         # model_boost.fit(x_train, y_train)
-        X = self.train_set
+        X = self.train_set_scale
         Y = self.target_log
-        T = self.eval_set
+        T = self.eval_set_scale
         features = X.columns.values
         X_in = X[features].values
         Y_in = Y.values
         T_in = T[features].values
-        y_prediction = self.kfold_fit_predict(model, X_in, Y_in, T_in)
+        y_prediction = self.train_predict_kfold(model, X_in, Y_in, T_in)
         print(y_prediction[:5])
         self.export_prediction(y_prediction)
 
@@ -825,7 +811,7 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 10
+option = 31
 model_choice = 1
 if option == 1:
     # Run from begining to level 1
@@ -840,15 +826,21 @@ elif option == 3:
     stack_regression.train_level3()
 elif option == 10:
     # load data from level 1 and predict. Must run option = 1 first
-    stack_regression.model_stacking(model_choice=model_choice, level=LEVEL_1)
+    stack_regression.train_predict_stacking_model(
+        model_choice=model_choice, level=LEVEL_1)
 elif option == 11:
     # load data from level 2 and predict. Must run option = 2 first
-    stack_regression.model_stacking(model_choice=model_choice, level=LEVEL_2)
+    stack_regression.train_predict_stacking_model(
+        model_choice=model_choice, level=LEVEL_2)
 elif option == 12:
     # load data from level 3 and predict. Must run option = 3 first
-    stack_regression.model_stacking(model_choice=model_choice, level=LEVEL_3)
+    stack_regression.train_predict_stacking_model(
+        model_choice=model_choice, level=LEVEL_3)
 elif option == 20:
     # Train and predict with 1 level
     stack_regression.load_data()
     stack_regression.transform_data()
-    stack_regression.model_kfold_xgboost()
+    stack_regression.train_predict_xgboost()
+elif option == 31:
+    # load data from level 1 and predict with deepNN. Must run option = 1 first
+    stack_regression.train_predict_stacking_model_deepNN(level=LEVEL_1)
