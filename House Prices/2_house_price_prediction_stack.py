@@ -303,8 +303,8 @@ class StackRegression:
             # get numeric value of col based on mean of label
             # data_st = self.train_data[[col, self.label]].groupby(
             #     col, as_index=False).mean()
-            data_st = train_data[[col, label]].groupby(
-                col, as_index=False).mean().sort_values(label).reset_index()
+            data_st = self.train_data[[col, self.label]].groupby(
+                col, as_index=False).mean().sort_values(self.label).reset_index()
             data_sr = pd.Series(data_st.index.values, index=data_st[col])
             data_dict = data_sr.to_dict()
             data_tf = data[col].map(data_dict)
@@ -760,9 +760,9 @@ class StackRegression:
         if load_data:
             X, Y, T = self.load_pretrained_data(level)
         NUM_LAYERS = 8
-        NUM_HIDDEN_NODES = 1024
+        NUM_HIDDEN_NODES = 512
         MINI_BATCH_SIZE = 10
-        NUM_EPOCHS = 10000
+        NUM_EPOCHS = 5000
         LEARNING_RATE = 0.003
         TRAIN_SPLIT = 0.7
         model = NNRegressor(NUM_LAYERS, NUM_HIDDEN_NODES,
@@ -811,7 +811,7 @@ class StackRegression:
 
 # ---- Main program --------------
 stack_regression = StackRegression('SalePrice')
-option = 31
+option = 12
 model_choice = 1
 if option == 1:
     # Run from begining to level 1
@@ -824,15 +824,15 @@ elif option == 2:
 elif option == 3:
     # Train data for model level 3. Must run option = 2 first
     stack_regression.train_level3()
-elif option == 10:
+elif option == 11:
     # load data from level 1 and predict. Must run option = 1 first
     stack_regression.train_predict_stacking_model(
         model_choice=model_choice, level=LEVEL_1)
-elif option == 11:
+elif option == 12:
     # load data from level 2 and predict. Must run option = 2 first
     stack_regression.train_predict_stacking_model(
         model_choice=model_choice, level=LEVEL_2)
-elif option == 12:
+elif option == 13:
     # load data from level 3 and predict. Must run option = 3 first
     stack_regression.train_predict_stacking_model(
         model_choice=model_choice, level=LEVEL_3)

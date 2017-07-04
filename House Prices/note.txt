@@ -206,7 +206,7 @@
     + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
     + Stack RMSE:  0.14179591521 => 0.14329289771467
     + score: 0.13245 => 0.13274            
-- Round 15:
+- Round 15: => Best of day
     + base models level 1: Round 13
         * use scale features only
         * AVG RMSE: 0.13924047849100 => 0.139240478491
@@ -262,7 +262,7 @@
         * DeepNN(NUM_LAYERS = 4, NUM_HIDDEN_NODES = 256, NUM_EPOCHS = 1000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
         * RMSE: 0.14700643125096 =>  0.1434306788652 
     + score: 0.13234 => 0.13133                 
-- Round 21: =>
+- Round 21: 
     + base models level 1: Round 16
         * use scale features only
         * AVG RMSE: 0.139240478491
@@ -278,7 +278,7 @@
         * DeepNN(NUM_LAYERS = 6, NUM_HIDDEN_NODES = 512, NUM_EPOCHS = 2000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
         * RMSE: 0.147927218428 => 0.142672623445815
     + score: 0.13133 =>                                                       
-- Round 23:
+- Round 23: => Best of DeepNN
     + base models level 1: Round 16
         * use scale features only
         * AVG RMSE: 0.139240478491
@@ -302,5 +302,35 @@
     + Stack model: 
         * DeepNN(NUM_LAYERS = 8, NUM_HIDDEN_NODES = 1024, NUM_EPOCHS = 10000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7)
         * Change cost function: tf.sqrt(tf.reduce_mean(tf.squared_difference(Y, Y_predicted))) 
-        * RMSE: 0.14209155585 =>  0.1681132212845
-    + score: 0.13157    
+        * RMSE: 0.1681132212845 =>  0.2537479319629
+    + score: 0.13157 =>
+- Round 26: 
+    + base models level 1: Round 16
+        * use scale features only
+        * fix object features transformation 
+        * AVG RMSE: 0.139240478491 =>0.1355058111398
+    + Stack model: 
+        * DeepNN(NUM_LAYERS = 8, NUM_HIDDEN_NODES = 512, NUM_EPOCHS = 5000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
+        * RMSE: 0.14209155585 => 0.2414062362133
+    + score:
+6. 2017-07-04:
+- Round 27: 
+    + base models level 1: Round 13
+        * use scale features only
+        * fix object features transformation 
+        * AVG RMSE: 0.1355058111398
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.14049318180020 => 0.12344250891029
+    + score: 0.12902 =>  0.13275
+- Round 28:
+    + base models level 1: Round 27
+        * use scale features only
+        * fix object features transformation 
+        * AVG RMSE: 0.1355058111398
+    + base model level 2: Round 16
+        * AVG RMSE: 0.13681841404 => 0.13097810413267          
+    + Stack model: 
+        * GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+        * train_predict_kfold. Kfold = 5
+        * RMSE: 0.13380050134 => 0.131216972978746
+    + score: 0.13122 => 0.13395           
