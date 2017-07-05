@@ -323,6 +323,37 @@ class StackRegression:
         data_scale.update(numeric_data_scale)
         return data_scale
 
+    def feature_engineering(self, data_fe):
+        print("Feature engineering ...")
+        # Check correlation between features
+        # corrmat = data.corr()
+        # k = 10 #number of variables for heatmap
+        # cols = corrmat.nlargest(k, label)[label].index
+        # other_cols = np.setdiff1d(cols.values, label)
+        # cm = np.corrcoef(data[other_cols].values.T)
+        # sns.set(font_scale=1.25)
+        # hm = sns.heatmap(cm, cbar=True, annot=True, square=True, fmt='.2f', annot_kws={'size': 10}, yticklabels=other_cols, xticklabels=other_cols)
+        # plt.show()
+        col1 = 'OverallQual'
+        col2 = 'GrLivArea'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'TotalBsmtSF'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'YearBuilt'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        # Check correlation between label and new features
+        # correlation = data_fe[[self.label, new_col, col1, col2]].corr()[
+        #     self.label]
+        # print("New correlation:", correlation)
+
     def transform_data(self):
         # Seperate input and label from train_data
         input_data = self.train_data[self.features]
@@ -337,10 +368,14 @@ class StackRegression:
         print("Feature scaling ...")
         # Transform object data
         self.transform_object_columns(combine_data)
+        # Feature engineering
+        self.feature_engineering(combine_data)
+        print("Total features after engineering:", len(combine_data.columns))
         # Transform numerial data
         combine_data_scale = self.transform_numeric_columns(combine_data)
+        
         # Remove ID from features
-        self.features = np.setdiff1d(self.features, ['Id'])
+        self.features = np.setdiff1d(combine_data.columns.values, ['Id'])
         combine_data = combine_data[self.features]
         combine_data_scale = combine_data_scale[self.features]
         # split train_set and evaluation set
@@ -555,6 +590,8 @@ class StackRegression:
         kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
         S_train = np.zeros((X_in.shape[0], len(models)))
         S_test = np.zeros((T_in.shape[0], len(models)))
+        print("X shape:", X_in.shape, " Y shape:",
+              Y_in.shape, " Test shape:", T_in.shape)
         print("S_train shape:", S_train.shape, " S_test shape:",
               S_test.shape)
         all_rmse = 0

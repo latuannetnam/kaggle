@@ -313,7 +313,7 @@
         * DeepNN(NUM_LAYERS = 8, NUM_HIDDEN_NODES = 512, NUM_EPOCHS = 5000, LEARNING_RATE = 0.003, TRAIN_SPLIT = 0.7) 
         * RMSE: 0.14209155585 => 0.2414062362133
     + score:
-6. 2017-07-04:
+7. 2017-07-04:
 - Round 27: 
     + base models level 1: Round 13
         * use scale features only
@@ -333,4 +333,22 @@
         * GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
         * train_predict_kfold. Kfold = 5
         * RMSE: 0.13380050134 => 0.131216972978746
-    + score: 0.13122 => 0.13395           
+    + score: 0.13122 => 0.13395
+
+8. 2017-07-05:
+- Round 29: 
+    + base models level 1: Round 27
+        * features engineering
+        * AVG RMSE: 0.1355058111398 => 0.134502529542809
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.12344250891029 =>  0.12428772598089
+    + score: 0.13275 => 0.13135
+- Round 30: 
+    + base models level 1: Round 29
+        * features engineering
+        * AVG RMSE: 0.134502529542809
+    + base model level 2: Round 28
+        * AVG RMSE: 0.13097810413267 => 0.1298229632071634             
+    + Stack model: GradientBoostingRegressor(n_estimators=100, max_depth=1, loss='huber')
+    + Stack RMSE:  0.12428772598089 => 0.12917592235375225
+    + score:0.13135 => 0.13107   
