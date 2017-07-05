@@ -334,6 +334,8 @@ class StackRegression:
         # sns.set(font_scale=1.25)
         # hm = sns.heatmap(cm, cbar=True, annot=True, square=True, fmt='.2f', annot_kws={'size': 10}, yticklabels=other_cols, xticklabels=other_cols)
         # plt.show()
+
+        # OverallQual and other features
         col1 = 'OverallQual'
         col2 = 'GrLivArea'
         new_col = col1 + '_' + col2
@@ -348,6 +350,46 @@ class StackRegression:
         col2 = 'YearBuilt'
         new_col = col1 + '_' + col2
         data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'GarageArea'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'FullBath'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = '1stFlrSF'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = '2ndFlrSF'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'LotFrontage'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'OverallCond'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'PoolArea'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] + data_fe[col2]
+
+        col1 = 'OverallQual'
+        col2 = 'FireplaceQu'
+        new_col = col1 + '_' + col2
+        data_fe[new_col] = data_fe[col1] * (data_fe[col2] + 1)
 
         # Check correlation between label and new features
         # correlation = data_fe[[self.label, new_col, col1, col2]].corr()[
@@ -373,7 +415,7 @@ class StackRegression:
         print("Total features after engineering:", len(combine_data.columns))
         # Transform numerial data
         combine_data_scale = self.transform_numeric_columns(combine_data)
-        
+
         # Remove ID from features
         self.features = np.setdiff1d(combine_data.columns.values, ['Id'])
         combine_data = combine_data[self.features]
