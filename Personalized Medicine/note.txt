@@ -1,0 +1,58 @@
+1. 2017-07-15
+- Round 1:
+    + Base model: 
+        * SVC(decision_function_shape='ovo', probability=True, random_state=250)
+        * Score: 0.2
+    + Submision score: 1.64639
+- Round 2:
+    + Base model: 
+        * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        * TfidfVectorizer()
+        * Score: 0.65095285857572716
+    + Submision score: 1.05601
+- Round 3:
+    + Base model: 
+        * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        * TfidfVectorizer(min_df=5, max_features=2000, stop_words='english')
+        * Score: 0.6268806419257773
+    + Submision score: 0.94670
+- Round 4:
+    + Base model: 
+        * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        * TfidfVectorizer(min_df=5, max_features=2000, stop_words=sw.words('english'), lowercase=True)
+        * combine train data and eval data
+        * Score: 0.629889669007
+        * tfidf time: 80 sec
+        * model fit time: 298 sec => 288
+    + Submision score: 1.02723
+- Round 5:
+    + Base model: => NLTK
+        * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        * TfidfVectorizer(min_df=5, max_features=2000, stop_words=sw.words('english'), tokenizer=tokenize_nltk, lowercase=True)
+        * combine train data and eval data
+        * Score: 0.629889669007 => 0.630892678034
+        * tfidf time: 80 sec => 2946 sec
+        * model fit time: 298 sec => 
+    + Submision score: 1.02723 =>  0.99091   
+- Round 6:
+    + Base model: => spaCy
+        * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        * TfidfVectorizer(min_df=5, max_features=2000, tokenizer=tokenize_spacy, lowercase=True)
+        * combine train data and eval data
+        * Score: 0.636910732197
+        * tfidf time: 5492.0656995773315
+        * model fit time: 273.1438081264496 
+    + Submision score: 0.99091 =>  0.94846     
+- Round 7:
+    + Base model: => gensim word2vec
+        * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        * TfidfEmbeddingVectorizer(w2v)
+        * combine train data and eval data
+        * Score: 0.636910732197
+        * word2vec training time: 1625.335162639618
+        * tfidf time: 
+        * model fit time: 
+    + Submision score: 
+    
+    
+    
