@@ -263,6 +263,26 @@ class PersonalizedMedicineClassifier:
             else:
                 data_tf = self.text_features(data)
         return data_tf
+    
+    def prepare_training_data_set(self):
+        print("Preparing training data set ...")
+        # Tranform Gene
+        genes = self.combine_data['Gene']
+        labels = LabelEncoder()
+        genes_tf = np.asmatrix(labels.fit_transform(genes)).T
+        # print("Gene tf:", type(genes_tf), " size:", genes_tf.shape)
+
+        # Tranform Variants
+        variations = self.combine_data['Variation']
+        labels = LabelEncoder()
+        variations_tf = np.asmatrix(labels.fit_transform(variations)).T
+
+        data_tf = self.extract_text_features(True)
+        # print("Text tf:", type(data_tf), " size:",  data_tf.shape)
+        # data_tf = sparse.hstack([data_tf, genes_tf, variations_tf], format="csr") => Variation lower score
+        data_tf = sparse.hstack([data_tf, genes_tf], format="csr")
+        # print("combine matrix:", type(data_tf), " size:", data_tf.shape)
+        return data_tf
 
     def build_model(self):
         # model = SVC(decision_function_shape='ovo',
@@ -271,7 +291,7 @@ class PersonalizedMedicineClassifier:
         return model
 
     def split_train_test(self):
-        data_tf = self.extract_text_features(True)
+        data_tf = self.prepare_training_data_set()
         train_len = len(self.train_full)
         self.train_set = data_tf[:train_len]
         self.eval_set = data_tf[train_len:]
