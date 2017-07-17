@@ -22,9 +22,9 @@
         * TfidfVectorizer(min_df=5, max_features=2000, stop_words=sw.words('english'), lowercase=True)
         * combine train data and eval data
         * tfidf time: 80 sec
-        * model fit time: 298 sec => 288
-        * Score: 0.629889669007
-    + Submision score: 1.02723
+        * model fit time: 299.95828080177307
+        * Score: 0.633901705115
+    + Submision score: 0.96945
 - Round 5:
     + Base model: => NLTK
         * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
@@ -51,9 +51,9 @@
         * combine train data and eval data
         * word2vec training time: 1625.335162639618
         * tfidf time: 2903.1875371932983
-        * model fit time: 
-        * Score: 
-    + Submision score: 
+        * model fit time: 625.5327796936035
+        * Score: 0.61183550652
+    + Submision score: 1.06542
     
     
     

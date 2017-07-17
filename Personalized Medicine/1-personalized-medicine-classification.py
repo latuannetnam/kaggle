@@ -75,10 +75,19 @@ MAX_FEATURES = 2000
 # Maximum number of thread to train word2vec model
 W2V_N_THREADS = 4
 
+# type of feature extraction
+TF_IDF = 1
+TF_IDF_NLTK = 2
+TF_IDF_W2C = 3
+TF_IDF_SPACY = 4
+
 
 class PersonalizedMedicineClassifier:
-    def __init__(self, label):
+    def __init__(self, label, tf_idf_type):
         self.label = label
+        self.tf_idf_type = tf_idf_type
+        self.tf_filename = DATA_DIR + "/tfidf_" + \
+            str(self.tf_idf_type) + ".npz"
         # initialize stemmer for NLTK processing
         self.stemmer = PorterStemmer()
         # initilize spaCy parse for English language
@@ -88,6 +97,7 @@ class PersonalizedMedicineClassifier:
         # Load data.
         # Download from:
         # https://www.kaggle.com/c/msk-redefining-cancer-treatment/data
+        print("Loading data ...")
         train_text = pd.read_csv(DATA_DIR + "/training_text.csv",
                                  sep="\|\|", engine="python", skiprows=1, names=["ID", "Text"])
         train_class = pd.read_csv(DATA_DIR + "/training_variants.csv")
@@ -206,38 +216,62 @@ class PersonalizedMedicineClassifier:
         return w2v
 
     # extract text features using word2vec and TF-IDF
-    def text_features_w2v(self, data, load=False):
-        filename = DATA_DIR + "/tfidf.npz"
-        if load:
-            with open(filename, 'rb') as infile:
-                array = pickle.load(infile)
+    def text_features_w2v(self, data):
+        w2v = self.word2vec(data, load=True)
+        print("Extracting text features ...")
+        tfidf = TfidfEmbeddingVectorizer(w2v)
+        start = time.time()
+        array = tfidf.fit_transform(data)
+        end = time.time() - start
+        with open(self.tf_filename, 'wb') as outfile:
+            pickle.dump(array, outfile, pickle.HIGHEST_PROTOCOL)
+        print("Text feature Transform time:", end)
+        return array
+
+    # extract text features using TF-IDF and tokenizer
+    def text_features(self, data):
+        print("Extracting text features ...")
+        if self.tf_idf_type == TF_IDF_NLTK:
+            tokenizer = self.tokenize_nltk()
+        elif self.tf_idf_type == TF_IDF_SPACY:
+            tokenizer = self.tokenize_spacy()
         else:
-            w2v = self.word2vec(data, load=True)
-            print("Extracting text features ...")
-            tfidf = TfidfEmbeddingVectorizer(w2v)
-            start = time.time()
-            array = tfidf.fit_transform(data)
-            end = time.time() - start
-            with open(filename, 'wb') as outfile:
-                pickle.dump(array, outfile, pickle.HIGHEST_PROTOCOL)
-            print("Text feature Transform time:", end)
+            tokenizer = None
+        tfidf = TfidfVectorizer(
+            min_df=5, max_features=MAX_FEATURES, stop_words=STOPLIST,
+            tokenizer=tokenizer, lowercase=True)
+
+        start = time.time()
+        array = tfidf.fit_transform(data)
+        end = time.time() - start
+        with open(self.tf_filename, 'wb') as outfile:
+            pickle.dump(array, outfile, pickle.HIGHEST_PROTOCOL)
+        print("Text feature Transform time:", end)
         return array
 
     # Use 1st time when to extract text features. After that load features
     # from disk
-    def extract_text_features(self):
-        data = self.combine_data[TEXT_COL]
-        self.text_features_w2v(data, load=False)
+    def extract_text_features(self, load=False):
+        data_tf = None
+        if load:
+            with open(self.tf_filename, 'rb') as infile:
+                data_tf = pickle.load(infile)
+        else:
+            data = self.combine_data[TEXT_COL]
+            if self.tf_idf_type == TF_IDF_W2C:
+                data_tf = self.text_features_w2v(data)
+            else:
+                data_tf = self.text_features(data)
+        return data_tf
 
     def build_model(self):
         # model = SVC(decision_function_shape='ovo',
         #             probability=True, random_state=250)
-        model = XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        model = XGBClassifier(n_estimators=500, max_depth=5, n_jobs=-1)
         return model
 
     def split_train_test(self):
-        data = self.combine_data[TEXT_COL]
-        data_tf = self.text_features_w2v(data, load=True)
+        data_tf = self.extract_text_features(True)
         train_len = len(self.train_full)
         self.train_set = data_tf[:train_len]
         self.eval_set = data_tf[train_len:]
@@ -355,7 +389,17 @@ class CleanTextTransformer(TransformerMixin):
 
 
 # -------------------- Main program ----------------
-classifier = PersonalizedMedicineClassifier(LABEL)
+option = 10
+classifier = PersonalizedMedicineClassifier(LABEL, TF_IDF)
 classifier.load_data()
-classifier.train_model()
-classifier.predict_save_eval()
+
+if option == 1:
+    # Train word2vec model based on combine_data
+    classifier.train_word2vec()
+elif option == 5:
+    # Extract text features based on TF-IDF. This is the input to model
+    # training
+    classifier.extract_text_features()
+elif option == 10:
+    classifier.train_model()
+    classifier.predict_save_eval()
