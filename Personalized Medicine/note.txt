@@ -58,18 +58,29 @@
     + Base model: 
         * XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
         * TfidfVectorizer(min_df=5, max_features=2000, stop_words=sw.words('english'), lowercase=True)
+        * max_features = 2000
         * combine train data and eval data
         * Added Genes feature
         * tfidf time: 80 sec
         * model fit time: 285.72712326049805 
         * Score: 0.633901705115 => 0.642928786359
     + Submision score: 0.96945 => 0.95127  
+- Round 9:    
     + Base model: = Round 8
+        * max_features = 2000
         * Added Genes + Variation features
         * tfidf time: 80 sec
         * model fit time: 288.3759603500366 
         * Score: 0.642928786359 =>0.642928786359
     + Submision score: 0.95127 => 1.03381 
+- Round 10:    
+    + Base model: = Round 8
+        * max_features = 16000
+        * lsa_features = 2000      
+        * tfidf time: 55.59057140350342 sec + 323.45097279548645 (reduction)
+        * model fit time: 429.6618926525116 
+        * Score: 0.616850551655 (lsa=500) => 0.618856569709 
+    + Submision score: 0.95127 =>  0.97261 (lsa=500) =>      
     
     
     

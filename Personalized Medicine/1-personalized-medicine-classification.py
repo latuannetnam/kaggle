@@ -28,6 +28,7 @@ from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer, TfidfVectorizer
 from sklearn.pipeline import Pipeline
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
+from sklearn.decomposition import TruncatedSVD
 from mlxtend.evaluate import confusion_matrix
 from mlxtend.plotting import plot_decision_regions, plot_learning_curves, plot_confusion_matrix
 
@@ -71,7 +72,11 @@ SYMBOLS = " ".join(string.punctuation).split(
     " ") + ["-----", "---", "...", "“", "”", "'ve"]
 
 # Maximum number of features for text extraction
-MAX_FEATURES = 2000
+# MAX_FEATURES = 2000
+MAX_FEATURES = 16000
+# Reduce feature dimension
+LSA_FEATURES = 2000
+
 # Maximum number of thread to train word2vec model
 W2V_N_THREADS = 4
 
@@ -223,8 +228,6 @@ class PersonalizedMedicineClassifier:
         start = time.time()
         array = tfidf.fit_transform(data)
         end = time.time() - start
-        with open(self.tf_filename, 'wb') as outfile:
-            pickle.dump(array, outfile, pickle.HIGHEST_PROTOCOL)
         print("Text feature Transform time:", end)
         return array
 
@@ -240,12 +243,9 @@ class PersonalizedMedicineClassifier:
         tfidf = TfidfVectorizer(
             min_df=5, max_features=MAX_FEATURES, stop_words=STOPLIST,
             tokenizer=tokenizer, lowercase=True)
-
         start = time.time()
         array = tfidf.fit_transform(data)
         end = time.time() - start
-        with open(self.tf_filename, 'wb') as outfile:
-            pickle.dump(array, outfile, pickle.HIGHEST_PROTOCOL)
         print("Text feature Transform time:", end)
         return array
 
@@ -262,15 +262,26 @@ class PersonalizedMedicineClassifier:
                 data_tf = self.text_features_w2v(data)
             else:
                 data_tf = self.text_features(data)
+            # Feature reducion
+            print("Feature reducion from:", data_tf.shape,
+                  " to:", LSA_FEATURES, " ...")
+            start = time.time()
+            svd = TruncatedSVD(n_components=LSA_FEATURES, random_state=700)
+            data_tf = svd.fit_transform(data_tf)
+            data_tf = sparse.csr_matrix(data_tf)
+            end = time.time() - start
+            print("Feature reducion time:", end)
+            with open(self.tf_filename, 'wb') as outfile:
+                pickle.dump(data_tf, outfile, pickle.HIGHEST_PROTOCOL)
         return data_tf
-    
+
     def prepare_training_data_set(self):
         print("Preparing training data set ...")
         # Tranform Gene
         genes = self.combine_data['Gene']
         labels = LabelEncoder()
         genes_tf = np.asmatrix(labels.fit_transform(genes)).T
-        # print("Gene tf:", type(genes_tf), " size:", genes_tf.shape)
+        print("Gene tf:", type(genes_tf), " size:", genes_tf.shape)
 
         # Tranform Variants
         variations = self.combine_data['Variation']
@@ -278,10 +289,11 @@ class PersonalizedMedicineClassifier:
         variations_tf = np.asmatrix(labels.fit_transform(variations)).T
 
         data_tf = self.extract_text_features(True)
-        # print("Text tf:", type(data_tf), " size:",  data_tf.shape)
-        # data_tf = sparse.hstack([data_tf, genes_tf, variations_tf], format="csr") => Variation lower score
+        print("Text tf:", type(data_tf), " size:",  data_tf.shape)
+        # data_tf = sparse.hstack([data_tf, genes_tf, variations_tf],
+        # format="csr") => Variation lower score
         data_tf = sparse.hstack([data_tf, genes_tf], format="csr")
-        # print("combine matrix:", type(data_tf), " size:", data_tf.shape)
+        print("combine matrix:", type(data_tf), " size:", data_tf.shape)
         return data_tf
 
     def build_model(self):
