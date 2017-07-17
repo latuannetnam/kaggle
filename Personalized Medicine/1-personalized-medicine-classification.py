@@ -199,9 +199,10 @@ class PersonalizedMedicineClassifier:
         w2v = {w: vec for w, vec in zip(model.wv.index2word, model.wv.syn0)}
         return w2v
 
+    # Use 1st time when to train word2vec model. After that load from disk
     def train_word2vec(self):
         data = self.combine_data[TEXT_COL]
-        w2v = word2vec(data)
+        w2v = word2vec(data, load=False)
         return w2v
 
     # extract text features using word2vec and TF-IDF
@@ -222,14 +223,62 @@ class PersonalizedMedicineClassifier:
             print("Text feature Transform time:", end)
         return array
 
+    # Use 1st time when to extract text features. After that load features
+    # from disk
+    def extract_text_features(self):
+        data = self.combine_data[TEXT_COL]
+        self.text_features_w2v(data, load=False)
+
     def build_model(self):
-        model = SVC(decision_function_shape='ovo', probability=True, random_state=250)
-        # model = XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
+        # model = SVC(decision_function_shape='ovo',
+        #             probability=True, random_state=250)
+        model = XGBClassifier(n_estimators=500, max_depth=5, n_jobs = -1)
         return model
 
-    def train_model(self):
+    def split_train_test(self):
         data = self.combine_data[TEXT_COL]
-        data_tf = self.text_features_w2v(data, load=False)
+        data_tf = self.text_features_w2v(data, load=True)
+        train_len = len(self.train_full)
+        self.train_set = data_tf[:train_len]
+        self.eval_set = data_tf[train_len:]
+        print("Train set:", self.train_set.shape,
+              " eval set:", self.eval_set.shape)
+        X_train, X_test, Y_train, Y_test = train_test_split(
+            self.train_set, self.target, train_size=0.7, random_state=324)
+        print("train size:", X_train.shape)
+        print("test size:", X_test.shape)
+        return X_train, X_test, Y_train, Y_test
+
+    def train_model(self):
+        self.model = self.build_model()
+        X_train, X_test, Y_train, Y_test = self.split_train_test()
+        print("Training model ...")
+        start = time.time()
+        self.model.fit(X_train, Y_train)
+        end = time.time() - start
+        print("Done training model:", end)
+        score = self.model.score(X_test, Y_test)
+        print(" score:", score)
+
+    # Predict evaluation data and save to CSV file
+    def predict_save_eval(self):
+        # predictions
+        print("Eval data predicting ... ")
+        data_eval = self.eval_set
+        start = time.time()
+        y_pred = self.model.predict_proba(data_eval)
+        end = time.time() - start
+        print("Export data")
+        # tweaking the submission file as required
+        # credit: https://www.kaggle.com/punyaswaroop12/gbm-starter-top-40
+        subm_file = pd.DataFrame(y_pred)
+        subm_file['id'] = self.eval_data_id
+        subm_file.columns = ['class1', 'class2', 'class3', 'class4',
+                             'class5', 'class6', 'class7', 'class8', 'class9', 'id']
+        subm_file.to_csv(DATA_DIR + "/submission_v3.csv", index=False)
+        subm_file.head(5)
+
+
 # ---------------- Utility classes -----------------------------------
 # Tranform text using TF-IDF and word2vec
 # credit:
@@ -309,3 +358,4 @@ class CleanTextTransformer(TransformerMixin):
 classifier = PersonalizedMedicineClassifier(LABEL)
 classifier.load_data()
 classifier.train_model()
+classifier.predict_save_eval()
