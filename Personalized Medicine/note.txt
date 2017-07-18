@@ -80,7 +80,7 @@
         * tfidf time: 55.59057140350342 sec + 323.45097279548645 (reduction)
         * model fit time: 429.6618926525116 
         * Score: 0.616850551655 (lsa=500) => 0.618856569709 
-    + Submision score: 0.95127 =>  0.97261 (lsa=500) =>      
+    + Submision score: 0.95127 =>  0.97261 (lsa=500) => 1.00014     
     
     
     
