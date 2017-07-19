@@ -81,6 +81,17 @@
         * model fit time: 429.6618926525116 
         * Score: 0.616850551655 (lsa=500) => 0.618856569709 
     + Submision score: 0.95127 =>  0.97261 (lsa=500) => 1.00014     
-    
+3. 2017-07-19:
+- Round 10:    
+    + Base model: = 
+        * CatBoostClassifier(iterations=500, depth=5, loss_function='Logloss', thread_count=W2V_N_THREADS,  verbose=True)
+        * TfidfVectorizer(min_df=5, max_features=MAX_FEATURES, stop_words=STOPLIST,
+            tokenizer=tokenizer, lowercase=True)
+        * max_features = 16000
+        * lsa_features = 2000      
+        * tfidf time: 55.59057140350342 sec + 323.45097279548645 (reduction)
+        * model fit time: 429.6618926525116 => Can not process sparse data
+        * Score: 0.618856569709 => 
+    + Submision score: 1.00014 =>    
     
     

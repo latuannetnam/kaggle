@@ -23,7 +23,6 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.feature_selection import SelectFromModel
 from sklearn.svm import SVC, LinearSVC
-from xgboost.sklearn import XGBClassifier
 from sklearn.feature_extraction.text import CountVectorizer, HashingVectorizer
 from sklearn.feature_extraction.text import TfidfTransformer, TfidfVectorizer
 from sklearn.pipeline import Pipeline
@@ -31,6 +30,12 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS
 from sklearn.decomposition import TruncatedSVD
 from mlxtend.evaluate import confusion_matrix
 from mlxtend.plotting import plot_decision_regions, plot_learning_curves, plot_confusion_matrix
+
+# XGBoost
+from xgboost.sklearn import XGBClassifier
+
+# CatBoost
+from catboost import CatBoostClassifier
 
 # --------------- NLP ----------------
 # NLTK
@@ -300,6 +305,10 @@ class PersonalizedMedicineClassifier:
         # model = SVC(decision_function_shape='ovo',
         #             probability=True, random_state=250)
         model = XGBClassifier(n_estimators=500, max_depth=5, n_jobs=-1)
+        # This model can not use for sparse data
+        # model = CatBoostClassifier(
+        #     iterations=500, depth=5, loss_function='Logloss', 
+        #     thread_count=W2V_N_THREADS,  verbose=True)
         return model
 
     def split_train_test(self):
