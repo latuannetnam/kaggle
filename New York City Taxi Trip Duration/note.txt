@@ -1,11 +1,104 @@
+0.
+ - Best model: round 3: 0.417
+ - Best model: round 8: 0.401 (added distance)
+ 	
 1. 2017-07-21
 - Round 1:
     + Base model: 
-        * XGBRegressor(n_estimators=1597, max_depth=5, min_child_weight=5, learning_rate=0.03, n_jobs = -1)
-	* added weekday feature
-	* use GridSearchCV, xgboost.cv
+        * XGBRegressor(base_score=0.5, booster='gbtree', colsample_bylevel=1,
+       colsample_bytree=1, gamma=0, learning_rate=0.1, max_delta_step=0,
+       max_depth=5, min_child_weight=1, missing=None, n_estimators=2000,
+       n_jobs=-1, nthread=None, objective='reg:linear', random_state=0,
+       reg_alpha=0, reg_lambda=1, scale_pos_weight=1, seed=None,
+       silent=True, subsample=1)
+	* use xgboost.cv
 	* train_size = 0.85
 	* target_log = np.log(target)
-        * RMSLE: 0.11301201613514343 => 0.1082141854376401
-    + Submision score:  0.41757 => 0.40119
-
+	* train time: 924.1382086277008
+	* RMSLE without-log: 0.423621130054
+    + Submision score: 0.427 
+- Round 2:
+    + Base model: 
+        * XGBRegressor(n_estimators=5000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove outliner: train_set[label] > 5000
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 5000
+	* train time: 2399.4174466133118
+	* RMSLE without-log: 0.374140060512
+    + Submision score: 0.419
+- Round 3:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.3, min_child_weight=1, n_jobs=-1)
+	* remove outliner: train_set[label] > 5000
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 3921
+	* train time: 1854.232224702835
+	* RMSLE without-log: 0.374140060512 => 0.371386768324
+    + Submision score: 0.419 =>  0.417
+- Round 4:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* all train data (not remove outliners)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 5093
+	* train time: 2379.7198255062103
+	* RMSLE without-log: 0.374140060512 => 0.41737086459
+    + Submision score: 0.421
+- Round 5:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.3, min_child_weight=1, n_jobs=-1)
+	* feature scaling
+	* remove pickup_year (correl = 0)
+	* remove outliner: train_set[label] > 5000
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1403
+	* train time: 668.2613804340363
+	* RMSLE without-log: 0.37665957093
+    + Submision score: 0.417 => 0.422
+2. 2017--7-23:
+- Round 6:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* feature scaling
+	* remove pickup_year (correl = 0)
+	* remove outliner: train_set[label] > 5000
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2413
+	* train time: 1149.2097866535187
+	* RMSLE without-log: 0.37665957093 => 0.379491160168
+    + Submision score: 0.422 => 0.424
+- Round 7:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 3107
+	* train time: 1545.7049226760864
+	* RMSLE without-log: 0.419480465158 
+    + Submision score: 0.424
+- Round 8:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* Added distance between pickup and dropoff
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2983 
+	* train time: 1751.8312721252441
+	* RMSLE without-log: 0.419480465158 => 0.395957129069
+    + Submision score: 0.424 => 0.401
