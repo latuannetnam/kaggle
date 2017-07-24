@@ -1,7 +1,17 @@
-0.
+
+0.: Requirements
+ - use pipreqs ./ to regenerate requirements file
+ - pip3 install -r requirments.txt
+ - Ubuntu:
+	+ sudo apt-get install libspatialindex-dev
+	+ sudo apt-get install libgeos-dev
+ - CentOS:
+	+ yum install -y spatialindex-devel
+	+ yum install -y geos-devel
+	+ yum -y install python34-tkinter
+0.1:
  - Best model: round 3: 0.417
- - Best model: round 8: 0.401 (added distance)
- 	
+ - Best model: round 8: 0.401 (added distance using haversine)
 1. 2017-07-21
 - Round 1:
     + Base model: 
@@ -95,7 +105,7 @@
                      learning_rate=0.1, min_child_weight=1, n_jobs=-1)
 	* remove pickup_year (correl = 0)
 	* remove outliners: train_set[label] > 1800000
-	* Added distance between pickup and dropoff
+	* Added distance between pickup and dropoff using haversine
 	* train_size = 0.85
 	* target_log = np.log(target)
 	* best model train round: 2983 
