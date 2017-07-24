@@ -28,7 +28,7 @@ STREETGRAPH_FILENAME = 'streetnetwork.graphml'
 LOCATION = 'New York, USA'
 LOG_LEVEL = logging.DEBUG
 # LOG_LEVEL = logging.INFO
-NUM_THREAD = 4
+NUM_THREAD = 3
 BLOCK_SIZE = 10
 
 
