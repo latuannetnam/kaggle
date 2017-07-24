@@ -116,7 +116,7 @@ class DriveDistance(Thread):
             distance = nx.shortest_path_length(
                 self.area_graph, node_start, node_stop, weight="length")
         except:
-            logger.error("Can not calculate path from (" + str(startpoint[0]) +
+            logger.error(str(self.thread_count) + " Can not calculate path from (" + str(startpoint[0]) +
                          "," + str(startpoint[0]) + ")" + " to (" +
                          str(endpoint[0]) + "," +
                          str(endpoint[1]) + "). Using fallback function")
@@ -126,7 +126,7 @@ class DriveDistance(Thread):
     def calc_drive_distance(self, n_block=0):
         n_start = n_block * BLOCK_SIZE
         n_end = n_start + BLOCK_SIZE
-        logger.info(str(self.thread_count) + ": processing from " +
+        logger.info(str(self.thread_count) + " processing from " +
                     str(n_start) + " to " + str(n_end))
         data = self.combine_data[n_start:n_end]
         # data_index = data.index.values
