@@ -34,9 +34,10 @@ BLOCK_SIZE = 10
 
 
 class DriveDistance(multiprocessing.Process):
-    def __init__(self, thread_count=0, in_queue=None, out_queue=None, manager_dict=None):
+    def __init__(self, thread_count=0, in_queue=None, out_queue=None, out_queue2=None, manager_dict=None, mode=0):
         multiprocessing.Process.__init__(self)
         self.thread_count = thread_count
+        self.mode = mode
         self.graph_filename = DATA_DIR + "/" + STREETGRAPH_FILENAME
         self.train_distance_filename = DATA_DIR + "/train_distance.csv"
         self.eval_distance_filename = DATA_DIR + "/test_distance.csv"
@@ -46,13 +47,29 @@ class DriveDistance(multiprocessing.Process):
             self.in_queue = in_queue
         if out_queue is not None:
             self.out_queue = out_queue
+        if out_queue2 is not None:
+            self.out_queue2 = out_queue2
         if manager_dict is not None:
             self.manager_dict = manager_dict
         # logger.info("Process started " + str(thread_count))
 
     def run(self):
         self.logger = self.get_logger()
-        # self.init_osm_graph()
+        if self.mode == 0:
+            self.run_main()
+        else:
+            self.run_worker()
+
+    def run_main(self):
+        # Load graph and train+eval set => put to shared dictionary
+        area_graph = self.init_osm_graph()
+        combine_data = self.load_data()
+        manager_dict['area_graph'] = area_graph
+        manager_dict['combine_data'] = combine_data
+        self.out_queue2.put(1)
+        self.save_distance()
+
+    def run_worker(self):
         while True:
             # Get the work from the queue and expand the tuple
             data = self.in_queue.get()
@@ -80,6 +97,7 @@ class DriveDistance(multiprocessing.Process):
         fh = logging.FileHandler(
             DATA_DIR + '/drive_distance_' + str(self.thread_count) + '.log', mode='a')
         fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
         logger.addHandler(fh)
         return logger
 
@@ -90,7 +108,7 @@ class DriveDistance(multiprocessing.Process):
         return self.combine_data
 
     def init_osm_graph(self):
-        self.logger = self.get_logger()
+        # self.logger = self.get_logger()
         if not os.path.isfile(self.graph_filename):
             # There are many different ways to create the Network Graph. See
             # the osmnx documentation for details
@@ -111,7 +129,8 @@ class DriveDistance(multiprocessing.Process):
 
     def load_data(self):
         # self.logger = self.get_logger()
-        self.logger.info(str(self.thread_count) + " Loading data from " + DATA_DIR)
+        self.logger.info(str(self.thread_count) +
+                         " Loading data from " + DATA_DIR)
         train_data = pd.read_csv(DATA_DIR + "/train.csv")
         eval_data = pd.read_csv(DATA_DIR + "/test.csv")
         features = eval_data.columns.values
@@ -179,64 +198,17 @@ class DriveDistance(multiprocessing.Process):
         column = 'drive_distance'
         distance = pd.DataFrame(columns=['id', column])
         while True:
-            try:
-                data = self.out_queue.get_nowait()
+            data = self.out_queue.get()
+            if data is not None:
                 distance = distance.append(data)
-            except:
+                distance.to_csv(
+                    self.distance_filename, index=False)
+                self.logger.info(str(self.thread_count) +
+                                 " total saved: " + str(len(distance)))
+            else:
                 self.logger.info(str(self.thread_count) +
                                  " Total data:" + str(len(distance)))
                 break
-
-        distance.to_csv(
-            self.distance_filename, index=False)
-        self.logger.info(str(self.thread_count) + " data saved ")
-
-# Backup class
-
-
-class DriveDistance2(multiprocessing.Process):
-    def __init__(self, thread_count=0, in_queue=None, out_queue=None):
-        multiprocessing.Process.__init__(self)
-        self.thread_count = thread_count
-        # logger = self.get_logger()
-        if in_queue is not None:
-            self.in_queue = in_queue
-        if out_queue is not None:
-            self.out_queue = out_queue
-        # logger.info("Process started " + str(thread_count))
-
-    def run(self):
-        self.logger = self.get_logger()
-        while True:
-            # Get the work from the queue and expand the tuple
-            data = self.in_queue.get()
-            if data is None:
-                self.logger.info(str(self.thread_count) +
-                                 " No task remain. Existing ...")
-                self.in_queue.task_done()
-                break
-            self.logger.info(str(self.thread_count) +
-                             " got data:" + str(len(data)))
-            # self.calc_drive_distance(data)
-            self.in_queue.task_done()
-        return
-
-    def get_logger(self):
-        logger = logging.getLogger('kaggle-' + str(self.thread_count))
-        # logger = multiprocessing.get_logger()
-        logger.setLevel(logging.DEBUG)
-        formatter = logging.Formatter(
-            '%(asctime)s - %(levelname)s - %(message)s')
-        ch = logging.StreamHandler(sys.stdout)
-        ch.setLevel(LOG_LEVEL)
-        ch.setFormatter(formatter)
-        logger.addHandler(ch)
-        # create file handler which logs even debug messages
-        fh = logging.FileHandler(
-            DATA_DIR + '/drive_distance_' + str(self.thread_count) + '.log', mode='a')
-        fh.setLevel(logging.DEBUG)
-        logger.addHandler(fh)
-        return logger
 
 
 # ---------------- Main -------------------------
@@ -254,29 +226,34 @@ if __name__ == "__main__":
     # create file handler which logs even debug messages
     fh = logging.FileHandler(DATA_DIR + '/drive_distance.log', mode='a')
     fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
     logger.addHandler(fh)
 
     # Create global queue
     in_queue = multiprocessing.JoinableQueue()
     out_queue = multiprocessing.Queue()
+    out_queue2 = multiprocessing.Queue()
 
     # Create manager
     manager = multiprocessing.Manager()
     manager_dict = manager.dict()
     # create base class
     base_class = DriveDistance(
-        0, in_queue=in_queue, out_queue=out_queue, manager_dict=manager_dict)
-    area_graph = base_class.init_osm_graph()
-    combine_data = base_class.load_data()
-    manager_dict['area_graph'] = area_graph
+        0, in_queue=in_queue, out_queue=out_queue, out_queue2=out_queue2, manager_dict=manager_dict, mode=0)
+    # area_graph = base_class.init_osm_graph()
+    # combine_data = base_class.load_data()
+    # manager_dict['area_graph'] = area_graph
+    base_class.start()
+    # Wait until base_class done loading data and map
+    result = out_queue2.get()
     # create worker
-    workers = [DriveDistance(x + 1, in_queue=in_queue, out_queue=out_queue, manager_dict=manager_dict)
+    workers = [DriveDistance(x + 1, in_queue=in_queue, out_queue=out_queue, out_queue2=out_queue2, manager_dict=manager_dict, mode=1)
                for x in range(NUM_THREAD)]
     logger.info("Total workers:" + str(len(workers)))
     for w in workers:
         w.start()
     ts = time.time()
-    # Put the tasks into the queue as a tuple
+    combine_data = manager_dict['combine_data']
     # data_len = len(combine_data)
     data_len = 100
     remain = data_len % BLOCK_SIZE
@@ -298,4 +275,9 @@ if __name__ == "__main__":
     # the tasks
     in_queue.join()
     logger.info('Took ' + str(time.time() - ts))
-    base_class.save_distance()
+    # Signal base_class to terminate
+    out_queue.put(None)
+    # Wait for all process terminated
+    time.sleep(2)
+    logger.info('Existing ...')
+    # base_class.save_distance()
