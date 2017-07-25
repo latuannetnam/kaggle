@@ -120,7 +120,7 @@ class DriveDistance(Thread):
                          "," + str(startpoint[0]) + ")" + " to (" +
                          str(endpoint[0]) + "," +
                          str(endpoint[1]) + "). Using fallback function")
-            distance = point_distance(startpoint, endpoint)
+            distance = self.point_distance(startpoint, endpoint)
         return distance
 
     def calc_drive_distance(self, n_block=0):

@@ -28,19 +28,46 @@ STREETGRAPH_FILENAME = 'streetnetwork.graphml'
 LOCATION = 'New York, USA'
 LOG_LEVEL = logging.DEBUG
 # LOG_LEVEL = logging.INFO
-NUM_THREAD = 1
+NUM_THREAD = 4
 BLOCK_SIZE = 10
 
 
 class DriveDistance(multiprocessing.Process):
-    def __init__(self, thread_count=0, in_queue=None, out_queue=None):
+    def __init__(self, thread_count=0, in_queue=None, out_queue=None, manager_dict=None):
         multiprocessing.Process.__init__(self)
         self.thread_count = thread_count
+        self.graph_filename = DATA_DIR + "/" + STREETGRAPH_FILENAME
+        self.train_distance_filename = DATA_DIR + "/train_distance.csv"
+        self.eval_distance_filename = DATA_DIR + "/test_distance.csv"
+        self.distance_filename = DATA_DIR + "/distance.csv"
+        self.geod = Geodesic.WGS84  # define the WGS84 ellipsoid
+        if in_queue is not None:
+            self.in_queue = in_queue
+        if out_queue is not None:
+            self.out_queue = out_queue
+        if manager_dict is not None:
+            self.manager_dict = manager_dict
+        # logger.info("Process started " + str(thread_count))
 
-        # create logger
-        # logger = logging.getLogger('kaggle-' + str(self.thread_count))
-        logger = multiprocessing.get_logger()
+    def run(self):
+        self.logger = self.get_logger()
+        # self.init_osm_graph()
+        while True:
+            # Get the work from the queue and expand the tuple
+            data = self.in_queue.get()
+            if data is None:
+                self.logger.info(str(self.thread_count) +
+                                 " No task remain. Existing ...")
+                self.in_queue.task_done()
+                break
+            self.logger.info(str(self.thread_count) +
+                             " got data:" + str(len(data)))
+            self.calc_drive_distance(data)
+            self.in_queue.task_done()
 
+    def get_logger(self):
+        logger = logging.getLogger('kaggle-' + str(self.thread_count))
+        # logger = multiprocessing.get_logger()
         logger.setLevel(logging.DEBUG)
         formatter = logging.Formatter(
             '%(asctime)s - %(levelname)s - %(message)s')
@@ -53,62 +80,44 @@ class DriveDistance(multiprocessing.Process):
             DATA_DIR + '/drive_distance_' + str(self.thread_count) + '.log', mode='a')
         fh.setLevel(logging.DEBUG)
         logger.addHandler(fh)
-        self.logger = logger
-        self.graph_filename = DATA_DIR + "/" + STREETGRAPH_FILENAME
-        self.train_distance_filename = DATA_DIR + "/train_distance.csv"
-        self.eval_distance_filename = DATA_DIR + "/test_distance.csv"
-        self.distance_filename = DATA_DIR + "/distance.csv"
-        self.geod = Geodesic.WGS84  # define the WGS84 ellipsoid
-        if in_queue is not None:
-            self.in_queue = in_queue
-        if out_queue is not None:
-            self.out_queue = out_queue
-        logger.info("Process started " + str(thread_count))
-
-    def run(self):
-        self.init_osm_graph()
-        while True:
-            # Get the work from the queue and expand the tuple
-            data = self.in_queue.get()
-            if data is None:
-                self.logger.info(str(self.thread_count) +
-                                 " No task remain. Existing ...")
-                self.in_queue.task_done()                                
-                break
-            self.logger.info(str(self.thread_count) +
-                             " got data:" + str(len(data)))
-            self.calc_drive_distance(data)
-            self.in_queue.task_done()
+        return logger
 
     def get_area_graph(self):
-        return self.area_graph
+        return self.manager_dict['area_graph']
 
     def get_combine_data(self):
         return self.combine_data
 
     def init_osm_graph(self):
+        self.logger = self.get_logger()
         if not os.path.isfile(self.graph_filename):
             # There are many different ways to create the Network Graph. See
             # the osmnx documentation for details
-            self.logger.info("Downloading graph for " + LOCATION)
-            self.area_graph = ox.graph_from_place(
+            self.logger.info(str(self.thread_count) +
+                             " Downloading graph for " + LOCATION)
+            area_graph = ox.graph_from_place(
                 LOCATION, network_type='drive_service')
             ox.save_graphml(
-                self.area_graph, filename=STREETGRAPH_FILENAME, folder=DATA_DIR)
-            self.logger.info("Graph saved to " + self.graph_filename)
+                area_graph, filename=STREETGRAPH_FILENAME, folder=DATA_DIR)
+            self.logger.info(str(self.thread_count) +
+                             " Graph saved to " + self.graph_filename)
         else:
-            self.logger.info("Loading graph from " + self.graph_filename)
-            self.area_graph = ox.load_graphml(
+            self.logger.info(str(self.thread_count) +
+                             " Loading graph from " + self.graph_filename)
+            area_graph = ox.load_graphml(
                 STREETGRAPH_FILENAME, folder=DATA_DIR)
+        return area_graph
 
     def load_data(self):
-        self.logger.info("Loading data from " + DATA_DIR)
+        # self.logger = self.get_logger()
+        self.logger.info(str(self.thread_count) + " Loading data from " + DATA_DIR)
         train_data = pd.read_csv(DATA_DIR + "/train.csv")
         eval_data = pd.read_csv(DATA_DIR + "/test.csv")
         features = eval_data.columns.values
         train_data = train_data[features]
-        self.combine_data = pd.concat(
+        combine_data = pd.concat(
             [train_data[features], eval_data])
+        return combine_data
         # self.combine_data = self.combine_data[:11]
 
     def point_distance(self, startpoint, endpoint):
@@ -127,7 +136,6 @@ class DriveDistance(multiprocessing.Process):
         startpoint -- The Starting point as coordinate Tuple
         endpoint -- The Ending point as coordinate Tuple
         """
-
         # Find nodes closest to the specified Coordinates
         node_start = ox.utils.get_nearest_node(area_graph, startpoint)
         node_stop = ox.utils.get_nearest_node(area_graph, endpoint)
@@ -135,22 +143,23 @@ class DriveDistance(multiprocessing.Process):
         # "length" attribute
         try:
             distance = nx.shortest_path_length(
-                self.area_graph, node_start, node_stop, weight="length")
+                area_graph, node_start, node_stop, weight="length")
         except:
             self.logger.error(str(self.thread_count) + " Can not calculate path from (" + str(startpoint[0]) +
                               "," + str(startpoint[0]) + ")" + " to (" +
                               str(endpoint[0]) + "," +
                               str(endpoint[1]) + "). Using fallback function")
-            distance = point_distance(startpoint, endpoint)
+            distance = self.point_distance(startpoint, endpoint)
         return distance
 
     def calc_drive_distance(self, data):
         # data_index = data.index.values
         # print(self.thread_count, len(data), data_index)
         start = time.time()
+        area_graph = self.get_area_graph()
         distance = data.apply(lambda row: self.driving_distance(
-            self.area_graph, (row['pickup_latitude'],
-                              row['pickup_longitude']),
+            area_graph, (row['pickup_latitude'],
+                         row['pickup_longitude']),
             (row['dropoff_latitude'], row['dropoff_longitude'])),
             axis=1)
         # print("data size:", len(data), " distance size:", len(distance))
@@ -165,7 +174,7 @@ class DriveDistance(multiprocessing.Process):
                          " processed time:" + str(end))
 
     def save_distance(self):
-        self.logger.info(str(self.thread_count) + " Saving to" + DATA_DIR)
+        self.logger.info(str(self.thread_count) + " Saving to " + DATA_DIR)
         column = 'drive_distance'
         distance = pd.DataFrame(columns=['id', column])
         while True:
@@ -188,40 +197,45 @@ class DriveDistance2(multiprocessing.Process):
     def __init__(self, thread_count=0, in_queue=None, out_queue=None):
         multiprocessing.Process.__init__(self)
         self.thread_count = thread_count
-        logger = multiprocessing.get_logger()
-        # logger.setLevel(logging.DEBUG)
-        # formatter = logging.Formatter(
-        #     '%(asctime)s - %(levelname)s - %(message)s')
-        # ch = logging.StreamHandler(sys.stdout)
-        # ch.setLevel(LOG_LEVEL)
-        # ch.setFormatter(formatter)
-        # logger.addHandler(ch)
-        # create file handler which logs even debug messages
-        # fh = logging.FileHandler(
-        #     DATA_DIR + '/drive_distance_' + str(self.thread_count) + '.log', mode='a')
-        # fh.setLevel(logging.DEBUG)
-        # logger.addHandler(fh)
-        # self.logger = logger
+        # logger = self.get_logger()
         if in_queue is not None:
             self.in_queue = in_queue
         if out_queue is not None:
             self.out_queue = out_queue
-        print("Process started " + str(thread_count))
-    
+        # logger.info("Process started " + str(thread_count))
+
     def run(self):
+        self.logger = self.get_logger()
         while True:
             # Get the work from the queue and expand the tuple
             data = self.in_queue.get()
             if data is None:
-                print(str(self.thread_count) +
-                      " No task remain. Existing ...")
-                self.in_queue.task_done()      
+                self.logger.info(str(self.thread_count) +
+                                 " No task remain. Existing ...")
+                self.in_queue.task_done()
                 break
-            print(str(self.thread_count) +
-                  " got data:" + str(len(data)))
+            self.logger.info(str(self.thread_count) +
+                             " got data:" + str(len(data)))
             # self.calc_drive_distance(data)
             self.in_queue.task_done()
         return
+
+    def get_logger(self):
+        logger = logging.getLogger('kaggle-' + str(self.thread_count))
+        # logger = multiprocessing.get_logger()
+        logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - %(message)s')
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(LOG_LEVEL)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+        # create file handler which logs even debug messages
+        fh = logging.FileHandler(
+            DATA_DIR + '/drive_distance_' + str(self.thread_count) + '.log', mode='a')
+        fh.setLevel(logging.DEBUG)
+        logger.addHandler(fh)
+        return logger
 
 
 # ---------------- Main -------------------------
@@ -245,16 +259,17 @@ if __name__ == "__main__":
     in_queue = multiprocessing.JoinableQueue()
     out_queue = multiprocessing.Queue()
 
+    # Create manager
+    manager = multiprocessing.Manager()
+    manager_dict = manager.dict()
     # create base class
-    base_class = DriveDistance(0, in_queue=in_queue, out_queue=out_queue)
-    # base_class.init_osm_graph()
-    # area_graph = base_class.get_area_graph()
-    base_class.load_data()
-    combine_data = base_class.get_combine_data()
-    # base_class.calc_drive_distance(0)
-
+    base_class = DriveDistance(
+        0, in_queue=in_queue, out_queue=out_queue, manager_dict=manager_dict)
+    area_graph = base_class.init_osm_graph()
+    combine_data = base_class.load_data()
+    manager_dict['area_graph'] = area_graph
     # create worker
-    workers = [DriveDistance2(x + 1, in_queue=in_queue, out_queue=out_queue)
+    workers = [DriveDistance(x + 1, in_queue=in_queue, out_queue=out_queue, manager_dict=manager_dict)
                for x in range(NUM_THREAD)]
     logger.info("Total workers:" + str(len(workers)))
     for w in workers:
@@ -262,7 +277,7 @@ if __name__ == "__main__":
     ts = time.time()
     # Put the tasks into the queue as a tuple
     # data_len = len(combine_data)
-    data_len = 15
+    data_len = 55
     remain = data_len % BLOCK_SIZE
     total_blocks = data_len // BLOCK_SIZE
     if remain > 0:
