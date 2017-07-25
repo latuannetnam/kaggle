@@ -4,6 +4,7 @@
 # Credit to:
 # https://www.kaggle.com/ankasor/driving-distance-using-open-street-maps-data/notebook
 # https://pymotw.com/2/multiprocessing/communication.html
+# change DATA_DIR to folder containing trainging data set
 import pandas as pd
 import numpy as np
 
@@ -121,7 +122,7 @@ class DriveDistance(multiprocessing.Process):
         # self.combine_data = self.combine_data[:11]
 
     def point_distance(self, startpoint, endpoint):
-        distance = geod.Inverse(
+        distance = self.geod.Inverse(
             startpoint[0], startpoint[1], endpoint[0], endpoint[1])
         return distance['s12']
 
@@ -277,7 +278,7 @@ if __name__ == "__main__":
     ts = time.time()
     # Put the tasks into the queue as a tuple
     # data_len = len(combine_data)
-    data_len = 55
+    data_len = 100
     remain = data_len % BLOCK_SIZE
     total_blocks = data_len // BLOCK_SIZE
     if remain > 0:
