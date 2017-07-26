@@ -12,6 +12,7 @@
 0.1:
  - Best model: round 3: 0.417
  - Best model: round 8: 0.401 (added distance using haversine)
+ - Best model: round 11: 0.390 (added distance using OSM + haversine distance, speed_mean, total_distance_mean)
 1. 2017-07-21
 - Round 1:
     + Base model: 
@@ -112,3 +113,46 @@
 	* train time: 1751.8312721252441
 	* RMSLE without-log: 0.419480465158 => 0.395957129069
     + Submision score: 0.424 => 0.401
+3: 2017-07-26:
+- Round 9:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* Added distance between pickup and dropoff using outside dataset (OpenStreetMap - osmr)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 3124
+	* train time: 1665.9864552021027
+	* RMSLE without-log: 0.388475183465
+    + Submision score: 0.393
+- Round 10:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* Added distance between pickup and dropoff using outside dataset (OpenStreetMap - osmr)
+	* Added distance between pickup and dropoff using haversine dataset
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1874
+	* train time: 1238.130537033081
+	* RMSLE without-log: 0.388475183465 => 0.38546321876
+    + Submision score: 0.393 => 0.391
+- Round 11:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* Added distance between pickup and dropoff using outside dataset (OpenStreetMap - osmr)
+	* Added distance between pickup and dropoff using haversine dataset
+	* added speed_mean, total_distance_mean
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2853
+	* train time: 1934.7547209262848
+	* RMSLE without-log: 0.38546321876 => 0.383703421188
+    + Submision score: 0.391 => 0.390
