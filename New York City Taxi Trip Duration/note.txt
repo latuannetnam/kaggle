@@ -156,3 +156,37 @@
 	* train time: 1934.7547209262848
 	* RMSLE without-log: 0.38546321876 => 0.383703421188
     + Submision score: 0.391 => 0.390
+4: 2017-07-27:
+- Round 12:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* remove outliners: train_set['total_distance_mean] = 0
+	* Added distance between pickup and dropoff using outside dataset (OpenStreetMap - osmr)
+	* Added distance between pickup and dropoff using haversine dataset
+	* correct speed_mean formular
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2985
+	* train time: 1968.406958580017
+	* RMSLE without-log: 0.383703421188 => 0.384153
+    + Submision score:  	
+- Round 13:
+    + Base model: 
+        * XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* remove pickup_year (correl = 0)
+	* remove outliners: train_set[label] > 1800000
+	* remove outliners: train_set['total_distance_mean] = 0
+	* Added distance between pickup and dropoff using outside dataset (OpenStreetMap - osmr)
+	* Added distance between pickup and dropoff using haversine dataset
+	* Added speed_mean 
+	* Added number_of_streets, starting_street, end_street
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2985
+	* train time: 1968.406958580017
+	* RMSLE without-log: 0.383703421188 => 0.384153
+    + Submision score:  		
