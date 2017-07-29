@@ -210,8 +210,14 @@
 	* train time: 3092.225347518921
 	* RMSLE without-log: 0.370031041363
     + Submision score: 0.422 
-
 - Round 15:
     + Base model: Round 14
 	* Set trip_duration=0 if haversin_distance=0
     + Submision score: 0.422 => 0.504
+- Round 16:
+    + Base model: Round 14
+	* No feature engineering for total_distance + trip_duration (check if haversine=0)
+	* best model train round: 2263
+	* train time: 2406.979811668396
+	* RMSLE without-log: 0.3824341923
+    + Submision score: 0.388

@@ -240,9 +240,12 @@ class TaxiTripDuration():
         col = 'speed'
         data_speed = self.combine_data.loc['train'].copy()
         data_speed.loc[:, self.label] = self.target
-        data_speed_values = data_speed.apply(
-            lambda row: self.cal_speed_row(row), axis=1)
-        data_speed.loc[:, col] = data_speed_values
+        # data_speed_values = data_speed.apply(
+        #     lambda row: self.cal_speed_row(row), axis=1)
+        # data_speed.loc[:, col] = data_speed_values
+        data_speed.loc[data_speed[self.label] == 0, col] = 0
+        data_speed.loc[data_speed[self.label] > 0,
+                       col] = data_speed['total_distance'] / data_speed[self.label]
         return data_speed
 
     def speed_mean_by_col(self, col, data_speed):
@@ -289,9 +292,10 @@ class TaxiTripDuration():
         col_speed_mean = col + '_speed_mean'
         col_duration_mean = col + '_duration_mean'
         data = self.combine_data
-        duration_mean = data.apply(
-            lambda row: row['total_distance'] / row[col_speed_mean], axis=1)
-        data.loc[:, col_duration_mean] = duration_mean
+        # duration_mean = data.apply(
+        #     lambda row: row['total_distance'] / row[col_speed_mean], axis=1)
+        data.loc[:, col_duration_mean] = data['total_distance'] / \
+            data[col_speed_mean]
 
     @timecall
     def cal_duration_mean(self):
@@ -342,7 +346,8 @@ class TaxiTripDuration():
         self.convert_end_street()
         self.convert_store_and_fwd_flag()
         self.feature_haversin()
-        self.feature_total_distance()
+        # Dont alternate original total_distance
+        # self.feature_total_distance()
         self.feature_starting_street()
         self.feature_end_street()
         self.cal_speed_mean()
