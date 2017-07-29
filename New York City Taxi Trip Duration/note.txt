@@ -191,7 +191,7 @@
 	* train time: 1943.313801765442
 	* RMSLE without-log: 0.384153 => 0.369416883687
     + Submision score:  0.384153 => 0.428		
-
+6: 2017-07-29:
 - Round 14:
     + Base model: 
         * XGBRegressor(n_estimators=10000, max_depth=5,

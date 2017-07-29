@@ -256,6 +256,7 @@ class TaxiTripDuration():
         data_dict = data_sr.to_dict()
         col_mean = col + '_' + 'speed_mean'
         data.loc[:, col_mean] = data[col].map(data_dict)
+        data.loc[:, col_mean].fillna(data[col_mean].mean(), inplace=True)
 
     def speed_mean_by_hour(self, data_speed):
         col = 'pickup_hour'
