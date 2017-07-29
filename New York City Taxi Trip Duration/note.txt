@@ -206,7 +206,12 @@
 	* added hour_duration_mean, weekday_duration_mean, day_duration_mean, month_duration_mean
 	* train_size = 0.85
 	* target_log = np.log(target)
-	* best model train round: 
-	* train time: 
-	* RMSLE without-log: 
-    + Submision score:  
+	* best model train round: 3001
+	* train time: 3092.225347518921
+	* RMSLE without-log: 0.370031041363
+    + Submision score: 0.422 
+
+- Round 15:
+    + Base model: Round 14
+	* Set trip_duration=0 if haversin_distance=0
+    + Submision score: 0.422 => 0.504
