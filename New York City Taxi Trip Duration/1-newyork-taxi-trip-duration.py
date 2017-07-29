@@ -180,15 +180,35 @@ class TaxiTripDuration():
         km = 6367 * c
         return km
 
+    # credit:
+    # https://stackoverflow.com/questions/29545704/fast-haversine-approximation-python-pandas
+    def haversine_np(self, lon1, lat1, lon2, lat2):
+        """
+        Calculate the great circle distance between two points
+        on the earth (specified in decimal degrees)
+        All args must be of equal length.
+        """
+        lon1, lat1, lon2, lat2 = map(np.radians, [lon1, lat1, lon2, lat2])
+        dlon = lon2 - lon1
+        dlat = lat2 - lat1
+        a = np.sin(dlat / 2.0)**2 + np.cos(lat1) * \
+            np.cos(lat2) * np.sin(dlon / 2.0)**2
+        c = 2 * np.arcsin(np.sqrt(a))
+        km = 6367 * c
+        return km
+
     @timecall
     def feature_haversin(self):
         print("Feature engineering: haversine_distance")
         data = self.combine_data
-        haversine_distance = data.apply(lambda row:
-                                        self.haversine(
-                                            row['pickup_latitude'], row['pickup_longitude'],
-                                            row['dropoff_latitude'], row['dropoff_longitude']), axis=1)
-        data.loc[:, 'haversine_distance'] = haversine_distance
+        # haversine_distance = data.apply(lambda row:
+        #                                 self.haversine(
+        #                                     row['pickup_latitude'], row['pickup_longitude'],
+        #                                     row['dropoff_latitude'], row['dropoff_longitude']), axis=1)
+        # data.loc[:, 'haversine_distance'] = haversine_distance
+        data.loc[:, 'haversine_distance'] = self.haversine_np(
+            data['pickup_longitude'], data['pickup_latitude'],
+            data['dropoff_longitude'], data['dropoff_latitude'])
 
     def estimate_total_distance(self):
         print("Estimating total_distance ... ")
@@ -244,8 +264,10 @@ class TaxiTripDuration():
         #     lambda row: self.cal_speed_row(row), axis=1)
         # data_speed.loc[:, col] = data_speed_values
         data_speed.loc[data_speed[self.label] == 0, col] = 0
-        data_speed.loc[data_speed[self.label] > 0,
-                       col] = data_speed['total_distance'] / data_speed[self.label]
+        data_speed_not_zero = data_speed.loc[data_speed[self.label] > 0]
+        data_speed_not_zero.loc[:, col] = data_speed_not_zero['total_distance'] / \
+            data_speed_not_zero[self.label]
+        data_speed.update(data_speed_not_zero)
         return data_speed
 
     def speed_mean_by_col(self, col, data_speed):
@@ -358,10 +380,13 @@ class TaxiTripDuration():
         print(self.combine_data.columns.values)
 
         # Save preprocess data
+        
         train_set = self.combine_data.loc['train'].copy()
         train_set.loc[:, self.label] = self.target
         eval_set = self.combine_data.loc['eval']
+        print("Saving train set ...")
         train_set.to_csv(DATA_DIR + '/train_pre.csv', index=False)
+        print("Saving eval set ...")
         eval_set.to_csv(DATA_DIR + '/test_pre.csv', index=False)
 
 
