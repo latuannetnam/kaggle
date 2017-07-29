@@ -167,7 +167,7 @@ class TaxiTripDuration():
     # https://stackoverflow.com/questions/15736995/how-can-i-quickly-estimate-the-distance-between-two-latitude-longitude-points
     def haversine(self, lon1, lat1, lon2, lat2):
         """
-        Calculate the great circle distance between two points 
+        Calculate the great circle distance between two points
         on the earth (specified in decimal degrees)
         """
         # convert decimal degrees to radians
@@ -195,7 +195,7 @@ class TaxiTripDuration():
         data = self.combine_data
         col1 = 'haversine_distance'
         col = 'total_distance'
-        data_zero = data[(data[col] == 0) & (data[col1] > 0)]
+        data_zero = data[(data[col] == 0) & (data[col1] > 0)].copy()
         data_not_zero = data[(data[col] > 0.) & (data[col] > 0.)]
         features = ['pickup_longitude', 'pickup_latitude',
                     'dropoff_longitude', 'dropoff_latitude',
@@ -238,14 +238,16 @@ class TaxiTripDuration():
 
     def cal_speed(self):
         col = 'speed'
-        data_speed = self.combine_data.loc['train']
-        data_speed[self.label] = self.target
-        data_speed[col] = data_speed.apply(lambda row: self.cal_speed_row(row), axis=1)
+        data_speed = self.combine_data.loc['train'].copy()
+        data_speed.loc[:, self.label] = self.target
+        data_speed_values = data_speed.apply(
+            lambda row: self.cal_speed_row(row), axis=1)
+        data_speed.loc[:, col] = data_speed_values
         return data_speed
 
-    def speed_mean_by_hour(self, data_speed):
+    def speed_mean_by_col(self, col, data_speed):
+        print("Speed mean by ", col)
         data = self.combine_data
-        col = 'pickup_hour'
         group_col = 'speed'
         data_grp = data_speed[[col, group_col]]
         data_st = data_grp.groupby(
@@ -255,15 +257,80 @@ class TaxiTripDuration():
         col_mean = col + '_' + 'speed_mean'
         data.loc[:, col_mean] = data[col].map(data_dict)
 
+    def speed_mean_by_hour(self, data_speed):
+        col = 'pickup_hour'
+        self.speed_mean_by_col(col, data_speed)
+
     def speed_mean_by_weekday(self, data_speed):
         col = 'pickup_weekday'
-        group_col = 'speed'
+        self.speed_mean_by_col(col, data_speed)
+
+    def speed_mean_by_day(self, data_speed):
+        col = 'pickup_day'
+        self.speed_mean_by_col(col, data_speed)
+
+    def speed_mean_by_month(self, data_speed):
+        col = 'pickup_month'
+        self.speed_mean_by_col(col, data_speed)
 
     @timecall
     def cal_speed_mean(self):
         print("Calculating speed_mean for each feature")
         data_speed = self.cal_speed()
         self.speed_mean_by_hour(data_speed)
+        self.speed_mean_by_weekday(data_speed)
+        self.speed_mean_by_day(data_speed)
+        self.speed_mean_by_month(data_speed)
+
+    @timecall
+    def duration_mean_by_col(self, col):
+        print("Duration mean by ", col)
+        col_speed_mean = col + '_speed_mean'
+        col_duration_mean = col + '_duration_mean'
+        data = self.combine_data
+        duration_mean = data.apply(
+            lambda row: row['total_distance'] / row[col_speed_mean], axis=1)
+        data.loc[:, col_duration_mean] = duration_mean
+
+    @timecall
+    def cal_duration_mean(self):
+        print("Calculating duration_mean for each feature")
+        self.duration_mean_by_col('pickup_hour')
+        self.duration_mean_by_col('pickup_weekday')
+        self.duration_mean_by_col('pickup_day')
+        self.duration_mean_by_col('pickup_month')
+
+    @timecall
+    def feature_starting_street(self):
+        data = self.combine_data
+        col = 'starting_street_tf'
+        print("Feature enginering ", col)
+        data_zero = data[data[col].isnull()]
+        data_not_zero = data[data[col].notnull()]
+        features = ['pickup_longitude', 'pickup_latitude']
+        X = data_not_zero[features]
+        Y = data_not_zero[col]
+        model_tf = LinearRegression(n_jobs=-1)
+        model_tf.fit(X, Y)
+        X_eval = data_zero[features]
+        Y_pred = model_tf.predict(X_eval)
+        data.loc[data[col].isnull(), col] = Y_pred
+
+    @timecall
+    def feature_end_street(self):
+        data = self.combine_data
+        col = 'end_street_tf'
+        print("Feature enginering ", col)
+        data_zero = data[data[col].isnull()]
+        data_not_zero = data[data[col].notnull()]
+        features = ['dropoff_longitude', 'dropoff_latitude']
+        X = data_not_zero[features]
+        Y = data_not_zero[col]
+        model_tf = LinearRegression(n_jobs=-1)
+        model_tf.fit(X, Y)
+        X_eval = data_zero[features]
+        Y_pred = model_tf.predict(X_eval)
+        data.loc[data[col].isnull(), col] = Y_pred
 
     @timecall
     def preprocess_data(self):
@@ -275,13 +342,27 @@ class TaxiTripDuration():
         self.convert_store_and_fwd_flag()
         self.feature_haversin()
         self.feature_total_distance()
+        self.feature_starting_street()
+        self.feature_end_street()
         self.cal_speed_mean()
+        self.cal_duration_mean()
+
         # Drop unsed columns
         self.drop_unused_cols()
+        print(self.combine_data.columns.values)
+
+        # Save preprocess data
+        train_set = self.combine_data.loc['train'].copy()
+        train_set.loc[:, self.label] = self.target
+        eval_set = self.combine_data.loc['eval']
+        train_set.to_csv(DATA_DIR + '/train_pre.csv', index=False)
+        eval_set.to_csv(DATA_DIR + '/test_pre.csv', index=False)
 
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
+    option = 1
     base_class = TaxiTripDuration(LABEL)
-    base_class.load_data()
-    base_class.preprocess_data()
+    if option == 1:
+        base_class.load_data()
+        base_class.preprocess_data()
