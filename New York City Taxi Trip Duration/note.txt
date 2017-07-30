@@ -13,6 +13,7 @@
  - Best model: round 3: 0.417
  - Best model: round 8: 0.401 (added distance using haversine)
  - Best model: round 11: 0.390 (added distance using OSM + haversine distance, speed_mean, total_distance_mean)
+ - Best model: round 21: 0.387 (removed feature: speed_mean and duration_mean by haversine)
 1. 2017-07-21
 - Round 1:
     + Base model: 
@@ -221,3 +222,75 @@
 	* train time: 2406.979811668396
 	* RMSLE without-log: 0.3824341923
     + Submision score: 0.388
+- Round 17:
+    + Base model: Round 16
+	* change to haversine_np for faster computation time
+	* best model train round: 2971
+	* train time: 3083.501992702484
+	* RMSLE without-log: 0.38154559936 
+    + Submision score: 0.388 => 0.387
+- Round 18:
+    + Base model: Round 17
+	* added new feature: speed_mean and duration_mean by haversine
+	* best model train round: 
+	* train time: 
+	* RMSLE without-log: 0.38154559936 => 0.382880991297
+    + Submision score: 0.387 => 0.389
+7: 2017-07-30:
+- Round 19:
+    + Base model: Round 18
+	* model = XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.3, min_child_weight=1, n_jobs=-1)
+	* best model train round: 723
+	* train time: 1064.4129366874695
+	* RMSLE without-log: 0.38513216986
+    + Submision score: 0.390
+- Round 20:
+    + Base model: Round 18
+	* model = XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* new data set: fastest_route
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1130
+	* train time: 1774.263885974884
+	* RMSLE without-log: 0.382655151773
+    + Submision score: 0.390
+- Round 21:
+    + Base model: Round 20
+	* model = XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* new data set: fastest_route
+	* removed feature: speed_mean and duration_mean by haversine
+	* removed pickup_year
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2546
+	* train time: 2927.3975234031677
+	* RMSLE without-log: 0.382655151773 => 0.378934064175
+    + Submision score: 0.387 
+- Round 22:
+    + Base model: Round 21
+	* model = XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* new data set: fastest_route
+	* used Kfold = 5
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 2522 + 2127 + 2264 + 1953 + 2706 
+	* train time: 2552.5379943847656 + 2201.945223093033 + 2397.255286216736 + 2121.966084718704 + 2982.0862629413605 =  12304.544
+	* RMSLE without-log: (0.384708311796 + 0.380577074349 + 0.384441915744 + 0.38211835455 + 0.379893830343)/5 = 0.382347897357
+    + Submision score: 0.387 => 0.386
+- Round 23:
+    + Base model: Round 22
+	* model = XGBRegressor(n_estimators=10000, max_depth=5,
+                     learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+	* new data set: fastest_route
+	* used Kfold = 5 + aggregate results
+	* stack train model 
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 
+	* train time: 
+	* RMSLE without-log: 
+    + Submision score: 
