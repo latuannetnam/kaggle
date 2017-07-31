@@ -119,6 +119,7 @@ class TaxiTripDuration():
         print("Data loaded")
 
     def check_null_data(self, data=None):
+        print("Check for null data")
         if data is None:
             data = self.combine_data
         # Get high percent of NaN data
@@ -386,6 +387,9 @@ class TaxiTripDuration():
         self.duration_mean_by_col('pickup_weekday')
         self.duration_mean_by_col('pickup_day')
         self.duration_mean_by_col('pickup_month')
+
+        self.duration_mean_by_col('starting_street_tf')
+        self.duration_mean_by_col('end_street_tf')
 
         # print("Calculating duration_mean by haversine for each feature")
         # self.haversine_duration_mean_by_col('pickup_hour')
@@ -680,7 +684,7 @@ if __name__ == "__main__":
         base_class.check_null_data()
         base_class.cleanup_data()
         # Search for best model params based on current dataset
-        base_class.search_best_model_params()
+        # base_class.search_best_model_params()
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
