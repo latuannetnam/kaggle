@@ -15,7 +15,7 @@
  - Best model: round 11: 0.390 (added distance using OSM + haversine distance, speed_mean, total_distance_mean)
  - Best model: round 21: 0.387 (removed feature: speed_mean and duration_mean by haversine)
  - Best model: round 22: 0.386 (KFold=5)
-  - Best model: round 24: 0.381 (optimized model hyper-params: 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10)
+- Best model: round 24: 0.381 (optimized model hyper-params: 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10)
 1. 2017-07-21
 - Round 1:
     + Base model: 
