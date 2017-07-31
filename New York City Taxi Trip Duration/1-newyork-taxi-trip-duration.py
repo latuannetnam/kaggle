@@ -409,18 +409,20 @@ class TaxiTripDuration():
 
     @timecall
     def feature_distance_by_step(self):
-        print("Calculating total_distance/number_of_streets ...")
+        print("Calculating total_distance/number_of_steps ...")
         data = self.combine_data
-        col = ' distance_by_step'
+        col = ' distance_per_step'
         data.loc[:, col] = data['total_distance'] / data['number_of_steps']
+        data.loc[:, col].fillna(data[col].mean(), inplace=True)
 
     @timecall
     def feature_haversine_distance_by_step(self):
-        print("Calculating haversine_distance/number_of_streets ...")
+        print("Calculating haversine_distance/number_of_steps ...")
         data = self.combine_data
-        col = ' hv_distance_by_step'
+        col = ' hv_distance_per_step'
         data.loc[:, col] = data['haversine_distance'] / \
             data['number_of_steps']
+        data.loc[:, col].fillna(data[col].mean(), inplace=True)    
 
     @timecall
     def preprocess_data(self):
@@ -436,7 +438,7 @@ class TaxiTripDuration():
         # self.feature_end_street()
         self.feature_speed_mean()
         # self.feature_duration_mean()
-        # self.feature_distance_by_step()
+        self.feature_distance_by_step()
         # self.feature_haversine_distance_by_step()
 
         # Drop unsed columns
@@ -454,6 +456,8 @@ class TaxiTripDuration():
         # Save to class variable for later use
         self.train_data = train_set
         self.eval_data = eval_set
+        #Freeup memory
+        del self.combine_data
 
     def rmsle(self, y, y_pred, log=True):
         assert len(y) == len(y_pred)
