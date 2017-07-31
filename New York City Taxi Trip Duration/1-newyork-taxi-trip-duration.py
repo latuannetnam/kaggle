@@ -449,6 +449,8 @@ class TaxiTripDuration():
         target_log = np.log(target)
         train_set = data.drop(
             ['id', 'pickup_year', self.label], axis=1).astype(float)
+        X_train, X_test, Y_train, Y_test = train_test_split(
+            train_set, target_log, test_size=10000, random_state=1234)
         param_grid = {"max_depth": [1, 5, 10],
                       'learning_rate': [0.1, 0.3],
                       'min_child_weight':  [1, 5, 10]
@@ -457,7 +459,7 @@ class TaxiTripDuration():
                              learning_rate=0.1, min_child_weight=1, n_jobs=-1)
         print("Searching for best params")
         grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
-        grid_search.fit(train_set, target_log)
+        grid_search.fit(X_test, Y_test)
         print(grid_search.best_params_)
 
     @timecall
@@ -623,7 +625,7 @@ class TaxiTripDuration():
         today = str(dtime.date.today())
         eval_output[['id', self.label]].to_csv(
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False, compression='gzip')
-    
+
     def importance_features(self):
         print("Prepare data to train model")
         threshold = 0
@@ -631,7 +633,7 @@ class TaxiTripDuration():
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
-            ['id', 'pickup_year', self.label], axis=1).astype(float)        
+            ['id', 'pickup_year', self.label], axis=1).astype(float)
         features_score = pd.Series(
             self.model.feature_importances_, index=train_set.columns.values)
         # print("Feature importance:", features_score.describe())
