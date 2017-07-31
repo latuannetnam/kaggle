@@ -60,9 +60,10 @@ LABEL = 'trip_duration'
 N_FOLDS = 5
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+# 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10}
 LEARNING_RATE = 0.1
-MIN_CHILD_WEIGHT = 5
-MAX_DEPTH = 10
+MIN_CHILD_WEIGHT = 10
+MAX_DEPTH = 5
 N_ROUNDS = 10000
 
 class TaxiTripDuration():
@@ -410,7 +411,7 @@ class TaxiTripDuration():
         self.convert_starting_street()
         self.convert_end_street()
         self.convert_store_and_fwd_flag()
-        self.feature_haversin()
+        # self.feature_haversin()
         # There is no NaN starting_street and end_street => no need to feature enginering
         # self.feature_starting_street()
         # self.feature_end_street()
@@ -664,7 +665,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 3
+    option = 2
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
