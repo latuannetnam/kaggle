@@ -59,7 +59,7 @@ DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
 N_FOLDS = 5
 # Learning param
-# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
 # 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
 LEARNING_RATE = 0.1
