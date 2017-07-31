@@ -58,7 +58,12 @@ pd.options.display.float_format = '{:,.4f}'.format
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
 N_FOLDS = 5
-
+# Learning param
+# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+LEARNING_RATE = 0.1
+MIN_CHILD_WEIGHT = 5
+MAX_DEPTH = 10
+N_ROUNDS = 10000
 
 class TaxiTripDuration():
     def __init__(self, label):
@@ -461,6 +466,8 @@ class TaxiTripDuration():
         grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
         grid_search.fit(X_test, Y_test)
         print(grid_search.best_params_)
+        # Best model:'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth':
+        # 10
 
     @timecall
     def train_model(self):
@@ -472,8 +479,8 @@ class TaxiTripDuration():
             ['id', 'pickup_year', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
-        self.model = XGBRegressor(n_estimators=10000, max_depth=5,
-                                  learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+        self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+                                  learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         print("Training model ....")
         print(train_set.columns.values)
         start = time.time()
@@ -501,8 +508,8 @@ class TaxiTripDuration():
             ['id', 'pickup_year', self.label], axis=1).astype(float)
         total_rmse = 0
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
-        self.model = XGBRegressor(n_estimators=10000, max_depth=5,
-                                  learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+        self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+                                  learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         X = train_set
         Y = target_log.values
         early_stopping_rounds = 50
@@ -539,8 +546,8 @@ class TaxiTripDuration():
             ['id', 'pickup_year', self.label], axis=1).astype(float)
         total_rmse = 0
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
-        model = XGBRegressor(n_estimators=10000, max_depth=5,
-                             learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+        model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+                             learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         X = train_set
         Y = target_log.values
         T = self.eval_data.drop(
@@ -586,8 +593,8 @@ class TaxiTripDuration():
 
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
-        self.model = XGBRegressor(n_estimators=10000, max_depth=5,
-                                  learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+        self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+                                  learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         print("Training stack model ....")
         start = time.time()
         early_stopping_rounds = 50
@@ -657,7 +664,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 10
+    option = 3
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -665,6 +672,9 @@ if __name__ == "__main__":
         base_class.check_null_data()
         base_class.preprocess_data()
         base_class.check_null_data()
+        base_class.cleanup_data()
+        # Search for best model params based on current dataset
+        base_class.search_best_model_params()
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
