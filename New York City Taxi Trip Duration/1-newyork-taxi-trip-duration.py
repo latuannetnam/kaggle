@@ -60,10 +60,11 @@ LABEL = 'trip_duration'
 N_FOLDS = 5
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
-# 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10}
+# 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
+# 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
 LEARNING_RATE = 0.1
-MIN_CHILD_WEIGHT = 10
-MAX_DEPTH = 5
+MIN_CHILD_WEIGHT = 5
+MAX_DEPTH = 10
 N_ROUNDS = 10000
 
 class TaxiTripDuration():
@@ -342,6 +343,10 @@ class TaxiTripDuration():
         self.speed_mean_by_col(col, suffix, data_speed)
         col = 'pickup_month'
         self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'starting_street_tf'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'end_street_tf'
+        self.speed_mean_by_col(col, suffix, data_speed)
 
         # print("Calculating speed_mean by haversine for each feature")
         # distance_col = 'haversine_distance'
@@ -411,7 +416,7 @@ class TaxiTripDuration():
         self.convert_starting_street()
         self.convert_end_street()
         self.convert_store_and_fwd_flag()
-        # self.feature_haversin()
+        self.feature_haversin()
         # There is no NaN starting_street and end_street => no need to feature enginering
         # self.feature_starting_street()
         # self.feature_end_street()
