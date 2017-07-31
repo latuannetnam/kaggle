@@ -14,6 +14,7 @@
  - Best model: round 8: 0.401 (added distance using haversine)
  - Best model: round 11: 0.390 (added distance using OSM + haversine distance, speed_mean, total_distance_mean)
  - Best model: round 21: 0.387 (removed feature: speed_mean and duration_mean by haversine)
+ - Best model: round 22: 0.386 (KFold=5)
 1. 2017-07-21
 - Round 1:
     + Base model: 
@@ -290,7 +291,8 @@
 	* stack train model 
 	* train_size = 0.85
 	* target_log = np.log(target)
-	* best model train round: 
-	* train time: 
-	* RMSLE without-log: 
-    + Submision score: 
+	* best model train round:
+	* best stack model train round: 434
+	* train time: 257.1784813404083
+	* RMSLE without-log:  0.331885656985 (stack model)
+    + Submision score: 0.396

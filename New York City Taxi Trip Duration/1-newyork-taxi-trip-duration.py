@@ -442,6 +442,25 @@ class TaxiTripDuration():
         return (sum(terms_to_sum) * (1.0 / len(y))) ** 0.5
 
     @timecall
+    def search_best_model_params(self):
+        print("Prepare data for  model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', 'pickup_year', self.label], axis=1).astype(float)
+        param_grid = {"max_depth": [1, 5, 10],
+                      'learning_rate': [0.1, 0.3],
+                      'min_child_weight':  [1, 5, 10]
+                      }
+        model = XGBRegressor(n_estimators=500, max_depth=5,
+                             learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+        print("Searching for best params")
+        grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
+        grid_search.fit(train_set, target_log)
+        print(grid_search.best_params_)
+
+    @timecall
     def train_model(self):
         print("Prepare data to train model")
         data = self.train_data
@@ -587,8 +606,8 @@ class TaxiTripDuration():
         print("Saving prediction to disk")
         eval_output = pd.DataFrame(
             {'id': self.eval_data['id'], self.label: Y_eval}, columns=['id', self.label])
-        print("Eval data:", len(eval_output))    
-        today = str(dtime.date.today())          
+        print("Eval data:", len(eval_output))
+        today = str(dtime.date.today())
         eval_output.to_csv(
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False, compression='gzip')
 
@@ -604,9 +623,30 @@ class TaxiTripDuration():
         today = str(dtime.date.today())
         eval_output[['id', self.label]].to_csv(
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False, compression='gzip')
+    
+    def importance_features(self):
+        print("Prepare data to train model")
+        threshold = 0
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', 'pickup_year', self.label], axis=1).astype(float)        
+        features_score = pd.Series(
+            self.model.feature_importances_, index=train_set.columns.values)
+        # print("Feature importance:", features_score.describe())
+        print("Feature importance:")
+        print(features_score.sort_values())
+        # Drop features with score below threshold
+        # features = features_score[features_score > threshold].index
+        # features = features_score[features_score >=
+        # np.percentile(features_score, threshold)].index
+        # print("Remain features:", len(features))
+        return
 
     def plot_ft_importance(self):
         # print(self.model.feature_importances_)
+        self.importance_features()
         fig = plt.figure(figsize=(20, 10))
         ax = fig.add_subplot(111)
         plot_importance(self.model, ax=ax)
@@ -615,7 +655,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 4
+    option = 10
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -639,7 +679,14 @@ if __name__ == "__main__":
         base_class.plot_ft_importance()
     # Load process data and train model with Kfold, aggregate result then
     # train again with aggregated data
+    # Note: LB lower than Kfold single
     elif option == 4:
         base_class.load_preprocessed_data()
         base_class.cleanup_data()
         base_class.train_predict_kfold_aggregate()
+
+    # Load process data and search for best model parameters
+    elif option == 10:
+        base_class.load_preprocessed_data()
+        base_class.cleanup_data()
+        base_class.search_best_model_params()
