@@ -438,7 +438,7 @@ class TaxiTripDuration():
         # self.feature_end_street()
         self.feature_speed_mean()
         # self.feature_duration_mean()
-        self.feature_distance_by_step()
+        # self.feature_distance_by_step() => No score improvement
         # self.feature_haversine_distance_by_step()
 
         # Drop unsed columns
