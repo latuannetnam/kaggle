@@ -357,10 +357,33 @@
     + Base model: Round 28
 	* new data set: fastest_route
 	* 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
-	* added duration_mean by starting_street_tf, end_street_tf
+	* added  starting_street_tf_duration_mean, end_street_tf_duration_mean
+	* cleanup data (trip_duration> 1800000) before pre-process
 	* train_size = 0.85
 	* target_log = np.log(target)
-	* best model train round: 1054
-	* train time: 2144.4699709415436
-	* RMSLE without-log: 0.373046115317 => 0.372649050678
-    + Submision score: 		
+	* best model train round: 1121
+	* train time: 3381.792198896408
+	* RMSLE without-log: 0.372649050678 => 0.373172177982
+    + Submision score: 0.382		
+- Round 30:
+    + Base model: Round 29
+	* new data set: fastest_route
+	* 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+	* remove duration_mean	
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 636
+	* train time: 1033.3630764484406
+	* RMSLE without-log: 0.373172177982 => 0.373016098776
+    + Submision score: 
+- Round 31:
+    + Base model: Round 30
+	* new data set: fastest_route
+	* 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+	* added number_of_steps_speed_mean
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 611
+	* train time: 1452.7844805717468
+	* RMSLE without-log: 0.373172177982 => 0.372985129101
+    + Submision score: 0.382

@@ -66,6 +66,8 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 5
 MAX_DEPTH = 10
 N_ROUNDS = 10000
+# N_ROUNDS = 10
+
 
 class TaxiTripDuration():
     def __init__(self, label):
@@ -95,6 +97,8 @@ class TaxiTripDuration():
         train_osm_data = train_osm[col_use]
         eval_osm_data = eval_osm[col_use]
         train_data = train_osm_data.join(train_data.set_index('id'), on='id')
+        # Cleanup data
+        train_data = train_data[train_data[self.label] < 1800000]
         eval_data = eval_osm_data.join(eval_data.set_index('id'), on='id')
         features = eval_data.columns.values
         self.target = train_data[label]
@@ -310,11 +314,14 @@ class TaxiTripDuration():
         col = 'speed'
         data_speed = self.combine_data.loc['train'].copy()
         data_speed.loc[:, self.label] = self.target
-        data_speed.loc[data_speed[self.label] == 0, col] = 0
-        data_speed_not_zero = data_speed.loc[data_speed[self.label] > 0]
-        data_speed_not_zero.loc[:, col] = data_speed_not_zero[distance_col] / \
-            data_speed_not_zero[self.label]
-        data_speed.update(data_speed_not_zero)
+        # data_speed.loc[data_speed[self.label] == 0, col] = 0
+        # data_speed_not_zero = data_speed.loc[data_speed[self.label] > 0]
+        # data_speed_not_zero.loc[:, col] = data_speed_not_zero[distance_col] / \
+        #     data_speed_not_zero[self.label]
+        # data_speed.update(data_speed_not_zero)
+        data_speed.loc[:, col] = data_speed[distance_col] / \
+            data_speed[self.label]
+        data_speed.loc[:, col].fillna(data_speed[col].mean(), inplace=True)
         return data_speed
 
     def speed_mean_by_col(self, col, suffix, data_speed):
@@ -348,6 +355,8 @@ class TaxiTripDuration():
         self.speed_mean_by_col(col, suffix, data_speed)
         col = 'end_street_tf'
         self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'number_of_steps'
+        self.speed_mean_by_col(col, suffix, data_speed)
 
         # print("Calculating speed_mean by haversine for each feature")
         # distance_col = 'haversine_distance'
@@ -370,6 +379,7 @@ class TaxiTripDuration():
         data = self.combine_data
         data.loc[:, col_duration_mean] = data['total_distance'] / \
             data[col_speed_mean]
+        data.loc[:, col_duration_mean].fillna(data[col_duration_mean].mean(), inplace=True)
 
     @timecall
     def haversine_duration_mean_by_col(self, col):
@@ -425,7 +435,7 @@ class TaxiTripDuration():
         # self.feature_starting_street()
         # self.feature_end_street()
         self.feature_speed_mean()
-        self.feature_duration_mean()
+        # self.feature_duration_mean()
         # self.feature_distance_by_step()
         # self.feature_haversine_distance_by_step()
 
@@ -670,11 +680,13 @@ class TaxiTripDuration():
         ax = fig.add_subplot(111)
         plot_importance(self.model, ax=ax)
         plt.savefig(DATA_DIR + '/feature_importance.png')
+        graph = xgb.to_graphviz(self.model)
+        graph.render()
 
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2
+    option = 0
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -682,7 +694,7 @@ if __name__ == "__main__":
         base_class.check_null_data()
         base_class.preprocess_data()
         base_class.check_null_data()
-        base_class.cleanup_data()
+        # base_class.cleanup_data()
         # Search for best model params based on current dataset
         # base_class.search_best_model_params()
     # Load process data and train model
@@ -712,3 +724,14 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.cleanup_data()
         base_class.search_best_model_params()
+
+    # combine preprocess and training model
+    else:
+        base_class.load_data()
+        base_class.check_null_data()
+        base_class.preprocess_data()
+        base_class.check_null_data()
+        base_class.cleanup_data()
+        base_class.train_model()
+        base_class.predict_save()
+        base_class.plot_ft_importance()
