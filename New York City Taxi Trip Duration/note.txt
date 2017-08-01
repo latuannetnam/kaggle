@@ -297,6 +297,7 @@
 	* train time: 257.1784813404083
 	* RMSLE without-log:  0.331885656985 (stack model)
     + Submision score: 0.396
+
 7: 2017-07-31:
 - Round 24:
     + Base model: Round 21
@@ -398,3 +399,39 @@
 	* train time: 1941.8781354427338
 	* RMSLE without-log: 0.372985129101 => 0.373206600463
     + Submision score: 0.382 =>  0.382	
+
+8: 2017-08-01:
+- Round 33:
+    + Base model: Round 32
+	* new data set: fastest_route
+	* 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+	* removed distance_per_step
+	* added manhattan_distance
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 851
+	* train time: 2343.4766597747803
+	* RMSLE without-log: 0.373206600463 => 0.373096205348
+    + Submision score: 0.381
+- Round 34:
+    + Base model: Round 33
+	* new data set: fastest_route + weather
+	* 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 882
+	* train time: 2633.0243830680847
+	* RMSLE without-log: 0.373096205348 => 0.372926464895
+    + Submision score: 0.381
+- Round 35:
+    + Base model: Round 34
+	* new data set: fastest_route 
+	* removed data set: weather
+	* 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
+	* added new features: total_turns (from step_maneuvers)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1101
+	* train time: 2497.3055131435394
+	* RMSLE without-log: 0.373137069604
+    + Submision score: 0.381

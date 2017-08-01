@@ -9,6 +9,8 @@
 # https://www.kaggle.com/ankasor/driving-distance-using-open-street-maps-data/notebook
 # https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
 # https://www.kaggle.com/gaborfodor/from-eda-to-the-top-lb-0-368/notebook
+# https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-classified/notebook
+# https://www.kaggle.com/mathijs/weather-data-in-new-york-city-2016
 
 # data processing
 import pandas as pd
@@ -76,7 +78,6 @@ class TaxiTripDuration():
     @timecall
     def load_data(self):
         print("Loading data ....")
-        start = time.time()
         label = self.label
         # Load data. Download
         # from:https://www.kaggle.com/c/nyc-taxi-trip-duration/data
@@ -93,7 +94,7 @@ class TaxiTripDuration():
         print("Merging  2 data sets ...")
         col_use = ['id', 'total_distance', 'total_travel_time',
                    'number_of_steps',
-                   'starting_street', 'end_street']
+                   'starting_street', 'end_street', 'step_maneuvers']
         train_osm_data = train_osm[col_use]
         eval_osm_data = eval_osm[col_use]
         train_data = train_osm_data.join(train_data.set_index('id'), on='id')
@@ -104,9 +105,45 @@ class TaxiTripDuration():
         self.target = train_data[label]
         self.combine_data = pd.concat(
             [train_data[features], eval_data], keys=['train', 'eval'])
+        # self.load_and_combine_weather_data() => No score change
         print("combine data:", len(self.combine_data))
-        end = time.time() - start
+        print("Original features:", self.combine_data.columns.values)
         print("Data loaded")
+
+    def load_and_combine_weather_data(self):
+        print("Loading weather data ..")
+        weather_data = pd.read_csv(
+            DATA_DIR + "/weather_data_nyc_centralpark_2016.csv")
+        print("Weather data len:", len(weather_data))
+        # Convert date string to date_obj
+        weather_data.loc[:, 'date_obj'] = pd.to_datetime(
+            weather_data['date'], dayfirst=True).dt.date
+        # convert object columns
+        col = 'precipitation'
+        T_value = 0.01
+        weather_data.loc[weather_data[col] == 'T'] = T_value
+        weather_data.loc[:, col] = weather_data[col].astype(float)
+
+        col = 'snow fall'
+        weather_data.loc[weather_data[col] == 'T'] = T_value
+        weather_data.loc[:, col] = weather_data[col].astype(float)
+
+        col = 'snow depth'
+        weather_data.loc[weather_data[col] == 'T'] = T_value
+        weather_data.loc[:, col] = weather_data[col].astype(float)
+        weather_data.drop('date', axis=1, inplace=True)
+
+        weather_data = weather_data.set_index('date_obj')
+
+        # Convert combine_data datetime string to date_obj => join with weather
+        self.combine_data.loc[:, 'date_obj'] = pd.to_datetime(
+            self.combine_data['pickup_datetime'], format="%Y-%m-%d").dt.date
+        # Join combine_data and weather_data
+        self.combine_data = self.combine_data.join(
+            weather_data, on='date_obj')
+
+        # Drop un-used cols
+        self.combine_data.drop('date_obj', axis=1, inplace=True)
 
     @timecall
     def load_preprocessed_data(self):
@@ -189,13 +226,6 @@ class TaxiTripDuration():
         # data_not_null.loc[:, col_tf] = data_tf
         data.loc[data[col].notnull(), col_tf] = data_tf
 
-    def drop_unused_cols(self):
-        data = self.combine_data
-        data.drop('pickup_datetime', axis=1, inplace=True)
-        data.drop('datetime_obj', axis=1, inplace=True)
-        data.drop('starting_street', axis=1, inplace=True)
-        data.drop('end_street', axis=1, inplace=True)
-
     @timecall
     def feature_starting_street(self):
         data = self.combine_data
@@ -245,7 +275,7 @@ class TaxiTripDuration():
         km = 6367 * c
         return km
 
-    # credit:
+    # credit: Numpy haversine calculation
     # https://stackoverflow.com/questions/29545704/fast-haversine-approximation-python-pandas
     def haversine_np(self, lon1, lat1, lon2, lat2):
         """
@@ -262,11 +292,26 @@ class TaxiTripDuration():
         km = 6367 * c
         return km
 
+    # Credit: Calculate manhattan distance based on haversine
+    # https://www.kaggle.com/gaborfodor/from-eda-to-the-top-lb-0-368/notebook
+    def manhattan_np(self, lon1, lat1, lon2, lat2):
+        a = self.haversine_np(lon1, lat1, lon2, lat1)
+        b = self.haversine_np(lon1, lat1, lon1, lat2)
+        return a + b
+
     @timecall
-    def feature_haversin(self):
+    def feature_haversine(self):
         print("Feature engineering: haversine_distance")
         data = self.combine_data
         data.loc[:, 'haversine_distance'] = self.haversine_np(
+            data['pickup_longitude'], data['pickup_latitude'],
+            data['dropoff_longitude'], data['dropoff_latitude'])
+
+    @timecall
+    def feature_manhattan(self):
+        print("Feature engineering: manhattan_distance")
+        data = self.combine_data
+        data.loc[:, 'manhattan_distance'] = self.manhattan_np(
             data['pickup_longitude'], data['pickup_latitude'],
             data['dropoff_longitude'], data['dropoff_latitude'])
 
@@ -379,7 +424,8 @@ class TaxiTripDuration():
         data = self.combine_data
         data.loc[:, col_duration_mean] = data['total_distance'] / \
             data[col_speed_mean]
-        data.loc[:, col_duration_mean].fillna(data[col_duration_mean].mean(), inplace=True)
+        data.loc[:, col_duration_mean].fillna(
+            data[col_duration_mean].mean(), inplace=True)
 
     @timecall
     def haversine_duration_mean_by_col(self, col):
@@ -422,7 +468,22 @@ class TaxiTripDuration():
         col = ' hv_distance_per_step'
         data.loc[:, col] = data['haversine_distance'] / \
             data['number_of_steps']
-        data.loc[:, col].fillna(data[col].mean(), inplace=True)    
+        data.loc[:, col].fillna(data[col].mean(), inplace=True)
+
+    # calculate number of turns based on step_maneuvers
+    @timecall
+    def feature_total_turns(self):
+        print("Calculating turns based on step_maneuvers ")
+        col = 'step_maneuvers'
+        data = self.combine_data
+        turns = data[col].apply(lambda x: x.count('turn'))
+        data.loc[:, 'turns'] = turns
+        data.loc[:, 'turns'].fillna(0, inplace=True)
+
+    def drop_unused_cols(self):
+        data = self.combine_data
+        data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
+                   'end_street', 'step_maneuvers'], axis=1, inplace=True)
 
     @timecall
     def preprocess_data(self):
@@ -432,12 +493,16 @@ class TaxiTripDuration():
         self.convert_starting_street()
         self.convert_end_street()
         self.convert_store_and_fwd_flag()
-        self.feature_haversin()
+        self.feature_haversine()
+        self.feature_manhattan()
         # There is no NaN starting_street and end_street => no need to feature enginering
         # self.feature_starting_street()
         # self.feature_end_street()
         self.feature_speed_mean()
-        # self.feature_duration_mean()
+        # No score improvement
+        # self.feature_total_turns()
+
+        # self.feature_duration_mean() => No score improvement
         # self.feature_distance_by_step() => No score improvement
         # self.feature_haversine_distance_by_step()
 
@@ -456,8 +521,6 @@ class TaxiTripDuration():
         # Save to class variable for later use
         self.train_data = train_set
         self.eval_data = eval_set
-        #Freeup memory
-        del self.combine_data
 
     def rmsle(self, y, y_pred, log=True):
         assert len(y) == len(y_pred)
@@ -493,6 +556,13 @@ class TaxiTripDuration():
         # Best model:'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth':
         # 10
 
+    def feature_correlation(self):
+        print("Feature correlation ...")
+        data = self.combine_data.loc['train'].copy()
+        data.loc[:, self.label] = self.target
+        correlation = data.corr()[self.label].sort_values()
+        print(correlation)
+
     @timecall
     def train_model(self):
         print("Prepare data to train model")
@@ -504,13 +574,14 @@ class TaxiTripDuration():
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-                                  learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
+                                  learning_rate=LEARNING_RATE,
+                                  min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         print("Training model ....")
         print(train_set.columns.values)
         start = time.time()
         early_stopping_rounds = 50
         self.model.fit(
-            X_train, Y_train, eval_set=[(X_train, Y_train), (X_test, Y_test)],
+            X_train, Y_train, eval_set=[(X_test, Y_test)],
             eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
             verbose=early_stopping_rounds
         )
@@ -533,7 +604,8 @@ class TaxiTripDuration():
         total_rmse = 0
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-                                  learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
+                                  learning_rate=LEARNING_RATE,
+                                  min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         X = train_set
         Y = target_log.values
         early_stopping_rounds = 50
@@ -545,8 +617,9 @@ class TaxiTripDuration():
             Y_train = Y[train_idx]
             X_test = X.iloc[test_idx]
             Y_test = Y[test_idx]
-            self.model.fit(X_train, Y_train, eval_set=[(X_train, Y_train), (X_test, Y_test)],
-                           eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
+            self.model.fit(X_train, Y_train, eval_set=[(X_test, Y_test)],
+                           eval_metric="rmse",
+                           early_stopping_rounds=early_stopping_rounds,
                            verbose=early_stopping_rounds)
             end = time.time() - start
             total_time = total_time + end
@@ -571,7 +644,8 @@ class TaxiTripDuration():
         total_rmse = 0
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-                             learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
+                             learning_rate=LEARNING_RATE,
+                             min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         X = train_set
         Y = target_log.values
         T = self.eval_data.drop(
@@ -587,8 +661,9 @@ class TaxiTripDuration():
             Y_train = Y[train_idx]
             X_test = X.iloc[test_idx]
             Y_test = Y[test_idx]
-            model.fit(X_train, Y_train, eval_set=[(X_train, Y_train), (X_test, Y_test)],
-                      eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
+            model.fit(X_train, Y_train, eval_set=[(X_test, Y_test)],
+                      eval_metric="rmse",
+                      early_stopping_rounds=early_stopping_rounds,
                       verbose=early_stopping_rounds)
             end = time.time() - start
             total_time = total_time + end
@@ -618,7 +693,8 @@ class TaxiTripDuration():
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-                                  learning_rate=LEARNING_RATE, min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
+                                  learning_rate=LEARNING_RATE,
+                                  min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
         print("Training stack model ....")
         start = time.time()
         early_stopping_rounds = 50
@@ -642,7 +718,8 @@ class TaxiTripDuration():
         print("Eval data:", len(eval_output))
         today = str(dtime.date.today())
         eval_output.to_csv(
-            DATA_DIR + '/' + today + '-submission.csv.gz', index=False, compression='gzip')
+            DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
+            compression='gzip')
 
     @timecall
     def predict_save(self):
@@ -655,10 +732,11 @@ class TaxiTripDuration():
         print("Saving prediction to disk")
         today = str(dtime.date.today())
         eval_output[['id', self.label]].to_csv(
-            DATA_DIR + '/' + today + '-submission.csv.gz', index=False, compression='gzip')
+            DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
+            compression='gzip')
 
     def importance_features(self):
-        print("Prepare data to train model")
+        print("Feature importance:")
         threshold = 0
         data = self.train_data
         target = data[self.label]
@@ -668,13 +746,7 @@ class TaxiTripDuration():
         features_score = pd.Series(
             self.model.feature_importances_, index=train_set.columns.values)
         # print("Feature importance:", features_score.describe())
-        print("Feature importance:")
         print(features_score.sort_values())
-        # Drop features with score below threshold
-        # features = features_score[features_score > threshold].index
-        # features = features_score[features_score >=
-        # np.percentile(features_score, threshold)].index
-        # print("Remain features:", len(features))
         return
 
     def plot_ft_importance(self):
@@ -698,6 +770,7 @@ if __name__ == "__main__":
         base_class.check_null_data()
         base_class.preprocess_data()
         base_class.check_null_data()
+        base_class.feature_correlation()
         # base_class.cleanup_data()
         # Search for best model params based on current dataset
         # base_class.search_best_model_params()
@@ -736,6 +809,8 @@ if __name__ == "__main__":
         base_class.preprocess_data()
         base_class.check_null_data()
         base_class.cleanup_data()
+        base_class.feature_correlation()
         base_class.train_model()
         base_class.predict_save()
-        base_class.plot_ft_importance()
+        base_class.importance_features()
+        # base_class.plot_ft_importance()
