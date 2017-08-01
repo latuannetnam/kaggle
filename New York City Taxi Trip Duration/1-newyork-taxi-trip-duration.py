@@ -64,9 +64,11 @@ N_FOLDS = 5
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
 # 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
+# {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1}
 LEARNING_RATE = 0.1
-MIN_CHILD_WEIGHT = 5
+MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
+COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 10000
 # N_ROUNDS = 10
 
@@ -495,16 +497,14 @@ class TaxiTripDuration():
         self.convert_store_and_fwd_flag()
         self.feature_haversine()
         self.feature_manhattan()
-        # There is no NaN starting_street and end_street => no need to feature enginering
-        # self.feature_starting_street()
-        # self.feature_end_street()
         self.feature_speed_mean()
-        # No score improvement
-        # self.feature_total_turns()
-
+        # self.feature_total_turns() => No score improvement
         # self.feature_duration_mean() => No score improvement
         # self.feature_distance_by_step() => No score improvement
         # self.feature_haversine_distance_by_step()
+        # There is no NaN starting_street and end_street => no need to feature enginering
+        # self.feature_starting_street()
+        # self.feature_end_street()
 
         # Drop unsed columns
         self.drop_unused_cols()
@@ -542,13 +542,13 @@ class TaxiTripDuration():
         train_set = data.drop(
             ['id', 'pickup_year', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
-            train_set, target_log, test_size=10000, random_state=1234)
-        param_grid = {"max_depth": [1, 5, 10],
-                      'learning_rate': [0.1, 0.3],
-                      'min_child_weight':  [1, 5, 10]
+            train_set, target_log, test_size=100000, random_state=1234)
+        # 'learning_rate': [0.1, 0.3],
+        param_grid = {"max_depth": [5, 10, 20],
+                      'min_child_weight':  [1, 5],
+                      'colsample_bytree': [0.5, 0.8, 0.9],
                       }
-        model = XGBRegressor(n_estimators=500, max_depth=5,
-                             learning_rate=0.1, min_child_weight=1, n_jobs=-1)
+        model = XGBRegressor(n_estimators=100, learning_rate=0.1, n_jobs=-1)
         print("Searching for best params")
         grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
         grid_search.fit(X_test, Y_test)
@@ -575,7 +575,9 @@ class TaxiTripDuration():
             train_set, target_log, train_size=0.85, random_state=1234)
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
                                   learning_rate=LEARNING_RATE,
-                                  min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
+                                  min_child_weight=MIN_CHILD_WEIGHT,
+                                  colsample_bytree=COLSAMPLE_BYTREE,
+                                  n_jobs=-1)
         print("Training model ....")
         print(train_set.columns.values)
         start = time.time()
@@ -762,7 +764,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 0
+    option = 2
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
