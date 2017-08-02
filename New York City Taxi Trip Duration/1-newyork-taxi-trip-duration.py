@@ -64,7 +64,7 @@ N_FOLDS = 5
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
 # 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
-# {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1}
+# {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1} => Best score: -0.40215917807218343
 LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
@@ -522,7 +522,7 @@ class TaxiTripDuration():
         self.train_data = train_set
         self.eval_data = eval_set
 
-    def rmsle(self, y, y_pred, log=True):
+    def rmsle(self, y, y_pred, log=False):
         assert len(y) == len(y_pred)
         terms_to_sum = 0
         if log:
@@ -542,17 +542,20 @@ class TaxiTripDuration():
         train_set = data.drop(
             ['id', 'pickup_year', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
-            train_set, target_log, test_size=100000, random_state=1234)
+            train_set, target_log, train_size=0.85, random_state=1234)
         # 'learning_rate': [0.1, 0.3],
         param_grid = {"max_depth": [5, 10, 20],
                       'min_child_weight':  [1, 5],
                       'colsample_bytree': [0.5, 0.8, 0.9],
                       }
-        model = XGBRegressor(n_estimators=100, learning_rate=0.1, n_jobs=-1)
+        model = XGBRegressor(n_estimators=200, learning_rate=0.1, n_jobs=-1)
         print("Searching for best params")
-        grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5)
-        grid_search.fit(X_test, Y_test)
-        print(grid_search.best_params_)
+        scorer = make_scorer(self.rmsle, greater_is_better=False)
+        grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5, verbose=3, scoring=scorer)
+        grid_search.fit(X_test.values, Y_test.values)
+        print("Best params:", grid_search.best_params_)
+        print("Best score:", grid_search.best_score_ )
+
         # Best model:'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth':
         # 10
 
@@ -590,7 +593,7 @@ class TaxiTripDuration():
         end = time.time() - start
         print("Done training:", end)
         y_pred = self.model.predict(X_test)
-        score = self.rmsle(Y_test.values, y_pred)
+        score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
         print("RMSLE score:", score, " RMSLE without-log:", score1)
 
@@ -708,7 +711,7 @@ class TaxiTripDuration():
         end = time.time() - start
         print("Done training:", end)
         y_pred = self.model.predict(X_test)
-        score = self.rmsle(Y_test.values, y_pred)
+        score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
         print("RMSLE score:", score, " RMSLE without-log:", score1)
         print("Predict for eval set ..")
@@ -764,7 +767,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2
+    option = 10
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
