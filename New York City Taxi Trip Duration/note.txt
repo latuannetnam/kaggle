@@ -449,6 +449,7 @@
 	* train time: 2022.018221616745
 	* RMSLE without-log: 0.372083580258
     + Submision score:	0.382
+9: 2017-08-03:	
 - Round 37:
     + Base model: Round 36
 	* new data set: fastest_route 
@@ -504,3 +505,37 @@
 	* train time: 1599.0449421405792
 	* RMSLE without-log: 0.316186051761 => 0.315559158281
     + Submision score:	0.380 => 0.380 					
+- Round 42:
+    + Base model: Round 41
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* removed *_*_speed_mean
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1199
+	* train time: 1146.5380535125732
+	* RMSLE without-log: 0.315559158281 => 0.316582022318
+    + Submision score:	0.380 =>  						
+- Round 43:
+    + Base model: Round 42
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* added trip_delay_mean by columns (pickup_*, starting_street, end_street)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1031
+	* train time: 1515.8221554756165
+	* RMSLE without-log: 0.316582022318 => 0.316532398454
+    + Submision score:	
+- Round 44:
+    + Base model: Round 44
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* added different between total_distance and haversine_distance
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1666
+	* train time: 1875.7382152080536
+	* RMSLE without-log: 0.316532398454 => 0.315660428816
+    + Submision score:	
+

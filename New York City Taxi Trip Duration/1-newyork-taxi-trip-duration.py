@@ -525,6 +525,57 @@ class TaxiTripDuration():
         turns = data[col].apply(lambda x: x.count('left'))
         data.loc[:, col_cal] = turns
         data.loc[:, col_cal].fillna(0, inplace=True)
+    
+    # calculate delay between trip_duration and total_travel_time    
+    def cal_trip_delay(self):
+        col = 'trip_delay'
+        data = self.combine_data.loc['train'].copy()
+        data.loc[:, self.label] = self.target
+        data.loc[:, col] = data[self.label] - data['total_travel_time']
+        data.loc[:, col].fillna(0, inplace=True)
+        return data
+    
+    # calculate mean of trip_delay by column
+    @timecall
+    def trip_delay_mean_by_col(self, col, suffix, data_temp):
+        print("trip_delay_mean by ", col, suffix)
+        data = self.combine_data
+        group_col = 'trip_delay'
+        data_grp = data_temp[[col, group_col]]
+        data_st = data_grp.groupby(
+            col, as_index=False).mean().sort_values(col).reset_index()
+        data_sr = pd.Series(data_st[group_col], index=data_st[col])
+        data_dict = data_sr.to_dict()
+        col_mean = col + suffix
+        data.loc[:, col_mean] = data[col].map(data_dict)
+        data.loc[:, col_mean].fillna(data[col_mean].mean(), inplace=True)
+
+    @timecall
+    def feature_trip_delay_mean(self):
+        print("Calculating trip_delay_meanfor each feature")
+        suffix = '_tdm'
+        data_temp = self.cal_trip_delay()
+        col = 'pickup_hour'
+        self.trip_delay_mean_by_col(col, suffix, data_temp)
+        col = 'pickup_weekday'
+        self.trip_delay_mean_by_col(col, suffix, data_temp)
+        col = 'pickup_day'
+        self.trip_delay_mean_by_col(col, suffix, data_temp)
+        col = 'pickup_month'
+        self.trip_delay_mean_by_col(col, suffix, data_temp)
+        col = 'starting_street_tf'
+        self.trip_delay_mean_by_col(col, suffix, data_temp)
+        col = 'end_street_tf'
+        self.trip_delay_mean_by_col(col, suffix, data_temp)
+        # col = 'number_of_steps'
+        # self.trip_delay_mean_by_col(col, suffix, data_temp)
+
+    # calculate different between total_distance and haversine_distance
+    def feature_hv_distance_diff(self):
+        data = self.combine_data
+        col = 'hv_distance_diff'
+        data.loc[:, col] = data['total_distance'] - data['haversine_distance']
+        data.loc[:, col].fillna(data['total_distance'], inplace=True)
 
     def drop_unused_cols(self):
         data = self.combine_data
@@ -541,11 +592,12 @@ class TaxiTripDuration():
         self.convert_store_and_fwd_flag()
         self.feature_haversine()
         self.feature_manhattan()
-        self.feature_speed_mean()
-        # => No score improvement
-        self.feature_hv_speed_mean()
+        # self.feature_speed_mean() 
+        # self.feature_hv_speed_mean() => No score improvement
         self.feature_left_turns()
         self.feature_right_turns()
+        self.feature_trip_delay_mean()
+        self.feature_hv_distance_diff()
         # self.feature_total_turns()  => No score improvement
         # self.feature_duration_mean() => No score improvement
         # self.feature_distance_by_step() => No score improvement
