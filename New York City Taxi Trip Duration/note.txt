@@ -15,7 +15,9 @@
  - Best model: round 11: 0.390 (added distance using OSM + haversine distance, speed_mean, total_distance_mean)
  - Best model: round 21: 0.387 (removed feature: speed_mean and duration_mean by haversine)
  - Best model: round 22: 0.386 (KFold=5)
-- Best model: round 24: 0.381 (optimized model hyper-params: 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10)
+ - Best model: round 24: 0.381 (optimized model hyper-params: 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10)
+ - Best model: round 28: 0.380 (cleanup data: (data[label] < 22 * 3600) & (data[label] > 10) + 'learning_rate': 0.1, 'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1)
+ 
 1. 2017-07-21
 - Round 1:
     + Base model: 
@@ -447,3 +449,57 @@
 	* train time: 2022.018221616745
 	* RMSLE without-log: 0.372083580258
     + Submision score:	0.382
+- Round 37:
+    + Base model: Round 36
+	* new data set: fastest_route 
+		* 'learning_rate': 0.1, 'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1
+	* added features: left_turns, right_turns (from step_direction)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 832
+	* train time: 825.822839975357
+	* RMSLE without-log: 0.372427951911 
+    + Submision score:	0.382 => 0.381	
+- Round 38:
+    + Base model: Round 37
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1
+	* cleanup data: (data[label] < 22 * 3600) & (data[label] > 10)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 990
+	* train time: 964.5637571811676
+	* RMSLE without-log: 0.372427951911 => 0.315914025687
+    + Submision score:	0.381 => 0.380		
+- Round 39:
+    + Base model: Round 38
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1166
+	* train time: 1204.0661432743073
+	* RMSLE without-log: 0.315914025687 => 0.315582605322
+    + Submision score:	0.380 => 0.380			
+- Round 40:
+    + Base model: Round 39
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* added new features: total_turns (from step_maneuvers)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1175
+	* train time: 1242.2003087997437 
+	* RMSLE without-log: 0.315582605322 => 0.316186051761
+    + Submision score:	0.380 => 0.380				
+- Round 41:
+    + Base model: Round 40
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* removed features: total_turns (from step_maneuvers)
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 
+	* train time: 
+	* RMSLE without-log: 0.316186051761 =>
+    + Submision score:	0.380 => 					

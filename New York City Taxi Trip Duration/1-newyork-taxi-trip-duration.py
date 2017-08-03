@@ -66,7 +66,7 @@ N_FOLDS = 5
 # 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
 # {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1} => Best score: -0.40215917807218343
 LEARNING_RATE = 0.1
-MIN_CHILD_WEIGHT = 1
+MIN_CHILD_WEIGHT = 5
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 10000
@@ -96,12 +96,12 @@ class TaxiTripDuration():
         print("Merging  2 data sets ...")
         col_use = ['id', 'total_distance', 'total_travel_time',
                    'number_of_steps',
-                   'starting_street', 'end_street', 'step_maneuvers']
+                   'starting_street', 'end_street', 'step_maneuvers', 'step_direction']
         train_osm_data = train_osm[col_use]
         eval_osm_data = eval_osm[col_use]
         train_data = train_osm_data.join(train_data.set_index('id'), on='id')
         # Cleanup data
-        train_data = train_data[train_data[self.label] < 1800000]
+        train_data = self.cleanup_data(train_data)
         eval_data = eval_osm_data.join(eval_data.set_index('id'), on='id')
         features = eval_data.columns.values
         self.target = train_data[label]
@@ -184,8 +184,20 @@ class TaxiTripDuration():
         data.loc[:, 'total_distance'].fillna(1, inplace=True)
         data.loc[:, 'number_of_steps'].fillna(1, inplace=True)
 
-    def cleanup_data(self):
-        self.train_data = self.train_data[self.train_data[self.label] < 1800000]
+    def cleanup_data(self, data):
+        # trip_duration < 22*3600,
+        # dist > 0 | (near(dist, 0) & trip_duration < 60),
+        # jfk_dist_pick < 3e5 & jfk_dist_drop < 3e5,
+        # trip_duration > 10,
+        # speed < 100)
+        size1 = len(data)
+        print("Cleanup data. Size before:", size1)
+        label = self.label
+        data = data[(data[label] < 22 * 3600) & (data[label] > 10)]
+        size2 = len(data)
+        print("Finish cleanup. Size after:", size2,
+              " .Total removed:", size1 - size2)
+        return data
 
     def convert_datetime(self):
         print("Convert datetime ...")
@@ -482,10 +494,32 @@ class TaxiTripDuration():
         data.loc[:, 'turns'] = turns
         data.loc[:, 'turns'].fillna(0, inplace=True)
 
+    # calculate number of right turns based on step_direction
+    @timecall
+    def feature_left_turns(self):
+        print("Calculating left turns based on step_direction ")
+        col = 'step_direction'
+        col_cal = 'left_turns'
+        data = self.combine_data
+        turns = data[col].apply(lambda x: x.count('left'))
+        data.loc[:, col_cal] = turns
+        data.loc[:, col_cal].fillna(0, inplace=True)
+
+    # calculate number of right turns based on step_direction
+    @timecall
+    def feature_right_turns(self):
+        print("Calculating right turns based on step_direction ")
+        col = 'step_direction'
+        col_cal = 'right_turns'
+        data = self.combine_data
+        turns = data[col].apply(lambda x: x.count('left'))
+        data.loc[:, col_cal] = turns
+        data.loc[:, col_cal].fillna(0, inplace=True)
+
     def drop_unused_cols(self):
         data = self.combine_data
         data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
-                   'end_street', 'step_maneuvers'], axis=1, inplace=True)
+                   'end_street', 'step_maneuvers', 'step_direction'], axis=1, inplace=True)
 
     @timecall
     def preprocess_data(self):
@@ -498,7 +532,9 @@ class TaxiTripDuration():
         self.feature_haversine()
         self.feature_manhattan()
         self.feature_speed_mean()
-        # self.feature_total_turns() => No score improvement
+        self.feature_left_turns()
+        self.feature_right_turns()
+        # self.feature_total_turns()  => No score improvement
         # self.feature_duration_mean() => No score improvement
         # self.feature_distance_by_step() => No score improvement
         # self.feature_haversine_distance_by_step()
@@ -551,13 +587,11 @@ class TaxiTripDuration():
         model = XGBRegressor(n_estimators=200, learning_rate=0.1, n_jobs=-1)
         print("Searching for best params")
         scorer = make_scorer(self.rmsle, greater_is_better=False)
-        grid_search = GridSearchCV(model, param_grid, n_jobs=1, cv=5, verbose=3, scoring=scorer)
+        grid_search = GridSearchCV(
+            model, param_grid, n_jobs=1, cv=5, verbose=3, scoring=scorer)
         grid_search.fit(X_test.values, Y_test.values)
         print("Best params:", grid_search.best_params_)
-        print("Best score:", grid_search.best_score_ )
-
-        # Best model:'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth':
-        # 10
+        print("Best score:", grid_search.best_score_)
 
     def feature_correlation(self):
         print("Feature correlation ...")
@@ -576,11 +610,15 @@ class TaxiTripDuration():
             ['id', 'pickup_year', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
+        # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+        #                           learning_rate=LEARNING_RATE,
+        #                           min_child_weight=MIN_CHILD_WEIGHT,
+        #                           colsample_bytree=COLSAMPLE_BYTREE,
+        #                           n_jobs=-1)
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
                                   learning_rate=LEARNING_RATE,
                                   min_child_weight=MIN_CHILD_WEIGHT,
-                                  colsample_bytree=COLSAMPLE_BYTREE,
-                                  n_jobs=-1)
+                                  n_jobs=-1)                          
         print("Training model ....")
         print(train_set.columns.values)
         start = time.time()
@@ -767,7 +805,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 10
+    option = 0
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -776,20 +814,17 @@ if __name__ == "__main__":
         base_class.preprocess_data()
         base_class.check_null_data()
         base_class.feature_correlation()
-        # base_class.cleanup_data()
         # Search for best model params based on current dataset
         # base_class.search_best_model_params()
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
-        base_class.cleanup_data()
         base_class.train_model()
         base_class.predict_save()
         base_class.plot_ft_importance()
     # Load process data and train model with Kfold
     elif option == 3:
         base_class.load_preprocessed_data()
-        base_class.cleanup_data()
         base_class.train_kfold_single()
         base_class.predict_save()
         base_class.plot_ft_importance()
@@ -798,13 +833,11 @@ if __name__ == "__main__":
     # Note: LB lower than Kfold single
     elif option == 4:
         base_class.load_preprocessed_data()
-        base_class.cleanup_data()
         base_class.train_predict_kfold_aggregate()
 
     # Load process data and search for best model parameters
     elif option == 10:
         base_class.load_preprocessed_data()
-        base_class.cleanup_data()
         base_class.search_best_model_params()
 
     # combine preprocess and training model
@@ -813,7 +846,6 @@ if __name__ == "__main__":
         base_class.check_null_data()
         base_class.preprocess_data()
         base_class.check_null_data()
-        base_class.cleanup_data()
         base_class.feature_correlation()
         base_class.train_model()
         base_class.predict_save()
