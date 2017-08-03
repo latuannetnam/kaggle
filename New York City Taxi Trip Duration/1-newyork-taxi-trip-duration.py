@@ -519,7 +519,7 @@ class TaxiTripDuration():
     def drop_unused_cols(self):
         data = self.combine_data
         data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
-                   'end_street', 'step_maneuvers', 'step_direction'], axis=1, inplace=True)
+                   'end_street', 'step_maneuvers', 'step_direction', 'pickup_year'], axis=1, inplace=True)
 
     @timecall
     def preprocess_data(self):
@@ -576,7 +576,7 @@ class TaxiTripDuration():
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
-            ['id', 'pickup_year', self.label], axis=1).astype(float)
+            ['id', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         # 'learning_rate': [0.1, 0.3],
@@ -607,7 +607,7 @@ class TaxiTripDuration():
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
-            ['id', 'pickup_year', self.label], axis=1).astype(float)
+            ['id', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
@@ -618,7 +618,7 @@ class TaxiTripDuration():
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
                                   learning_rate=LEARNING_RATE,
                                   min_child_weight=MIN_CHILD_WEIGHT,
-                                  n_jobs=-1)                          
+                                  n_jobs=-1)
         print("Training model ....")
         print(train_set.columns.values)
         start = time.time()
@@ -643,7 +643,7 @@ class TaxiTripDuration():
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
-            ['id', 'pickup_year', self.label], axis=1).astype(float)
+            ['id', self.label], axis=1).astype(float)
         total_rmse = 0
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
@@ -683,7 +683,7 @@ class TaxiTripDuration():
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
-            ['id', 'pickup_year', self.label], axis=1).astype(float)
+            ['id', self.label], axis=1).astype(float)
         total_rmse = 0
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
@@ -692,7 +692,7 @@ class TaxiTripDuration():
         X = train_set
         Y = target_log.values
         T = self.eval_data.drop(
-            ['id', 'pickup_year'], axis=1).astype(float)
+            ['id'], axis=1).astype(float)
         S_train = np.zeros((X.shape[0], N_FOLDS))
         S_test = np.zeros((T.shape[0], N_FOLDS))
         early_stopping_rounds = 50
@@ -767,7 +767,7 @@ class TaxiTripDuration():
     @timecall
     def predict_save(self):
         print("Predicting for eval data ..")
-        data = self.eval_data.drop(['id', 'pickup_year'], axis=1).astype(float)
+        data = self.eval_data.drop('id', axis=1).astype(float)
         Y_eval_log = self.model.predict(data)
         Y_eval = np.exp(Y_eval_log.ravel())
         eval_output = self.eval_data.copy()
@@ -785,7 +785,7 @@ class TaxiTripDuration():
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
-            ['id', 'pickup_year', self.label], axis=1).astype(float)
+            ['id', self.label], axis=1).astype(float)
         features_score = pd.Series(
             self.model.feature_importances_, index=train_set.columns.values)
         # print("Feature importance:", features_score.describe())
