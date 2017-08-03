@@ -497,9 +497,10 @@
 	* new data set: fastest_route 
 	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
 	* removed features: total_turns (from step_maneuvers)
+	* added *_hv_speed_mean (based on haversine_distance)
 	* train_size = 0.85
 	* target_log = np.log(target)
-	* best model train round: 
-	* train time: 
-	* RMSLE without-log: 0.316186051761 =>
-    + Submision score:	0.380 => 					
+	* best model train round: 1400
+	* train time: 1599.0449421405792
+	* RMSLE without-log: 0.316186051761 => 0.315559158281
+    + Submision score:	0.380 => 0.380 					

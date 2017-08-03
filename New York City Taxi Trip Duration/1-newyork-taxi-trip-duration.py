@@ -109,7 +109,9 @@ class TaxiTripDuration():
             [train_data[features], eval_data], keys=['train', 'eval'])
         # self.load_and_combine_weather_data() => No score change
         print("combine data:", len(self.combine_data))
-        print("Original features:", self.combine_data.columns.values)
+        features = self.combine_data.columns.values
+        print("Original features:", len(features))
+        print(features)
         print("Data loaded")
 
     def load_and_combine_weather_data(self):
@@ -417,18 +419,26 @@ class TaxiTripDuration():
         col = 'number_of_steps'
         self.speed_mean_by_col(col, suffix, data_speed)
 
-        # print("Calculating speed_mean by haversine for each feature")
-        # distance_col = 'haversine_distance'
-        # suffix = '_hv_speed_mean'
-        # data_speed = self.cal_speed(distance_col)
-        # col = 'pickup_hour'
-        # self.speed_mean_by_col(col, suffix, data_speed)
-        # col = 'pickup_weekday'
-        # self.speed_mean_by_col(col, suffix, data_speed)
-        # col = 'pickup_day'
-        # self.speed_mean_by_col(col, suffix, data_speed)
-        # col = 'pickup_month'
-        # self.speed_mean_by_col(col, suffix, data_speed)
+    @timecall
+    def feature_hv_speed_mean(self):
+        print("Calculating speed_mean by haversine for each feature")
+        distance_col = 'haversine_distance'
+        suffix = '_hv_speed_mean'
+        data_speed = self.cal_speed(distance_col)
+        col = 'pickup_hour'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'pickup_weekday'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'pickup_day'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'pickup_month'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'starting_street_tf'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'end_street_tf'
+        self.speed_mean_by_col(col, suffix, data_speed)
+        col = 'number_of_steps'
+        self.speed_mean_by_col(col, suffix, data_speed)
 
     @timecall
     def duration_mean_by_col(self, col):
@@ -532,6 +542,8 @@ class TaxiTripDuration():
         self.feature_haversine()
         self.feature_manhattan()
         self.feature_speed_mean()
+        # => No score improvement
+        self.feature_hv_speed_mean()
         self.feature_left_turns()
         self.feature_right_turns()
         # self.feature_total_turns()  => No score improvement
@@ -544,7 +556,9 @@ class TaxiTripDuration():
 
         # Drop unsed columns
         self.drop_unused_cols()
-        print(self.combine_data.columns.values)
+        features = self.combine_data.columns.values
+        print("Engineered features:", len(features))
+        print(features)
 
         # Save preprocess data
         train_set = self.combine_data.loc['train'].copy()
