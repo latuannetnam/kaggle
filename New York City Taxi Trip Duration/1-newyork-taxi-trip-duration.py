@@ -481,7 +481,7 @@ class TaxiTripDuration():
     def feature_distance_by_step(self):
         print("Calculating total_distance/number_of_steps ...")
         data = self.combine_data
-        col = ' distance_per_step'
+        col = 'distance_per_step'
         data.loc[:, col] = data['total_distance'] / data['number_of_steps']
         data.loc[:, col].fillna(data[col].mean(), inplace=True)
 
@@ -489,7 +489,7 @@ class TaxiTripDuration():
     def feature_haversine_distance_by_step(self):
         print("Calculating haversine_distance/number_of_steps ...")
         data = self.combine_data
-        col = ' hv_distance_per_step'
+        col = 'hv_distance_per_step'
         data.loc[:, col] = data['haversine_distance'] / \
             data['number_of_steps']
         data.loc[:, col].fillna(data[col].mean(), inplace=True)
@@ -592,15 +592,16 @@ class TaxiTripDuration():
         self.convert_store_and_fwd_flag()
         self.feature_haversine()
         self.feature_manhattan()
-        # self.feature_speed_mean() 
-        # self.feature_hv_speed_mean() => No score improvement
         self.feature_left_turns()
         self.feature_right_turns()
-        # self.feature_trip_delay_mean() => No score improvement
+        # Expriment
+        # self.feature_speed_mean()
+        # self.feature_hv_speed_mean()
+        # self.feature_trip_delay_mean() 
         # self.feature_hv_distance_diff() => No score improvement
-        # self.feature_total_turns()  => No score improvement
-        # self.feature_duration_mean() => No score improvement
-        # self.feature_distance_by_step() => No score improvement
+        # self.feature_total_turns()
+        # self.feature_duration_mean()
+        # self.feature_distance_by_step()
         # self.feature_haversine_distance_by_step()
         # There is no NaN starting_street and end_street => no need to feature enginering
         # self.feature_starting_street()

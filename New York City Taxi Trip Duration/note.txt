@@ -551,3 +551,14 @@
 	* train time: 1082.713295698166
 	* RMSLE without-log: 0.315660428816 => 0.316582022318
     + Submision score:	0.380 => 0.381
+- Round 46:
+    + Base model: Round 45
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* added trip_delay_mean, speed_mean, duration_mean, distance_per_step
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 919
+	* train time: 2218.202323913574
+	* RMSLE without-log: 0.316582022318 => 0.317227755451
+    + Submision score:	0.381 => 0.382 	
