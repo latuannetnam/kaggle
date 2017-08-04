@@ -596,8 +596,8 @@ class TaxiTripDuration():
         # self.feature_hv_speed_mean() => No score improvement
         self.feature_left_turns()
         self.feature_right_turns()
-        self.feature_trip_delay_mean()
-        self.feature_hv_distance_diff()
+        # self.feature_trip_delay_mean() => No score improvement
+        # self.feature_hv_distance_diff() => No score improvement
         # self.feature_total_turns()  => No score improvement
         # self.feature_duration_mean() => No score improvement
         # self.feature_distance_by_step() => No score improvement

@@ -515,7 +515,7 @@
 	* best model train round: 1199
 	* train time: 1146.5380535125732
 	* RMSLE without-log: 0.315559158281 => 0.316582022318
-    + Submision score:	0.380 =>  						
+    + Submision score:	0.380 => 0.381						
 - Round 43:
     + Base model: Round 42
 	* new data set: fastest_route 
@@ -526,7 +526,7 @@
 	* best model train round: 1031
 	* train time: 1515.8221554756165
 	* RMSLE without-log: 0.316582022318 => 0.316532398454
-    + Submision score:	
+    + Submision score:	0.380
 - Round 44:
     + Base model: Round 44
 	* new data set: fastest_route 
@@ -537,5 +537,17 @@
 	* best model train round: 1666
 	* train time: 1875.7382152080536
 	* RMSLE without-log: 0.316532398454 => 0.315660428816
-    + Submision score:	
+    + Submision score:	0.380
 
+10: 2017-08-04:
+- Round 45:
+    + Base model: Round 44
+	* new data set: fastest_route 
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* removed hv_distance_diff, trip_delay_mean, speed_mean
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 1199
+	* train time: 1082.713295698166
+	* RMSLE without-log: 0.315660428816 => 0.316582022318
+    + Submision score:	0.380 => 0.381
