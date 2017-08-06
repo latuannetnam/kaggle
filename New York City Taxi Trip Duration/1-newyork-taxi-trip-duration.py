@@ -41,6 +41,9 @@ import xgboost as xgb
 from xgboost import plot_importance
 # # CatBoost
 # from catboost import Pool, CatBoostRegressor, cv, CatboostIpythonWidget
+# Vowpal Wabbit
+from vowpalwabbit.sklearn_vw import VWRegressor
+
 # System
 import datetime as dtime
 from datetime import datetime
@@ -60,6 +63,9 @@ pd.options.display.float_format = '{:,.4f}'.format
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
 N_FOLDS = 5
+# Model choice
+XGB = 1
+VW = 2
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best score: -0.33525880214884474
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
@@ -210,7 +216,8 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_weekday'] = data['datetime_obj'].dt.weekday
         data.loc[:, 'pickup_day'] = data['datetime_obj'].dt.day
         data.loc[:, 'pickup_hour'] = data['datetime_obj'].dt.hour
-        data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * 24 + data['pickup_hour']
+        data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * \
+            24 + data['pickup_hour']
         data.loc[:, 'pickup_minute'] = data['datetime_obj'].dt.minute
 
     def convert_store_and_fwd_flag(self):
@@ -526,8 +533,8 @@ class TaxiTripDuration():
         turns = data[col].apply(lambda x: x.count('left'))
         data.loc[:, col_cal] = turns
         data.loc[:, col_cal].fillna(0, inplace=True)
-    
-    # calculate delay between trip_duration and total_travel_time    
+
+    # calculate delay between trip_duration and total_travel_time
     def cal_trip_delay(self):
         col = 'trip_delay'
         data = self.combine_data.loc['train'].copy()
@@ -535,7 +542,7 @@ class TaxiTripDuration():
         data.loc[:, col] = data[self.label] - data['total_travel_time']
         data.loc[:, col].fillna(0, inplace=True)
         return data
-    
+
     # calculate mean of trip_delay by column
     @timecall
     def trip_delay_mean_by_col(self, col, suffix, data_temp):
@@ -598,7 +605,7 @@ class TaxiTripDuration():
         # Expriment
         # self.feature_speed_mean()
         # self.feature_hv_speed_mean()
-        # self.feature_trip_delay_mean() 
+        # self.feature_trip_delay_mean()
         # self.feature_hv_distance_diff() => No score improvement
         # self.feature_total_turns()
         # self.feature_duration_mean()
@@ -649,10 +656,10 @@ class TaxiTripDuration():
             train_set, target_log, train_size=0.85, random_state=1234)
         # 'learning_rate': [0.1, 0.3],
         param_grid = {
-                      'learning_rate': [0.1, 0.03],
-                      "max_depth": [5, 10, 20],
-                      'min_child_weight':  [1, 5, 20],
-                      }
+            'learning_rate': [0.1, 0.03],
+            "max_depth": [5, 10, 20],
+            'min_child_weight':  [1, 5, 20],
+        }
         model = XGBRegressor(n_estimators=200, learning_rate=0.1, n_jobs=-1)
         print("Searching for best params")
         scorer = make_scorer(self.rmsle, greater_is_better=False)
@@ -669,8 +676,24 @@ class TaxiTripDuration():
         correlation = data.corr()[self.label].sort_values()
         print(correlation)
 
+    def xgboost_model(self):
+        # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+        #                           learning_rate=LEARNING_RATE,
+        #                           min_child_weight=MIN_CHILD_WEIGHT,
+        #                           colsample_bytree=COLSAMPLE_BYTREE,
+        #                           n_jobs=-1)
+        model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+                             learning_rate=LEARNING_RATE,
+                             min_child_weight=MIN_CHILD_WEIGHT,
+                             n_jobs=-1)
+        return model
+
+    def vowpalwabbit_model(self):
+        model = VWRegressor(learning_rate=0.1, )
+        return model
+
     @timecall
-    def train_model(self):
+    def train_model(self, model_choice=XGB):
         print("Prepare data to train model")
         data = self.train_data
         target = data[self.label]
@@ -679,24 +702,25 @@ class TaxiTripDuration():
             ['id', self.label], axis=1).astype(float)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
-        # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-        #                           learning_rate=LEARNING_RATE,
-        #                           min_child_weight=MIN_CHILD_WEIGHT,
-        #                           colsample_bytree=COLSAMPLE_BYTREE,
-        #                           n_jobs=-1)
-        self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-                                  learning_rate=LEARNING_RATE,
-                                  min_child_weight=MIN_CHILD_WEIGHT,
-                                  n_jobs=-1)
+
         print("Training model ....")
         print(train_set.columns.values)
         start = time.time()
-        early_stopping_rounds = 50
-        self.model.fit(
-            X_train, Y_train, eval_set=[(X_test, Y_test)],
-            eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
-            verbose=early_stopping_rounds
-        )
+
+        if model_choice == XGB:
+            self.model = self.xgboost_model()
+            early_stopping_rounds = 50
+            self.model.fit(
+                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
+                verbose=early_stopping_rounds
+            )
+        elif model_choice == VW:
+            self.model = self.vowpalwabbit_model()
+            self.model.fit(X_train, Y_train)
+        else:
+            self.model = self.xgboost_model()
+
         end = time.time() - start
         print("Done training:", end)
         y_pred = self.model.predict(X_test)
@@ -874,7 +898,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 0
+    option = 2
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -888,7 +912,7 @@ if __name__ == "__main__":
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
-        base_class.train_model()
+        base_class.train_model(model_choice=VW)
         base_class.predict_save()
         base_class.plot_ft_importance()
     # Load process data and train model with Kfold
