@@ -575,3 +575,13 @@
 	* train time: 3059.0503962039948 
 	* RMSLE without-log: 0.317227755451 => 0.316086616132
     + Submision score:	0.382 => 0.380	
+- Round 48:
+    + Base model: Round 46
+	* new data set: fastest_route 
+	* VWRegressor
+	* train_size = 0.85
+	* target_log = np.log(target)
+	* best model train round: 
+	* train time: 
+	* RMSLE without-log: 0.316086616132
+    + Submision score:	0.380 => 		
