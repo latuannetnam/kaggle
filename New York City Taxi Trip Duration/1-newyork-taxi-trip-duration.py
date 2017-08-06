@@ -61,10 +61,10 @@ DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
 N_FOLDS = 5
 # Learning param
-# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best
+# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best score: -0.33525880214884474
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
 # 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
-# {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1} => Best score: -0.40215917807218343
+# {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1}
 LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 5
 MAX_DEPTH = 10
@@ -210,6 +210,7 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_weekday'] = data['datetime_obj'].dt.weekday
         data.loc[:, 'pickup_day'] = data['datetime_obj'].dt.day
         data.loc[:, 'pickup_hour'] = data['datetime_obj'].dt.hour
+        data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * 24 + data['pickup_hour']
         data.loc[:, 'pickup_minute'] = data['datetime_obj'].dt.minute
 
     def convert_store_and_fwd_flag(self):
@@ -647,9 +648,10 @@ class TaxiTripDuration():
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         # 'learning_rate': [0.1, 0.3],
-        param_grid = {"max_depth": [5, 10, 20],
-                      'min_child_weight':  [1, 5],
-                      'colsample_bytree': [0.5, 0.8, 0.9],
+        param_grid = {
+                      'learning_rate': [0.1, 0.03],
+                      "max_depth": [5, 10, 20],
+                      'min_child_weight':  [1, 5, 20],
                       }
         model = XGBRegressor(n_estimators=200, learning_rate=0.1, n_jobs=-1)
         print("Searching for best params")
