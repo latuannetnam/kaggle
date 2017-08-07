@@ -55,6 +55,8 @@ import re
 import time
 from profilehooks import timecall
 import csv
+import subprocess
+import os
 # Other
 # from geographiclib.geodesic import Geodesic
 # import osmnx as ox
@@ -532,7 +534,7 @@ class TaxiTripDuration():
         col = 'step_direction'
         col_cal = 'right_turns'
         data = self.combine_data
-        turns = data[col].apply(lambda x: x.count('left'))
+        turns = data[col].apply(lambda x: x.count('right'))
         data.loc[:, col_cal] = turns
         data.loc[:, col_cal].fillna(0, inplace=True)
 
@@ -706,7 +708,9 @@ class TaxiTripDuration():
             train_set, target_log, train_size=0.85, random_state=1234)
 
         print("Training model ....")
-        print(train_set.columns.values)
+        features = train_set.columns.values
+        print("Features:", len(features))
+        print(features)
         start = time.time()
 
         if model_choice == XGB:
@@ -899,22 +903,110 @@ class TaxiTripDuration():
 
     # Convert input to vowpal_wabbit format
     @timecall
-    def save_to_vw(self):
-        print("Convert to vowpal_wabbit")    
+    def convert_2_vowpal_wabbit(self):
+        print("Converting train_pre to vowpal_wabbit")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
             ['id', self.label], axis=1).astype(float)
-        vw_data = tovw(x=train_set, y=target_log)
-        # print(vw_data[:5])
-        vw_data_pd = pd.Series(vw_data)
-        vw_data_pd.to_csv(DATA_DIR + "/train_vw.csv")
+        # X_train, X_test, Y_train, Y_test = train_test_split(
+        #     train_set, target_log, train_size=0.85, random_state=1234)    
+        # vw_train = tovw(x=X_train, y=Y_train)
+        vw_train = tovw(x=train_set, y=target_log)
+        print("Saving train_vw ....")
+        vw_train_pd = pd.Series(vw_train)
+        train_file = DATA_DIR + "/train_vw.csv"
+        vw_train_pd.to_csv(train_file, index=False)
+        # print("Saving cv_vw ....")
+        # cv_file = DATA_DIR + "/cv_vw.csv"
+        # vw_cv = tovw(x=X_test, y=None)
+        # vw_cv_pd = pd.Series(vw_cv)
+        # vw_cv_pd.to_csv(cv_file, index=False)
+        # self.train_vowpal_wabbit_from_file()
+        # self.score_vowpal_wabbit(Y_test.values)
 
+        print("Converting test_pre to vowpal_wabbit")
+        eval_file = DATA_DIR + "/test_vw.csv"
+        data = self.eval_data.drop('id', axis=1).astype(float)
+        vw_eval = tovw(x=data, y=None)
+        print("Saving eval_vw ....")
+        vw_eval_pd = pd.Series(vw_eval)
+        vw_eval_pd.to_csv(eval_file, index=False)
+        print("Done save_vw")
+
+    # Train model using vowpal_wabbit
+    @timecall
+    def train_vowpal_wabbit(self):
+        print("Training model using vowpal_wabbit")
+        cache_file = DATA_DIR + "/train_vw.cache"
+        try:
+            os.remove(cache_file)
+        except:
+            pass
+        train_file = DATA_DIR + "/train_vw.csv"
+        model_file = DATA_DIR + "/model.vw"
+        num_passes = 100
+        learning_rate = 0.03
+        command = "/usr/local/bin/vw " + train_file + " --cache_file " + \
+            cache_file + " --passes " + str(num_passes) + " -f " + model_file + \
+            " --noconstant" + " --learning_rate " + str(learning_rate)
+        print(command)
+        # result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
+        result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
+
+    # Score model using vowpal_wabbit
+    @timecall
+    def score_vowpal_wabbit(self, Y_test):
+        print("Scoring model using vowpal_wabbit")
+        cv_file = DATA_DIR + "/cv_vw.csv"
+        model_file = DATA_DIR + "/model.vw"
+        pred_file = DATA_DIR + "/cv_predict.csv"
+        command = "/usr/local/bin/vw -t " + cv_file + \
+            " -i " + model_file + " -p " + pred_file + " --quiet"
+        print("Predicting cross validation model using vowpal_wabbit")    
+        print(command)
+        result = subprocess.check_output(
+            command, stderr=subprocess.STDOUT, shell=True)
+        pred_pd = pd.read_csv(pred_file, header=None)
+        Y_pred_log = pred_pd.values
+        score = self.rmsle(y=Y_test, y_pred=Y_pred_log, log=False)
+        print("RMLSE score:", score)
+
+    # Predict model using vowpal_wabbit
+    @timecall
+    def predict_vowpal_wabbit(self):
+        eval_file = DATA_DIR + "/test_vw.csv"
+        model_file = DATA_DIR + "/model.vw"
+        pred_file = DATA_DIR + "/test_predict.csv"
+        command = "/usr/local/bin/vw -t " + eval_file + \
+            " -i " + model_file + " -p " + pred_file + " --quiet"
+        print("Predicting for eval model ..")    
+        print(command)
+        result = subprocess.check_output(
+            command, stderr=subprocess.STDOUT, shell=True)
+        # result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
+
+    # predict and save trip_durarion based on vowpal_wabbit
+    @timecall
+    def predict_save_vowpal_wabbit(self):
+        self.predict_vowpal_wabbit()
+        pred_file = DATA_DIR + "/test_predict.csv"
+        data = self.eval_data.drop('id', axis=1).astype(float)
+        pred_pd = pd.read_csv(pred_file, header=None)
+        Y_eval_log = pred_pd.values
+        Y_eval = np.exp(Y_eval_log.ravel())
+        eval_output = self.eval_data.copy()
+        eval_output.loc[:, self.label] = Y_eval
+        print("Saving prediction to disk")
+        today = str(dtime.date.today())
+        eval_output[['id', self.label]].to_csv(
+            DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
+            compression='gzip')
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 20
+    option = 2
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -928,7 +1020,7 @@ if __name__ == "__main__":
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
-        base_class.train_model(model_choice=VW)
+        base_class.train_model()
         base_class.predict_save()
         base_class.plot_ft_importance()
     # Load process data and train model with Kfold
@@ -948,11 +1040,23 @@ if __name__ == "__main__":
     elif option == 10:
         base_class.load_preprocessed_data()
         base_class.search_best_model_params()
-
+    
+    # ------------------ vowpal_wabbit---------------------------
     # Load process data and save to vowpal_wabbit format
-    elif option == 20:
+    elif option == 21:
         base_class.load_preprocessed_data()
-        base_class.save_to_vw()
+        base_class.convert_2_vowpal_wabbit()
+    # Load pre-vw data and train using  vowpal_wabbi
+    elif option == 22:
+        base_class.load_preprocessed_data()
+        base_class.train_vowpal_wabbit()
+        base_class.predict_save_vowpal_wabbit()
+    # convert to vw, train and predict model using vowpal_wabbi
+    elif option == 23:
+        base_class.load_preprocessed_data()
+        base_class.convert_2_vowpal_wabbit()
+        base_class.train_vowpal_wabbit()
+        base_class.predict_save_vowpal_wabbit()
 
     # combine preprocess and training model
     else:
