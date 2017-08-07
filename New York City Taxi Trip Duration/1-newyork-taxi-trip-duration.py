@@ -43,6 +43,7 @@ from xgboost import plot_importance
 # from catboost import Pool, CatBoostRegressor, cv, CatboostIpythonWidget
 # Vowpal Wabbit
 from vowpalwabbit.sklearn_vw import VWRegressor
+from vowpalwabbit.sklearn_vw import tovw
 
 # System
 import datetime as dtime
@@ -53,6 +54,7 @@ import os.path
 import re
 import time
 from profilehooks import timecall
+import csv
 # Other
 # from geographiclib.geodesic import Geodesic
 # import osmnx as ox
@@ -689,7 +691,7 @@ class TaxiTripDuration():
         return model
 
     def vowpalwabbit_model(self):
-        model = VWRegressor(learning_rate=0.1, )
+        model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)
         return model
 
     @timecall
@@ -895,10 +897,24 @@ class TaxiTripDuration():
         graph = xgb.to_graphviz(self.model)
         graph.render()
 
+    # Convert input to vowpal_wabbit format
+    @timecall
+    def save_to_vw(self):
+        print("Convert to vowpal_wabbit")    
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        vw_data = tovw(x=train_set, y=target_log)
+        # print(vw_data[:5])
+        vw_data_pd = pd.Series(vw_data)
+        vw_data_pd.to_csv(DATA_DIR + "/train_vw.csv")
+
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2
+    option = 20
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -932,6 +948,11 @@ if __name__ == "__main__":
     elif option == 10:
         base_class.load_preprocessed_data()
         base_class.search_best_model_params()
+
+    # Load process data and save to vowpal_wabbit format
+    elif option == 20:
+        base_class.load_preprocessed_data()
+        base_class.save_to_vw()
 
     # combine preprocess and training model
     else:
