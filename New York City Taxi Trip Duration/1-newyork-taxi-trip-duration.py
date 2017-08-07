@@ -946,11 +946,11 @@ class TaxiTripDuration():
             pass
         train_file = DATA_DIR + "/train_vw.csv"
         model_file = DATA_DIR + "/model.vw"
-        num_passes = 100
-        learning_rate = 0.03
+        num_passes = 1000
+        learning_rate = 0.1
         command = "/usr/local/bin/vw " + train_file + " --cache_file " + \
             cache_file + " --passes " + str(num_passes) + " -f " + model_file + \
-            " --noconstant" + " --learning_rate " + str(learning_rate)
+            " --noconstant" + " --learning_rate " + str(learning_rate) + " -q ::"
         print(command)
         # result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
         result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
@@ -1006,7 +1006,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2
+    option = 22
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
