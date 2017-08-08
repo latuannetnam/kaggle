@@ -627,7 +627,17 @@
 	* iterations=10000, learning_rate=0.1, depth=10 
 	* removed Kmeans cluster 
 	* target_log = np.log(target)
-	* best model train round:
+	* best model train round: 10000
+	* train time: 2500
+	* RMSLE without-log: 0.343456689581
+    + Submision score: 0.380 => 0.406				
+16: 2017-08-09:
+- Round 54:
+    + Base model: CatBoostRegressor
+	* iterations=20000, learning_rate=0.1, depth=10 
+	* removed Kmeans cluster 
+	* target_log = np.log(target)
+	* best model train round: 
 	* train time: 
 	* RMSLE without-log: 
-    + Submision score: 0.380				
+    + Submision score: 0.406 => 
