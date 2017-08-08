@@ -622,3 +622,12 @@
 	* train time: 1577.4168784618378
 	* RMSLE without-log: 0.314919531323 => 0.31608909162
     + Submision score: 0.380 => 0.380			
+- Round 53:
+    + Base model: CatBoostRegressor
+	* iterations=10000, learning_rate=0.1, depth=10 
+	* removed Kmeans cluster 
+	* target_log = np.log(target)
+	* best model train round:
+	* train time: 
+	* RMSLE without-log: 
+    + Submision score: 0.380				

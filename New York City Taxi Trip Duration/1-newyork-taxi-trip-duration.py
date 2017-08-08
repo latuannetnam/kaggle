@@ -41,7 +41,7 @@ from xgboost.sklearn import XGBRegressor
 import xgboost as xgb
 from xgboost import plot_importance
 # # CatBoost
-# from catboost import Pool, CatBoostRegressor, cv, CatboostIpythonWidget
+from catboost import Pool, CatBoostRegressor
 # Vowpal Wabbit
 from vowpalwabbit.sklearn_vw import VWRegressor
 from vowpalwabbit.sklearn_vw import tovw
@@ -72,6 +72,7 @@ N_CLUSTERS = 200  # Kmeans number of cluster
 # Model choice
 XGB = 1
 VW = 2
+CATBOOST = 3
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best score: -0.33525880214884474
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
@@ -643,7 +644,7 @@ class TaxiTripDuration():
         self.feature_left_turns()
         self.feature_right_turns()
         # Expriment
-        self.feature_cluster()
+        # self.feature_cluster()
         # self.feature_speed_mean()
         # self.feature_hv_speed_mean()
         # self.feature_trip_delay_mean()
@@ -733,6 +734,12 @@ class TaxiTripDuration():
         model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)
         return model
 
+    def catboost_model(self):
+        model = CatBoostRegressor(
+            iterations=N_ROUNDS, learning_rate=LEARNING_RATE, depth=MAX_DEPTH,
+            verbose=True)
+        return model
+
     @timecall
     def train_model(self, model_choice=XGB):
         print("Prepare data to train model")
@@ -761,6 +768,11 @@ class TaxiTripDuration():
         elif model_choice == VW:
             self.model = self.vowpalwabbit_model()
             self.model.fit(X_train, Y_train)
+        elif model_choice == CATBOOST:
+            self.model = self.catboost_model()
+            self.model.fit(
+                X_train, Y_train, eval_set=(X_test, Y_test), verbose=True
+            )
         else:
             self.model = self.xgboost_model()
 
@@ -1045,7 +1057,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 0
+    option = 32
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -1098,6 +1110,12 @@ if __name__ == "__main__":
         base_class.convert_2_vowpal_wabbit()
         base_class.train_vowpal_wabbit()
         base_class.predict_save_vowpal_wabbit()
+
+    # ------------------ CatBoost -------------
+    elif option == 32:
+        base_class.load_preprocessed_data()
+        base_class.train_model(model_choice=CATBOOST)
+        base_class.predict_save()
 
     # combine preprocess and training model
     else:
