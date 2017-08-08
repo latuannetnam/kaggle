@@ -35,6 +35,7 @@ from sklearn.metrics import mean_squared_error, make_scorer
 from sklearn.grid_search import GridSearchCV
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.feature_selection import SelectFromModel
+from sklearn.cluster import MiniBatchKMeans, KMeans
 # # XGB
 from xgboost.sklearn import XGBRegressor
 import xgboost as xgb
@@ -67,6 +68,7 @@ pd.options.display.float_format = '{:,.4f}'.format
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
 N_FOLDS = 5
+N_CLUSTERS = 200  # Kmeans number of cluster
 # Model choice
 XGB = 1
 VW = 2
@@ -589,6 +591,40 @@ class TaxiTripDuration():
         data.loc[:, col] = data['total_distance'] - data['haversine_distance']
         data.loc[:, col].fillna(data['total_distance'], inplace=True)
 
+    # calculate clusters based on Kmeans
+    @timecall
+    def cal_cluster(self, data, n_clusters):
+        batch_size = 10000
+        mbk = MiniBatchKMeans(init='k-means++', n_clusters=n_clusters, batch_size=batch_size,
+                              n_init=10, max_no_improvement=10, verbose=0)
+        mbk.fit(data)
+        mbk_means_labels = mbk.predict(data)
+        return mbk_means_labels
+
+    @timecall
+    def feature_cluster(self):
+        data = self.combine_data
+        # print("Cluster for starting_street_tf")
+        # col_use = ['pickup_hour', 'starting_street_tf']
+        # col_cluster = 'pkhour_starting_street_cluster'
+        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        # data.loc[:, col_cluster] = clusters
+        print("Cluster for starting_street_tf, end_street_tf")
+        col_use = ['starting_street_tf', 'end_street_tf']
+        col_cluster = 'location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+        print("Cluster for pickup")
+        col_use = ['pickup_latitude', 'pickup_longitude']
+        col_cluster = 'pickup_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+        print("Cluster for dropoff")
+        col_use = ['dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'dropoff_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
     def drop_unused_cols(self):
         data = self.combine_data
         data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
@@ -607,6 +643,7 @@ class TaxiTripDuration():
         self.feature_left_turns()
         self.feature_right_turns()
         # Expriment
+        self.feature_cluster()
         # self.feature_speed_mean()
         # self.feature_hv_speed_mean()
         # self.feature_trip_delay_mean()
@@ -911,7 +948,7 @@ class TaxiTripDuration():
         train_set = data.drop(
             ['id', self.label], axis=1).astype(float)
         # X_train, X_test, Y_train, Y_test = train_test_split(
-        #     train_set, target_log, train_size=0.85, random_state=1234)    
+        #     train_set, target_log, train_size=0.85, random_state=1234)
         # vw_train = tovw(x=X_train, y=Y_train)
         vw_train = tovw(x=train_set, y=target_log)
         print("Saving train_vw ....")
@@ -950,7 +987,8 @@ class TaxiTripDuration():
         learning_rate = 0.1
         command = "/usr/local/bin/vw " + train_file + " --cache_file " + \
             cache_file + " --passes " + str(num_passes) + " -f " + model_file + \
-            " --noconstant" + " --learning_rate " + str(learning_rate) + " -q ::"
+            " --noconstant" + " --learning_rate " + str(learning_rate)
+        # + " -q ::"
         print(command)
         # result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
         result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
@@ -964,7 +1002,7 @@ class TaxiTripDuration():
         pred_file = DATA_DIR + "/cv_predict.csv"
         command = "/usr/local/bin/vw -t " + cv_file + \
             " -i " + model_file + " -p " + pred_file + " --quiet"
-        print("Predicting cross validation model using vowpal_wabbit")    
+        print("Predicting cross validation model using vowpal_wabbit")
         print(command)
         result = subprocess.check_output(
             command, stderr=subprocess.STDOUT, shell=True)
@@ -981,7 +1019,7 @@ class TaxiTripDuration():
         pred_file = DATA_DIR + "/test_predict.csv"
         command = "/usr/local/bin/vw -t " + eval_file + \
             " -i " + model_file + " -p " + pred_file + " --quiet"
-        print("Predicting for eval model ..")    
+        print("Predicting for eval model ..")
         print(command)
         result = subprocess.check_output(
             command, stderr=subprocess.STDOUT, shell=True)
@@ -1004,9 +1042,10 @@ class TaxiTripDuration():
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
             compression='gzip')
 
+
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 22
+    option = 0
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -1022,13 +1061,15 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_model()
         base_class.predict_save()
-        base_class.plot_ft_importance()
+        self.importance_features()
+        # base_class.plot_ft_importance()
     # Load process data and train model with Kfold
     elif option == 3:
         base_class.load_preprocessed_data()
         base_class.train_kfold_single()
         base_class.predict_save()
-        base_class.plot_ft_importance()
+        self.importance_features()
+        # base_class.plot_ft_importance()
     # Load process data and train model with Kfold, aggregate result then
     # train again with aggregated data
     # Note: LB lower than Kfold single
@@ -1040,7 +1081,7 @@ if __name__ == "__main__":
     elif option == 10:
         base_class.load_preprocessed_data()
         base_class.search_best_model_params()
-    
+
     # ------------------ vowpal_wabbit---------------------------
     # Load process data and save to vowpal_wabbit format
     elif option == 21:

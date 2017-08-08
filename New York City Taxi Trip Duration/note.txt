@@ -593,11 +593,32 @@
 	* train time:  1914.6729001998901
 	* RMSLE without-log: 0.315640291626
     + Submision score: 0.380
-15: 2017-08-07:				
+15: 2017-08-08:				
 - Round 50:
-    + Base model: VWRegressor
-	* --passes 1000 --learning_rate 0.1 -q ::
+    + Base model: XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 
+	* added starting_street_cluster, end_street_cluster
 	* target_log = np.log(target)
-	* train time: 
-	* RMSLE without-log: 0.52
-    + Submision score:	
+	* best model train round: 1180
+	* train time: 1289.420259475708
+	* RMSLE without-log: 0.315640291626 => 0.315394751588
+    + Submision score: 0.380 => 0.380	
+- Round 51:
+    + Base model: XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 
+	* added location_cluster ('starting_street_tf', 'end_street_tf'), N_CLUSTERS = 1000
+	* target_log = np.log(target)
+	* best model train round: 1710
+	* train time: 1937.9622585773468
+	* RMSLE without-log: 0.315640291626 => 0.314919531323
+    + Submision score: 0.380 => 0.380		
+- Round 52:
+    + Base model: XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 
+	* added location_cluster ('starting_street_tf', 'end_street_tf'), N_CLUSTERS = 200
+	* added pickup_cluster ('pickup_latitude', 'pickup_longitude'), dropoff_cluster ('dropoff_latitude', 'dropoff_longitude')
+	* target_log = np.log(target)
+	* best model train round: 1495
+	* train time: 1577.4168784618378
+	* RMSLE without-log: 0.314919531323 => 0.31608909162
+    + Submision score: 0.380 => 0.380			
