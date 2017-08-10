@@ -671,3 +671,21 @@
 	* train time: 3020.7012190818787
 	* RMSLE without-log: 0.315679178625
     + Submision score: 0.380 => 0.380
+- Round 58:
+    + Base model: LGBMRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 
+	* added location_cluster ('starting_street_tf', 'end_street_tf'), N_CLUSTERS = 200
+	* added pickup_cluster ('pickup_latitude', 'pickup_longitude'), dropoff_cluster ('dropoff_latitude', 'dropoff_longitude')
+	* target_log = np.log(target)
+	* best model train round: 4940
+	* train time: 198.60693311691284
+	* RMSLE without-log: 0.324367347584
+    + Submision score: 0.388
+- Round 59:
+    + Base model: Round 58
+	* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 5
+	* target_log = np.log(target)
+	* best model train round: 19252
+	* train time: 752.7515609264374
+	* RMSLE without-log: 0.324367347584 => 0.322236424969
+    + Submision score: 0.388 => 0.386	

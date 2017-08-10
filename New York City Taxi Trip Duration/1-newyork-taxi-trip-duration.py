@@ -45,7 +45,8 @@ from xgboost import plot_importance
 # Vowpal Wabbit
 # from vowpalwabbit.sklearn_vw import VWRegressor
 # from vowpalwabbit.sklearn_vw import tovw
-
+# LightGBM
+from lightgbm import LGBMRegressor
 # System
 import datetime as dtime
 from datetime import datetime
@@ -73,6 +74,7 @@ N_CLUSTERS = 200  # Kmeans number of cluster
 XGB = 1
 VW = 2
 CATBOOST = 3
+LIGHTGBM = 4
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best score: -0.33525880214884474
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
@@ -645,7 +647,7 @@ class TaxiTripDuration():
         self.feature_right_turns()
         self.feature_cluster()
         # Expriment
-        # 
+        #
         # self.feature_speed_mean()
         # self.feature_hv_speed_mean()
         # self.feature_trip_delay_mean()
@@ -742,6 +744,14 @@ class TaxiTripDuration():
             verbose=True)
         return model
 
+    def lgbm_model(self):
+        model = LGBMRegressor(objective='regression_l2',
+                              n_estimators=N_ROUNDS*2, max_depth=MAX_DEPTH,
+                              learning_rate=0.03,
+                              min_child_weight=MIN_CHILD_WEIGHT,
+                              nthread=-1, silent=True)
+        return model
+
     # calculate index of features
     def cal_feature_incicies(self):
         cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
@@ -772,20 +782,30 @@ class TaxiTripDuration():
         features = train_set.columns.values
         print("Features:", len(features))
         print(features)
+        categorical_features_indices = self.cal_feature_incicies()
+        early_stopping_rounds = 50
         start = time.time()
         if model_choice == VW:
             self.model = self.vowpalwabbit_model()
             self.model.fit(X_train, Y_train)
         elif model_choice == CATBOOST:
             self.model = self.catboost_model()
-            categorical_features_indices = self.cal_feature_incicies()
+            
             self.model.fit(
                 X_train, Y_train, eval_set=(X_test, Y_test),
                 cat_features=categorical_features_indices, verbose=True
             )
+        elif model_choice == LIGHTGBM:
+            self.model = self.lgbm_model()
+            self.model.fit(
+                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                eval_metric="rmse",
+                early_stopping_rounds=early_stopping_rounds,
+                verbose=early_stopping_rounds,
+                # categorical_feature=categorical_features_indices
+            )
         else:
             self.model = self.xgboost_model()
-            early_stopping_rounds = 50
             self.model.fit(
                 X_train, Y_train, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
@@ -1074,7 +1094,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 0
+    option = 42
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:
@@ -1090,14 +1110,14 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_model()
         base_class.predict_save()
-        self.importance_features()
+        base_class.importance_features()
         # base_class.plot_ft_importance()
     # Load process data and train model with Kfold
     elif option == 3:
         base_class.load_preprocessed_data()
         base_class.train_kfold_single()
         base_class.predict_save()
-        self.importance_features()
+        base_class.importance_features()
         # base_class.plot_ft_importance()
     # Load process data and train model with Kfold, aggregate result then
     # train again with aggregated data
@@ -1133,7 +1153,14 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_model(model_choice=CATBOOST)
         base_class.predict_save()
-        self.importance_features()
+        base_class.importance_features()
+
+    # ------------------ LIGHTGBM -------------
+    elif option == 42:
+        base_class.load_preprocessed_data()
+        base_class.train_model(model_choice=LIGHTGBM)
+        base_class.predict_save()
+        base_class.importance_features()    
 
     # combine preprocess and training model
     else:
