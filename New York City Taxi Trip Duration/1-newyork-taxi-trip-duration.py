@@ -736,9 +736,25 @@ class TaxiTripDuration():
 
     def catboost_model(self):
         model = CatBoostRegressor(
-            iterations=N_ROUNDS*5, learning_rate=0.1, depth=MAX_DEPTH,
-            use_best_model=True, verbose=True)
+            iterations=N_ROUNDS * 3, learning_rate=0.1, depth=MAX_DEPTH,
+            use_best_model=True, train_dir=DATA_DIR + "/node_modules",
+            verbose=True)
         return model
+
+    # calculate index of features
+    def cal_feature_incicies(self):
+        cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
+                        'pickup_weekday', 'pickup_day', 'pickup_hour',
+                        'pickup_whour', 'pickup_minute'
+                        ]
+        data = self.train_data
+        cols = data.columns.values
+        sidx = np.argsort(cols)
+        categorical_features_indices = sidx[np.searchsorted(
+            cols, cat_features, sorter=sidx)]
+        print("Categories features:", cat_features)
+        print("Categories feature index:", categorical_features_indices)
+        return categorical_features_indices
 
     @timecall
     def train_model(self, model_choice=XGB):
@@ -756,25 +772,25 @@ class TaxiTripDuration():
         print("Features:", len(features))
         print(features)
         start = time.time()
-
-        if model_choice == XGB:
-            self.model = self.xgboost_model()
-            early_stopping_rounds = 50
-            self.model.fit(
-                X_train, Y_train, eval_set=[(X_test, Y_test)],
-                eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
-                verbose=early_stopping_rounds
-            )
-        elif model_choice == VW:
+        if model_choice == VW:
             self.model = self.vowpalwabbit_model()
             self.model.fit(X_train, Y_train)
         elif model_choice == CATBOOST:
             self.model = self.catboost_model()
+            categorical_features_indices = self.cal_feature_incicies()
             self.model.fit(
-                X_train, Y_train, eval_set=(X_test, Y_test), verbose=True
+                X_train, Y_train, eval_set=(X_test, Y_test),
+                cat_features=categorical_features_indices, verbose=True
             )
         else:
             self.model = self.xgboost_model()
+            early_stopping_rounds = 50
+            self.model.fit(
+                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                eval_metric="rmse",
+                early_stopping_rounds=early_stopping_rounds,
+                verbose=early_stopping_rounds
+            )
 
         end = time.time() - start
         print("Done training:", end)
@@ -1116,6 +1132,7 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_model(model_choice=CATBOOST)
         base_class.predict_save()
+        self.importance_features()
 
     # combine preprocess and training model
     else:
