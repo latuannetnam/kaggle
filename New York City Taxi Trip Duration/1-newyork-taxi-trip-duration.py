@@ -736,7 +736,7 @@ class TaxiTripDuration():
 
     def catboost_model(self):
         model = CatBoostRegressor(
-            iterations=N_ROUNDS*5, learning_rate=0.03, depth=MAX_DEPTH,
+            iterations=N_ROUNDS*5, learning_rate=0.1, depth=MAX_DEPTH,
             use_best_model=True, verbose=True)
         return model
 
