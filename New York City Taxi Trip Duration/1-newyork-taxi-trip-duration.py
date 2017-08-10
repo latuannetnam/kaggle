@@ -41,10 +41,10 @@ from xgboost.sklearn import XGBRegressor
 import xgboost as xgb
 from xgboost import plot_importance
 # # CatBoost
-from catboost import Pool, CatBoostRegressor
+# from catboost import Pool, CatBoostRegressor
 # Vowpal Wabbit
-from vowpalwabbit.sklearn_vw import VWRegressor
-from vowpalwabbit.sklearn_vw import tovw
+# from vowpalwabbit.sklearn_vw import VWRegressor
+# from vowpalwabbit.sklearn_vw import tovw
 
 # System
 import datetime as dtime
@@ -643,8 +643,9 @@ class TaxiTripDuration():
         self.feature_manhattan()
         self.feature_left_turns()
         self.feature_right_turns()
+        self.feature_cluster()
         # Expriment
-        # self.feature_cluster()
+        # 
         # self.feature_speed_mean()
         # self.feature_hv_speed_mean()
         # self.feature_trip_delay_mean()
@@ -1073,7 +1074,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 32
+    option = 0
     base_class = TaxiTripDuration(LABEL)
     # Load and preprocessed data
     if option == 1:

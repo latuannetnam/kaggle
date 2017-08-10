@@ -661,3 +661,13 @@
 	* train time: 
 	* RMSLE without-log: 
     + Submision score: 
+- Round 57:
+    + Base model: XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 
+	* added location_cluster ('starting_street_tf', 'end_street_tf'), N_CLUSTERS = 200
+	* added pickup_cluster ('pickup_latitude', 'pickup_longitude'), dropoff_cluster ('dropoff_latitude', 'dropoff_longitude')
+	* target_log = np.log(target)
+	* best model train round: 1387 
+	* train time: 3020.7012190818787
+	* RMSLE without-log: 0.315679178625
+    + Submision score: 0.380 => 0.380
