@@ -85,12 +85,13 @@ MIN_CHILD_WEIGHT = 5
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 10000
-# N_ROUNDS = 10
+# N_ROUNDS = 100
 
 
 class TaxiTripDuration():
-    def __init__(self, label):
+    def __init__(self, label, model_choice=XGB):
         self.label = label
+        self.model_choice = model_choice
 
     @timecall
     def load_data(self):
@@ -174,6 +175,7 @@ class TaxiTripDuration():
         self.eval_data = pd.read_csv(DATA_DIR + "/test_pre.csv")
         print("train size:", self.train_data.shape,
               " test size:", self.eval_data.shape)
+        print(self.train_data.dtypes)
         # features = eval_data.columns.values
         # self.target = train_data[label]
         print("Data loaded")
@@ -227,6 +229,7 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_hour'] = data['datetime_obj'].dt.hour
         data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * \
             24 + data['pickup_hour']
+        data.loc[:, 'pickup_whour'] = data.loc['pickup_whour']
         data.loc[:, 'pickup_minute'] = data['datetime_obj'].dt.minute
 
     def convert_store_and_fwd_flag(self):
@@ -236,6 +239,7 @@ class TaxiTripDuration():
         data_dict = {'Y': 1, 'N': 0}
         data_tf = data[col].map(data_dict)
         data.loc[:, col].update(data_tf)
+        data.loc[:, col] = data.loc[col]
 
     def convert_starting_street(self):
         print("Convert starting_street ...")
@@ -665,6 +669,7 @@ class TaxiTripDuration():
         features = self.combine_data.columns.values
         print("Engineered features:", len(features))
         print(features)
+        print(self.combine_data.dtypes)
 
         # Save preprocess data
         train_set = self.combine_data.loc['train'].copy()
@@ -746,43 +751,56 @@ class TaxiTripDuration():
 
     def lgbm_model(self):
         model = LGBMRegressor(objective='regression_l2',
-                              n_estimators=N_ROUNDS*2, max_depth=MAX_DEPTH,
+                              n_estimators=N_ROUNDS * 3,
+                              #   max_depth=MAX_DEPTH,
                               learning_rate=0.03,
-                              min_child_weight=MIN_CHILD_WEIGHT,
+                              #   min_child_weight=MIN_CHILD_WEIGHT,
+                              num_leaves=1024,
                               nthread=-1, silent=True)
         return model
 
     # calculate index of features
-    def cal_feature_incicies(self):
+    def convert_to_categrorical_features(self, data):
+        print("Convert category features")
         cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
                         'pickup_weekday', 'pickup_day', 'pickup_hour',
                         'pickup_whour', 'pickup_minute'
                         ]
-        data = self.train_data
         cols = data.columns.values
         sidx = np.argsort(cols)
         categorical_features_indices = sidx[np.searchsorted(
             cols, cat_features, sorter=sidx)]
         print("Categories features:", cat_features)
         print("Categories feature index:", categorical_features_indices)
+        # print("Change categories feature type to int")
+        # for col in cat_features:
+        #     data.loc[:, col] = data[col].astype(int)
+        # print(data.dtypes)
         return categorical_features_indices
 
     @timecall
-    def train_model(self, model_choice=XGB):
+    def train_model(self):
+        model_choice = self.model_choice
         print("Prepare data to train model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
         train_set = data.drop(
             ['id', self.label], axis=1).astype(float)
-        X_train, X_test, Y_train, Y_test = train_test_split(
-            train_set, target_log, train_size=0.85, random_state=1234)
-
+        # categorical_features_indices = self.convert_to_categrorical_features(
+        #     train_set)
         print("Training model ....")
         features = train_set.columns.values
         print("Features:", len(features))
         print(features)
-        categorical_features_indices = self.cal_feature_incicies()
+        cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
+                        'pickup_weekday', 'pickup_day', 'pickup_hour',
+                        'pickup_whour', 'pickup_minute'
+                        ]
+        print("Categorial features:")
+        print(train_set[cat_features].describe())
+        X_train, X_test, Y_train, Y_test = train_test_split(
+            train_set, target_log, train_size=0.85, random_state=1234)
         early_stopping_rounds = 50
         start = time.time()
         if model_choice == VW:
@@ -790,7 +808,7 @@ class TaxiTripDuration():
             self.model.fit(X_train, Y_train)
         elif model_choice == CATBOOST:
             self.model = self.catboost_model()
-            
+
             self.model.fit(
                 X_train, Y_train, eval_set=(X_test, Y_test),
                 cat_features=categorical_features_indices, verbose=True
@@ -802,6 +820,8 @@ class TaxiTripDuration():
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
                 verbose=early_stopping_rounds,
+                # feature_name=cat_features,
+                # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
         else:
@@ -815,7 +835,13 @@ class TaxiTripDuration():
 
         end = time.time() - start
         print("Done training:", end)
-        y_pred = self.model.predict(X_test)
+        if model_choice == LIGHTGBM:
+            print("Predicting for:", model_choice,
+                  ". Best round:", self.model.best_iteration)
+            y_pred = self.model.predict(
+                X_test, num_iteration=self.model.best_iteration)
+        else:
+            y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
         print("RMSLE score:", score, " RMSLE without-log:", score1)
@@ -951,9 +977,18 @@ class TaxiTripDuration():
 
     @timecall
     def predict_save(self):
+        model_choice = self.model_choice
         print("Predicting for eval data ..")
         data = self.eval_data.drop('id', axis=1).astype(float)
-        Y_eval_log = self.model.predict(data)
+        if model_choice == LIGHTGBM:
+            print("Predicting for:", model_choice,
+                  ". Best round:", self.model.best_iteration)
+            categorical_features_indices = self.convert_to_categrorical_features(
+                data)
+            Y_eval_log = self.model.predict(
+                data, num_iteration=self.model.best_iteration)
+        else:
+            Y_eval_log = self.model.predict(data)
         Y_eval = np.exp(Y_eval_log.ravel())
         eval_output = self.eval_data.copy()
         eval_output.loc[:, self.label] = Y_eval
@@ -1094,8 +1129,9 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 42
-    base_class = TaxiTripDuration(LABEL)
+    option = 2
+    model_choice = LIGHTGBM
+    base_class = TaxiTripDuration(LABEL, model_choice)
     # Load and preprocessed data
     if option == 1:
         base_class.load_data()
@@ -1103,8 +1139,6 @@ if __name__ == "__main__":
         base_class.preprocess_data()
         base_class.check_null_data()
         base_class.feature_correlation()
-        # Search for best model params based on current dataset
-        # base_class.search_best_model_params()
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
@@ -1148,20 +1182,7 @@ if __name__ == "__main__":
         base_class.train_vowpal_wabbit()
         base_class.predict_save_vowpal_wabbit()
 
-    # ------------------ CatBoost -------------
-    elif option == 32:
-        base_class.load_preprocessed_data()
-        base_class.train_model(model_choice=CATBOOST)
-        base_class.predict_save()
-        base_class.importance_features()
-
-    # ------------------ LIGHTGBM -------------
-    elif option == 42:
-        base_class.load_preprocessed_data()
-        base_class.train_model(model_choice=LIGHTGBM)
-        base_class.predict_save()
-        base_class.importance_features()    
-
+    # ------------------------------ default -------------------------
     # combine preprocess and training model
     else:
         base_class.load_data()

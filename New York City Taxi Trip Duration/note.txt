@@ -689,3 +689,40 @@
 	* train time: 752.7515609264374
 	* RMSLE without-log: 0.324367347584 => 0.322236424969
     + Submision score: 0.388 => 0.386	
+18: 2017-08-11:
+- Round 60:
+    + Base model: Round 59 
+	* LGBMRegressor
+	* 'learning_rate': 0.1, num_leaves=512
+	* target_log = np.log(target)
+	* best model train round:1451 
+	* train time: 140.3382053375244
+	* RMSLE without-log: 0.322236424969 => 0.321227
+    + Submision score: 0.386 => 			
+- Round 61:
+    + Base model: Round 60 
+	* LGBMRegressor
+	* 'learning_rate': 0.1, num_leaves=1024
+	* target_log = np.log(target)
+	* best model train round: 818
+	* train time: 140.1048858165741
+	* RMSLE without-log: 0.321227 => 0.32146863452
+    + Submision score: 0.386 => 0.387				
+- Round 62:
+    + Base model: Round 60 
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=512
+	* target_log = np.log(target)
+	* best model train round: 4629
+	* train time: 446.7575452327728
+	* RMSLE without-log: 0.32146863452 => 0.318067211916
+    + Submision score: 0.387 => 0.384			
+- Round 63:
+    + Base model: Round 60 
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024
+	* target_log = np.log(target)
+	* best model train round: 3553
+	* train time: 562.9755690097809
+	* RMSLE without-log: 0.318067211916 => 0.31787662896
+    + Submision score: 0.384				
