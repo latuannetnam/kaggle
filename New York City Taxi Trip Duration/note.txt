@@ -758,15 +758,80 @@
 	* RMSLE without-log: 0.31787662896 => 0.335223829409
     + Submision score: 0.383 => 0.398				
 - Round 67:
-    + Base model: Round 60 
+    + Base model: Round 66 
 	* LGBMRegressor
 	* 'learning_rate': 0.03, num_leaves=2048
-	*  cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
-                        'pickup_weekday', 'pickup_day', 'pickup_hour',
-                        'pickup_whour', 'pickup_minute'
-                        ]
 	* target_log = np.log(target)
 	* best model train round: 966
 	* train time: 309.1839175224304
 	* RMSLE without-log: 0.335223829409 => 0.339737112562
     + Submision score: 0.383 => 
+- Round 68:
+    + Base model: Round 66 
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024, max_bin=512
+	* target_log = np.log(target)
+	* best model train round: 1408
+	* train time: 317.5527174472809
+	* RMSLE without-log: 0.31787662896 => 0.337128140915
+    + Submision score: 0.383 => 	
+- Round 69:
+    + Base model: Round 66 
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024, max_bin=1024
+	* cat_features
+	* target_log = np.log(target)
+	* best model train round: 2025
+	* train time: 433.9591565132141
+	* RMSLE without-log: (0.31787662896) 0.337128140915 => 0.336225641011
+    + Submision score: 0.383 => 		
+- Round 70:
+    + Base model: Round 66
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024, max_bin=2048
+	* cat_features
+	* target_log = np.log(target)
+	* best model train round: 1653
+	* train time: 440.6618022918701
+	* RMSLE without-log: (0.31787662896) 0.336225641011 => 0.335734921887
+    + Submision score: 0.383 => 			
+- Round 71:
+    + Base model: Round 66
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024, max_bin=8192
+	* cat_features
+	* target_log = np.log(target)
+	* best model train round: 1826
+	* train time: 896.5467207431793
+	* RMSLE without-log: (0.31787662896) 0.335734921887 => 0.335780889774
+    + Submision score: 0.383 => 				
+- Round 72:
+    + Base model: Round 66
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024, max_bin=4096
+	* cat_features
+	* target_log = np.log(target)
+	* best model train round: 1659
+	* train time: 579.672604560852
+	* RMSLE without-log: (0.31787662896) 0.335734921887 => 0.335573925783
+    + Submision score: 0.383 => 					
+- Round 73:
+    + Base model: Round 66
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=1024, max_bin=2048
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round: 3673
+	* train time: 795.7316427230835
+	* RMSLE without-log: (0.31787662896) => 0.319262749763
+    + Submision score: 0.383 => 						
+- Round 74:
+    + Base model: Round 73
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=2048, max_bin=2048
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round: 2039
+	* train time: 873.2032713890076
+	* RMSLE without-log: (0.31787662896) =>0.319737233272
+    + Submision score: 0.383 => 							

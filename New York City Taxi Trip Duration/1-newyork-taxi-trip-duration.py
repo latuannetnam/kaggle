@@ -754,7 +754,8 @@ class TaxiTripDuration():
                               #   max_depth=MAX_DEPTH,
                               learning_rate=0.03,
                               #   min_child_weight=MIN_CHILD_WEIGHT,
-                              num_leaves=2048,
+                              num_leaves=1024,
+                              max_bin=4096,
                               nthread=-1, silent=True)
         return model
 
@@ -821,7 +822,7 @@ class TaxiTripDuration():
                 early_stopping_rounds=early_stopping_rounds,
                 verbose=early_stopping_rounds,
                 feature_name=features,
-                categorical_feature=cat_features
+                # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
         else:
@@ -1144,7 +1145,7 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_model()
         base_class.predict_save()
-        base_class.importance_features()
+        # base_class.importance_features()
         # base_class.plot_ft_importance()
     # Load process data and train model with Kfold
     elif option == 3:
