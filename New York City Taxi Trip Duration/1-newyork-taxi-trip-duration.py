@@ -229,7 +229,6 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_hour'] = data['datetime_obj'].dt.hour
         data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * \
             24 + data['pickup_hour']
-        data.loc[:, 'pickup_whour'] = data.loc['pickup_whour']
         data.loc[:, 'pickup_minute'] = data['datetime_obj'].dt.minute
 
     def convert_store_and_fwd_flag(self):
@@ -239,7 +238,6 @@ class TaxiTripDuration():
         data_dict = {'Y': 1, 'N': 0}
         data_tf = data[col].map(data_dict)
         data.loc[:, col].update(data_tf)
-        data.loc[:, col] = data.loc[col]
 
     def convert_starting_street(self):
         print("Convert starting_street ...")
@@ -751,11 +749,12 @@ class TaxiTripDuration():
 
     def lgbm_model(self):
         model = LGBMRegressor(objective='regression_l2',
-                              n_estimators=N_ROUNDS * 3,
+                              n_estimators=N_ROUNDS,
+                              #   n_estimators=100,
                               #   max_depth=MAX_DEPTH,
                               learning_rate=0.03,
                               #   min_child_weight=MIN_CHILD_WEIGHT,
-                              num_leaves=1024,
+                              num_leaves=2048,
                               nthread=-1, silent=True)
         return model
 
@@ -790,15 +789,16 @@ class TaxiTripDuration():
         # categorical_features_indices = self.convert_to_categrorical_features(
         #     train_set)
         print("Training model ....")
-        features = train_set.columns.values
-        print("Features:", len(features))
+        features = train_set.columns.values.tolist()
+        print("Features:", len(features), type(features))
         print(features)
         cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
                         'pickup_weekday', 'pickup_day', 'pickup_hour',
                         'pickup_whour', 'pickup_minute'
                         ]
         print("Categorial features:")
-        print(train_set[cat_features].describe())
+        print(cat_features)
+        # print(train_set[cat_features].describe())
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         early_stopping_rounds = 50
@@ -820,8 +820,8 @@ class TaxiTripDuration():
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
                 verbose=early_stopping_rounds,
-                # feature_name=cat_features,
-                # categorical_feature=cat_features
+                feature_name=features,
+                categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
         else:
@@ -983,8 +983,8 @@ class TaxiTripDuration():
         if model_choice == LIGHTGBM:
             print("Predicting for:", model_choice,
                   ". Best round:", self.model.best_iteration)
-            categorical_features_indices = self.convert_to_categrorical_features(
-                data)
+            # categorical_features_indices = self.convert_to_categrorical_features(
+            #     data)
             Y_eval_log = self.model.predict(
                 data, num_iteration=self.model.best_iteration)
         else:
