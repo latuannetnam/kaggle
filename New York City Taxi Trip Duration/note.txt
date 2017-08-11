@@ -725,4 +725,4 @@
 	* best model train round: 3553
 	* train time: 562.9755690097809
 	* RMSLE without-log: 0.318067211916 => 0.31787662896
-    + Submision score: 0.384				
+    + Submision score: 0.384 => 0.383				
