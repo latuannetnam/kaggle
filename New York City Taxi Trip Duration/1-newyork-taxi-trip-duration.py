@@ -47,6 +47,7 @@ from xgboost import plot_importance
 # from vowpalwabbit.sklearn_vw import tovw
 # LightGBM
 from lightgbm import LGBMRegressor
+import lightgbm as lgb
 # System
 import datetime as dtime
 from datetime import datetime
@@ -59,6 +60,7 @@ from profilehooks import timecall
 import csv
 import subprocess
 import os
+import logging
 # Other
 # from geographiclib.geodesic import Geodesic
 # import osmnx as ox
@@ -86,6 +88,7 @@ MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 10000
 # N_ROUNDS = 100
+LOG_LEVEL = logging.DEBUG
 
 
 class TaxiTripDuration():
@@ -95,7 +98,7 @@ class TaxiTripDuration():
 
     @timecall
     def load_data(self):
-        print("Loading data ....")
+        logger.info("Loading data ....")
         label = self.label
         # Load data. Download
         # from:https://www.kaggle.com/c/nyc-taxi-trip-duration/data
@@ -105,11 +108,12 @@ class TaxiTripDuration():
         # https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
         train_osm = pd.read_csv(DATA_DIR + "/fastest_route_train.csv")
         eval_osm = pd.read_csv(DATA_DIR + "/fastest_route_test.csv")
-        print("train size:", train_data.shape, " test size:", eval_data.shape)
-        print("train_osm size:", train_osm.shape,
-              " test osm size:", eval_osm.shape)
+        logger.debug("train size:" + str(train_data.shape) +
+                     " test size:" + str(eval_data.shape))
+        logger.debug("train_osm size:" + str(train_osm.shape) +
+                     " test osm size:" + str(eval_osm.shape))
 
-        print("Merging  2 data sets ...")
+        logger.debug("Merging  2 data sets ...")
         col_use = ['id', 'total_distance', 'total_travel_time',
                    'number_of_steps',
                    'starting_street', 'end_street', 'step_maneuvers', 'step_direction']
@@ -124,17 +128,17 @@ class TaxiTripDuration():
         self.combine_data = pd.concat(
             [train_data[features], eval_data], keys=['train', 'eval'])
         # self.load_and_combine_weather_data() => No score change
-        print("combine data:", len(self.combine_data))
+        logger.debug("combine data:" + str(len(self.combine_data)))
         features = self.combine_data.columns.values
-        print("Original features:", len(features))
-        print(features)
-        print("Data loaded")
+        logger.debug("Original features:" + str(len(features)))
+        logger.debug(features)
+        logger.info("Data loaded")
 
     def load_and_combine_weather_data(self):
-        print("Loading weather data ..")
+        logger.debug("Loading weather data ..")
         weather_data = pd.read_csv(
             DATA_DIR + "/weather_data_nyc_centralpark_2016.csv")
-        print("Weather data len:", len(weather_data))
+        logger.debug("Weather data len:", len(weather_data))
         # Convert date string to date_obj
         weather_data.loc[:, 'date_obj'] = pd.to_datetime(
             weather_data['date'], dayfirst=True).dt.date
@@ -167,21 +171,21 @@ class TaxiTripDuration():
 
     @timecall
     def load_preprocessed_data(self):
-        print("Loading preprocessed data ....")
+        logger.info("Loading preprocessed data ....")
         label = self.label
         # Load data. Download
         # from:https://www.kaggle.com/c/nyc-taxi-trip-duration/data
         self.train_data = pd.read_csv(DATA_DIR + "/train_pre.csv")
         self.eval_data = pd.read_csv(DATA_DIR + "/test_pre.csv")
-        print("train size:", self.train_data.shape,
-              " test size:", self.eval_data.shape)
-        print(self.train_data.dtypes)
+        logger.debug("train size:" + str(self.train_data.shape) +
+                     " test size:" + str(self.eval_data.shape))
+        # logger.debug(self.train_data.dtypes)
         # features = eval_data.columns.values
         # self.target = train_data[label]
-        print("Data loaded")
+        logger.info("Data loaded")
 
     def check_null_data(self, data=None):
-        print("Check for null data")
+        logger.info("Check for null data")
         if data is None:
             data = self.combine_data
         # Get high percent of NaN data
@@ -192,13 +196,13 @@ class TaxiTripDuration():
         missing_data = pd.concat(
             [total, percent], axis=1, keys=['Total', 'Percent'])
         high_percent_miss_data = missing_data[missing_data['Percent'] > 0]
-        # print(missing_data)
-        print(high_percent_miss_data)
+        # logger.debug(missing_data)
+        logger.debug(high_percent_miss_data)
         miss_data_cols = high_percent_miss_data.index.values
         return miss_data_cols
 
     def fillnan(self):
-        print("FillNaN ...")
+        logger.info("FillNaN ...")
         data = self.combine_data
         data.loc[:, 'total_distance'].fillna(1, inplace=True)
         data.loc[:, 'number_of_steps'].fillna(1, inplace=True)
@@ -210,16 +214,16 @@ class TaxiTripDuration():
         # trip_duration > 10,
         # speed < 100)
         size1 = len(data)
-        print("Cleanup data. Size before:", size1)
+        logger.info("Cleanup data. Size before:" + str(size1))
         label = self.label
         data = data[(data[label] < 22 * 3600) & (data[label] > 10)]
         size2 = len(data)
-        print("Finish cleanup. Size after:", size2,
-              " .Total removed:", size1 - size2)
+        logger.info("Finish cleanup. Size after:" + str(size2) +
+                    " .Total removed:" + str(size1 - size2))
         return data
 
     def convert_datetime(self):
-        print("Convert datetime ...")
+        logger.info("Convert datetime ...")
         data = self.combine_data
         data.loc[:, 'datetime_obj'] = pd.to_datetime(data['pickup_datetime'])
         data.loc[:, 'pickup_year'] = data['datetime_obj'].dt.year
@@ -232,7 +236,7 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_minute'] = data['datetime_obj'].dt.minute
 
     def convert_store_and_fwd_flag(self):
-        print("Convert store_and_fwd_flag ...")
+        logger.info("Convert store_and_fwd_flag ...")
         data = self.combine_data
         col = 'store_and_fwd_flag'
         data_dict = {'Y': 1, 'N': 0}
@@ -240,7 +244,7 @@ class TaxiTripDuration():
         data.loc[:, col].update(data_tf)
 
     def convert_starting_street(self):
-        print("Convert starting_street ...")
+        logger.info("Convert starting_street ...")
         data = self.combine_data
         col = 'starting_street'
         data_not_null = data[data[col].notnull()]
@@ -251,7 +255,7 @@ class TaxiTripDuration():
         data.loc[data[col].notnull(), col_tf] = data_tf
 
     def convert_end_street(self):
-        print("Convert end_street ...")
+        logger.info("Convert end_street ...")
         data = self.combine_data
         col = 'end_street'
         data_not_null = data[data[col].notnull()]
@@ -265,7 +269,7 @@ class TaxiTripDuration():
     def feature_starting_street(self):
         data = self.combine_data
         col = 'starting_street_tf'
-        print("Feature enginering ", col)
+        logger.info("Feature enginering ", col)
         data_zero = data[data[col].isnull()]
         data_not_zero = data[data[col].notnull()]
         features = ['pickup_longitude', 'pickup_latitude']
@@ -281,7 +285,7 @@ class TaxiTripDuration():
     def feature_end_street(self):
         data = self.combine_data
         col = 'end_street_tf'
-        print("Feature enginering ", col)
+        logger.info("Feature enginering ", col)
         data_zero = data[data[col].isnull()]
         data_not_zero = data[data[col].notnull()]
         features = ['dropoff_longitude', 'dropoff_latitude']
@@ -336,7 +340,7 @@ class TaxiTripDuration():
 
     @timecall
     def feature_haversine(self):
-        print("Feature engineering: haversine_distance")
+        logger.info("Feature engineering: haversine_distance")
         data = self.combine_data
         data.loc[:, 'haversine_distance'] = self.haversine_np(
             data['pickup_longitude'], data['pickup_latitude'],
@@ -344,14 +348,14 @@ class TaxiTripDuration():
 
     @timecall
     def feature_manhattan(self):
-        print("Feature engineering: manhattan_distance")
+        logger.info("Feature engineering: manhattan_distance")
         data = self.combine_data
         data.loc[:, 'manhattan_distance'] = self.manhattan_np(
             data['pickup_longitude'], data['pickup_latitude'],
             data['dropoff_longitude'], data['dropoff_latitude'])
 
     def estimate_total_distance(self):
-        print("Estimating total_distance ... ")
+        logger.info("Estimating total_distance ... ")
         data = self.combine_data
         col1 = 'haversine_distance'
         col = 'total_distance'
@@ -375,14 +379,14 @@ class TaxiTripDuration():
 
     @timecall
     def feature_total_distance(self):
-        print("Feature engineering: total_distance")
+        logger.info("Feature engineering: total_distance")
         data = self.combine_data
         col1 = 'haversine_distance'
         col = 'total_distance'
-        print("check for haversine_distance=0")
+        logger.debug("check for haversine_distance=0")
         data.loc[data[col1] == 0, col] = 0
         data.loc[data[col1] == 0, 'number_of_streets'] = 1
-        print("check for total_distance=0 and haversine_distance=0")
+        logger.debug("check for total_distance=0 and haversine_distance=0")
         train_set = data.loc['train'].copy()
         train_set.loc[:, self.label] = self.target
         train_set.loc[(train_set[col] == 0.) & (
@@ -394,18 +398,13 @@ class TaxiTripDuration():
         col = 'speed'
         data_speed = self.combine_data.loc['train'].copy()
         data_speed.loc[:, self.label] = self.target
-        # data_speed.loc[data_speed[self.label] == 0, col] = 0
-        # data_speed_not_zero = data_speed.loc[data_speed[self.label] > 0]
-        # data_speed_not_zero.loc[:, col] = data_speed_not_zero[distance_col] / \
-        #     data_speed_not_zero[self.label]
-        # data_speed.update(data_speed_not_zero)
         data_speed.loc[:, col] = data_speed[distance_col] / \
             data_speed[self.label]
         data_speed.loc[:, col].fillna(data_speed[col].mean(), inplace=True)
         return data_speed
 
     def speed_mean_by_col(self, col, suffix, data_speed):
-        print("Speed mean by ", col, suffix)
+        logger.debug("Speed mean by " + col + " " + suffix)
         data = self.combine_data
         group_col = 'speed'
         data_grp = data_speed[[col, group_col]]
@@ -419,7 +418,8 @@ class TaxiTripDuration():
 
     @timecall
     def feature_speed_mean(self):
-        print("Calculating speed_mean by total_distance for each feature")
+        logger.info(
+            "Calculating speed_mean by total_distance for each feature")
         distance_col = 'total_distance'
         suffix = '_speed_mean'
         data_speed = self.cal_speed(distance_col)
@@ -440,7 +440,7 @@ class TaxiTripDuration():
 
     @timecall
     def feature_hv_speed_mean(self):
-        print("Calculating speed_mean by haversine for each feature")
+        logger.info("Calculating speed_mean by haversine for each feature")
         distance_col = 'haversine_distance'
         suffix = '_hv_speed_mean'
         data_speed = self.cal_speed(distance_col)
@@ -461,7 +461,7 @@ class TaxiTripDuration():
 
     @timecall
     def duration_mean_by_col(self, col):
-        print("Duration mean by ", col)
+        logger.debug("Duration mean by " + col)
         col_speed_mean = col + '_speed_mean'
         col_duration_mean = col + '_duration_mean'
         data = self.combine_data
@@ -472,7 +472,7 @@ class TaxiTripDuration():
 
     @timecall
     def haversine_duration_mean_by_col(self, col):
-        print("Duration mean by ", col)
+        logger.debug("Duration mean by " + col)
         col_speed_mean = col + '_hv_speed_mean'
         col_duration_mean = col + '_hv_duration_mean'
         data = self.combine_data
@@ -481,7 +481,8 @@ class TaxiTripDuration():
 
     @timecall
     def feature_duration_mean(self):
-        print("Calculating duration_mean by total_distance for each feature")
+        logger.info(
+            "Calculating duration_mean by total_distance for each feature")
         self.duration_mean_by_col('pickup_hour')
         self.duration_mean_by_col('pickup_weekday')
         self.duration_mean_by_col('pickup_day')
@@ -490,7 +491,7 @@ class TaxiTripDuration():
         self.duration_mean_by_col('starting_street_tf')
         self.duration_mean_by_col('end_street_tf')
 
-        # print("Calculating duration_mean by haversine for each feature")
+        # logger.info("Calculating duration_mean by haversine for each feature")
         # self.haversine_duration_mean_by_col('pickup_hour')
         # self.haversine_duration_mean_by_col('pickup_weekday')
         # self.haversine_duration_mean_by_col('pickup_day')
@@ -498,7 +499,7 @@ class TaxiTripDuration():
 
     @timecall
     def feature_distance_by_step(self):
-        print("Calculating total_distance/number_of_steps ...")
+        logger.info("Calculating total_distance/number_of_steps ...")
         data = self.combine_data
         col = 'distance_per_step'
         data.loc[:, col] = data['total_distance'] / data['number_of_steps']
@@ -506,7 +507,7 @@ class TaxiTripDuration():
 
     @timecall
     def feature_haversine_distance_by_step(self):
-        print("Calculating haversine_distance/number_of_steps ...")
+        logger.info("Calculating haversine_distance/number_of_steps ...")
         data = self.combine_data
         col = 'hv_distance_per_step'
         data.loc[:, col] = data['haversine_distance'] / \
@@ -516,7 +517,7 @@ class TaxiTripDuration():
     # calculate number of turns based on step_maneuvers
     @timecall
     def feature_total_turns(self):
-        print("Calculating turns based on step_maneuvers ")
+        logger.info("Calculating turns based on step_maneuvers ")
         col = 'step_maneuvers'
         data = self.combine_data
         turns = data[col].apply(lambda x: x.count('turn'))
@@ -526,7 +527,7 @@ class TaxiTripDuration():
     # calculate number of right turns based on step_direction
     @timecall
     def feature_left_turns(self):
-        print("Calculating left turns based on step_direction ")
+        logger.info("Calculating left turns based on step_direction ")
         col = 'step_direction'
         col_cal = 'left_turns'
         data = self.combine_data
@@ -537,7 +538,7 @@ class TaxiTripDuration():
     # calculate number of right turns based on step_direction
     @timecall
     def feature_right_turns(self):
-        print("Calculating right turns based on step_direction ")
+        logger.info("Calculating right turns based on step_direction ")
         col = 'step_direction'
         col_cal = 'right_turns'
         data = self.combine_data
@@ -557,7 +558,7 @@ class TaxiTripDuration():
     # calculate mean of trip_delay by column
     @timecall
     def trip_delay_mean_by_col(self, col, suffix, data_temp):
-        print("trip_delay_mean by ", col, suffix)
+        logger.debug("trip_delay_mean by " + col + " " + suffix)
         data = self.combine_data
         group_col = 'trip_delay'
         data_grp = data_temp[[col, group_col]]
@@ -571,7 +572,7 @@ class TaxiTripDuration():
 
     @timecall
     def feature_trip_delay_mean(self):
-        print("Calculating trip_delay_meanfor each feature")
+        logger.info("Calculating trip_delay_meanfor each feature")
         suffix = '_tdm'
         data_temp = self.cal_trip_delay()
         col = 'pickup_hour'
@@ -609,22 +610,22 @@ class TaxiTripDuration():
     @timecall
     def feature_cluster(self):
         data = self.combine_data
-        # print("Cluster for starting_street_tf")
+        # logger.debug("Cluster for starting_street_tf")
         # col_use = ['pickup_hour', 'starting_street_tf']
         # col_cluster = 'pkhour_starting_street_cluster'
         # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         # data.loc[:, col_cluster] = clusters
-        print("Cluster for starting_street_tf, end_street_tf")
+        logger.info("Cluster for starting_street_tf, end_street_tf")
         col_use = ['starting_street_tf', 'end_street_tf']
         col_cluster = 'location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
-        print("Cluster for pickup")
+        logger.debug("Cluster for pickup")
         col_use = ['pickup_latitude', 'pickup_longitude']
         col_cluster = 'pickup_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
-        print("Cluster for dropoff")
+        logger.debug("Cluster for dropoff")
         col_use = ['dropoff_latitude', 'dropoff_longitude']
         col_cluster = 'dropoff_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
@@ -637,7 +638,7 @@ class TaxiTripDuration():
 
     @timecall
     def preprocess_data(self):
-        print("Preproccesing data ...")
+        logger.info("Preproccesing data ...")
         self.fillnan()
         self.convert_datetime()
         self.convert_starting_street()
@@ -665,17 +666,17 @@ class TaxiTripDuration():
         # Drop unsed columns
         self.drop_unused_cols()
         features = self.combine_data.columns.values
-        print("Engineered features:", len(features))
-        print(features)
-        print(self.combine_data.dtypes)
+        logger.debug("Engineered features:" + str(len(features)))
+        logger.debug(features)
+        # logger.debug(self.combine_data.dtypes)
 
         # Save preprocess data
         train_set = self.combine_data.loc['train'].copy()
         train_set.loc[:, self.label] = self.target
         eval_set = self.combine_data.loc['eval']
-        print("Saving train set ...")
+        logger.debug("Saving train set ...")
         train_set.to_csv(DATA_DIR + '/train_pre.csv', index=False)
-        print("Saving eval set ...")
+        logger.debug("Saving eval set ...")
         eval_set.to_csv(DATA_DIR + '/test_pre.csv', index=False)
         # Save to class variable for later use
         self.train_data = train_set
@@ -694,7 +695,7 @@ class TaxiTripDuration():
 
     @timecall
     def search_best_model_params(self):
-        print("Prepare data for  model")
+        logger.info("Prepare data for  model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
@@ -709,20 +710,20 @@ class TaxiTripDuration():
             'min_child_weight':  [1, 5, 20],
         }
         model = XGBRegressor(n_estimators=200, learning_rate=0.1, n_jobs=-1)
-        print("Searching for best params")
+        logger.debug("Searching for best params")
         scorer = make_scorer(self.rmsle, greater_is_better=False)
         grid_search = GridSearchCV(
             model, param_grid, n_jobs=1, cv=5, verbose=3, scoring=scorer)
         grid_search.fit(X_test.values, Y_test.values)
-        print("Best params:", grid_search.best_params_)
-        print("Best score:", grid_search.best_score_)
+        logger.debug("Best params:" + str(grid_search.best_params_))
+        logger.debug("Best score:" + str(grid_search.best_score_))
 
     def feature_correlation(self):
-        print("Feature correlation ...")
+        logger.info("Feature correlation ...")
         data = self.combine_data.loc['train'].copy()
         data.loc[:, self.label] = self.target
         correlation = data.corr()[self.label].sort_values()
-        print(correlation)
+        logger.debug(str(correlation))
 
     def xgboost_model(self):
         # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
@@ -749,19 +750,53 @@ class TaxiTripDuration():
 
     def lgbm_model(self):
         model = LGBMRegressor(objective='regression_l2',
+                              metric='l2_root',
                               n_estimators=N_ROUNDS,
-                              #   n_estimators=100,
+                              #   n_estimators=10,
                               #   max_depth=MAX_DEPTH,
-                              learning_rate=0.03,
+                              learning_rate=0.01,
                               #   min_child_weight=MIN_CHILD_WEIGHT,
-                              num_leaves=1024,
-                              max_bin=4096,
+                              num_leaves=4096,
+                              max_bin=1024,
+                              min_data_in_leaf=100,
                               nthread=-1, silent=True)
         return model
 
+    # Crossvalidation for lightgbm model
+    @timecall
+    def lgbm_cv(self):
+        logger.info("Prepare data to CV model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        # X_train, X_test, Y_train, Y_test = train_test_split(
+        #     train_set, target_log, train_size=0.85, random_state=1234)
+        # lgb_train = lgb.Dataset(X_test, Y_test)
+        lgb_train = lgb.Dataset(train_set, target_log)
+        params = {
+            'objective': 'regression_l2',
+            'metric': 'l2_root',
+            'learning_rate': 0.01,
+            'num_leaves': 4096,
+            'max_bin': 1024,
+            'min_data_in_leaf': 100,
+            # 'nthread': -1,
+            'verbose': 0
+        }
+        early_stopping_rounds = 50
+        cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
+                            metrics="rmse", shuffle=True,
+                            early_stopping_rounds=early_stopping_rounds,
+                            verbose_eval=10, show_stdv=True, seed=1000)
+        # logger.debug(cv_results)
+        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
+        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])
+
     # calculate index of features
     def convert_to_categrorical_features(self, data):
-        print("Convert category features")
+        logger.info("Convert category features")
         cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
                         'pickup_weekday', 'pickup_day', 'pickup_hour',
                         'pickup_whour', 'pickup_minute'
@@ -770,18 +805,19 @@ class TaxiTripDuration():
         sidx = np.argsort(cols)
         categorical_features_indices = sidx[np.searchsorted(
             cols, cat_features, sorter=sidx)]
-        print("Categories features:", cat_features)
-        print("Categories feature index:", categorical_features_indices)
-        # print("Change categories feature type to int")
+        logger.debug("Categories features:" + cat_features)
+        logger.debug("Categories feature index:" +
+                     categorical_features_indices)
+        # logger.debug("Change categories feature type to int")
         # for col in cat_features:
         #     data.loc[:, col] = data[col].astype(int)
-        # print(data.dtypes)
+        # logger.debug(data.dtypes)
         return categorical_features_indices
 
     @timecall
     def train_model(self):
         model_choice = self.model_choice
-        print("Prepare data to train model")
+        logger.info("Prepare data to train model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
@@ -789,17 +825,17 @@ class TaxiTripDuration():
             ['id', self.label], axis=1).astype(float)
         # categorical_features_indices = self.convert_to_categrorical_features(
         #     train_set)
-        print("Training model ....")
+        logger.info("Training model ....")
         features = train_set.columns.values.tolist()
-        print("Features:", len(features), type(features))
-        print(features)
+        logger.debug("Features:" + str(len(features)))
+        logger.debug(features)
         cat_features = ['vendor_id', 'store_and_fwd_flag', 'pickup_month',
                         'pickup_weekday', 'pickup_day', 'pickup_hour',
                         'pickup_whour', 'pickup_minute'
                         ]
-        print("Categorial features:")
-        print(cat_features)
-        # print(train_set[cat_features].describe())
+        logger.debug("Categorial features:")
+        logger.debug(cat_features)
+        # logger.debug(train_set[cat_features].describe())
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
         early_stopping_rounds = 50
@@ -820,8 +856,8 @@ class TaxiTripDuration():
                 X_train, Y_train, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
-                verbose=early_stopping_rounds,
-                feature_name=features,
+                verbose=10,
+                # feature_name=features,
                 # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
@@ -835,22 +871,29 @@ class TaxiTripDuration():
             )
 
         end = time.time() - start
-        print("Done training:", end)
+        logger.debug("Done training:" + str(end))
         if model_choice == LIGHTGBM:
-            print("Predicting for:", model_choice,
-                  ". Best round:", self.model.best_iteration)
+            logger.debug("Predicting for:" + str(model_choice) +
+                         ". Best round:" + str(self.model.best_iteration))
             y_pred = self.model.predict(
                 X_test, num_iteration=self.model.best_iteration)
+        elif model_choice == XGB:
+            logger.debug("Predicting for:" + str(model_choice) +
+                         ". Best round:" + str(self.model.bst.best_iteration) +
+                         ". N_tree_limit:" + str(self.model.bst.best_ntree_limit))
+            y_pred = self.model.predict(
+                X_test, ntree_limit=self.model.bst.best_ntree_limit)
         else:
             y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
-        print("RMSLE score:", score, " RMSLE without-log:", score1)
+        logger.debug("RMSLE score:" + str(score) +
+                     " RMSLE without-log:" + str(score1))
 
     # Train using Kflow
     @timecall
     def train_kfold_single(self):
-        print("Prepare data to train model")
+        logger.info("Prepare data to train model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
@@ -866,7 +909,7 @@ class TaxiTripDuration():
         early_stopping_rounds = 50
         total_time = 0
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
-            print("Round:", j + 1)
+            logger.debug("Round:" + str(j + 1))
             start = time.time()
             X_train = X.iloc[train_idx]
             Y_train = Y[train_idx]
@@ -878,19 +921,19 @@ class TaxiTripDuration():
                            verbose=early_stopping_rounds)
             end = time.time() - start
             total_time = total_time + end
-            print("Done training for round:", j +
-                  1, " time:", end, "/", total_time)
+            logger.debug("Done training for round:" + str(j + 1) +
+                         " time:" + str(end) + "/" + str(total_time))
             y_pred = self.model.predict(X_test)
             rmse1 = self.rmsle(Y_test, y_pred, log=False)
             total_rmse = total_rmse + rmse1
-            print("rmsle:", rmse1)
-        print("Avg rmse:", total_rmse / (j + 1))
-        print("Total training time:", total_time)
+            logger.debug("rmsle:" + str(rmse1))
+        logger.debug("Avg rmse:" + str(total_rmse / (j + 1)))
+        logger.debug("Total training time:" + str(total_time))
 
     # Train using Kflow and arrgregate trained models
     @timecall
     def train_kfold_aggregate(self):
-        print("Prepare data to train model")
+        logger.info("Prepare data to train model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
@@ -910,7 +953,7 @@ class TaxiTripDuration():
         early_stopping_rounds = 50
         total_time = 0
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
-            print("Round:", j + 1)
+            logger.debug("Round:" + str(j + 1))
             start = time.time()
             X_train = X.iloc[train_idx]
             Y_train = Y[train_idx]
@@ -922,25 +965,25 @@ class TaxiTripDuration():
                       verbose=early_stopping_rounds)
             end = time.time() - start
             total_time = total_time + end
-            print("Done training for round:", j +
-                  1, " time:", end, "/", total_time)
+            logger.debug("Done training for round:" + str(j + 1) +
+                         " time:" + str(end) + "/" + str(total_time))
             y_pred = model.predict(X_test)
             rmse1 = self.rmsle(Y_test, y_pred, log=False)
             total_rmse = total_rmse + rmse1
-            print("rmsle:", rmse1)
-            print("Saving Y_pred for round:", j + 1)
+            logger.debug("rmsle:" + str(rmse1))
+            logger.debug("Saving Y_pred for round:" + str(j + 1))
             S_train[:, j] = model.predict(X)
-            print("Saving Y_eval for round:", j + 1)
+            logger.debug("Saving Y_eval for round:" + str(j + 1))
             S_test[:, j] = model.predict(T)
-        print("Avg rmse:", total_rmse / (j + 1))
-        print("Total training time:", total_time)
-        print(S_train[:5])
+        logger.debug("Avg rmse:" + str(total_rmse / (j + 1)))
+        logger.debug("Total training time:" + str(total_time))
+        # logger.debug(S_train[:5])
         return S_train, S_test
 
     # Stack train from kfold
     @timecall
     def train_predict_kfold_aggregate(self):
-        print("Training model using kfold ang aggregate results")
+        logger.info("Training model using kfold ang aggregate results")
         train_set, test_set = self.train_kfold_aggregate()
         target = self.train_data[self.label]
         target_log = np.log(target)
@@ -950,7 +993,7 @@ class TaxiTripDuration():
         self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
                                   learning_rate=LEARNING_RATE,
                                   min_child_weight=MIN_CHILD_WEIGHT, n_jobs=-1)
-        print("Training stack model ....")
+        logger.debug("Training stack model ....")
         start = time.time()
         early_stopping_rounds = 50
         self.model.fit(
@@ -959,18 +1002,19 @@ class TaxiTripDuration():
             verbose=early_stopping_rounds
         )
         end = time.time() - start
-        print("Done training:", end)
+        logger.debug("Done training:", end)
         y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
-        print("RMSLE score:", score, " RMSLE without-log:", score1)
-        print("Predict for eval set ..")
+        logger.debug("RMSLE score:" + str(score) +
+                     " RMSLE without-log:" + str(score1))
+        logger.debug("Predict for eval set ..")
         Y_eval_log = self.model.predict(test_set)
         Y_eval = np.exp(Y_eval_log.ravel())
-        print("Saving prediction to disk")
+        logger.debug("Saving prediction to disk")
         eval_output = pd.DataFrame(
             {'id': self.eval_data['id'], self.label: Y_eval}, columns=['id', self.label])
-        print("Eval data:", len(eval_output))
+        logger.debug("Eval data:" + str(len(eval_output)))
         today = str(dtime.date.today())
         eval_output.to_csv(
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
@@ -979,28 +1023,32 @@ class TaxiTripDuration():
     @timecall
     def predict_save(self):
         model_choice = self.model_choice
-        print("Predicting for eval data ..")
+        logger.info("Predicting for eval data ..")
         data = self.eval_data.drop('id', axis=1).astype(float)
         if model_choice == LIGHTGBM:
-            print("Predicting for:", model_choice,
-                  ". Best round:", self.model.best_iteration)
-            # categorical_features_indices = self.convert_to_categrorical_features(
-            #     data)
+            logger.debug("Predicting for:" + str(model_choice) +
+                         ". Best round:" + str(self.model.best_iteration))
             Y_eval_log = self.model.predict(
                 data, num_iteration=self.model.best_iteration)
+        elif model_choice == XGB:
+            logger.debug("Predicting for:" + str(model_choice) +
+                         ". Best round:" + str(self.model.bst.best_iteration) +
+                         ". N_tree_limit:" + str(self.model.bst.best_ntree_limit))
+            Y_eval_log = self.model.predict(
+                data, ntree_limit=self.model.bst.best_ntree_limit)
         else:
             Y_eval_log = self.model.predict(data)
         Y_eval = np.exp(Y_eval_log.ravel())
         eval_output = self.eval_data.copy()
         eval_output.loc[:, self.label] = Y_eval
-        print("Saving prediction to disk")
+        logger.debug("Saving prediction to disk")
         today = str(dtime.date.today())
         eval_output[['id', self.label]].to_csv(
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
             compression='gzip')
 
     def importance_features(self):
-        print("Feature importance:")
+        logger.info("Feature importance:")
         threshold = 0
         data = self.train_data
         target = data[self.label]
@@ -1009,12 +1057,12 @@ class TaxiTripDuration():
             ['id', self.label], axis=1).astype(float)
         features_score = pd.Series(
             self.model.feature_importances_, index=train_set.columns.values)
-        # print("Feature importance:", features_score.describe())
-        print(features_score.sort_values())
+        # logger.debug("Feature importance:", features_score.describe())
+        logger.debug(features_score.sort_values())
         return
 
     def plot_ft_importance(self):
-        # print(self.model.feature_importances_)
+        # logger.debug(self.model.feature_importances_)
         self.importance_features()
         fig = plt.figure(figsize=(20, 10))
         ax = fig.add_subplot(111)
@@ -1026,7 +1074,7 @@ class TaxiTripDuration():
     # Convert input to vowpal_wabbit format
     @timecall
     def convert_2_vowpal_wabbit(self):
-        print("Converting train_pre to vowpal_wabbit")
+        logger.info("Converting train_pre to vowpal_wabbit")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
@@ -1036,11 +1084,11 @@ class TaxiTripDuration():
         #     train_set, target_log, train_size=0.85, random_state=1234)
         # vw_train = tovw(x=X_train, y=Y_train)
         vw_train = tovw(x=train_set, y=target_log)
-        print("Saving train_vw ....")
+        logger.debug("Saving train_vw ....")
         vw_train_pd = pd.Series(vw_train)
         train_file = DATA_DIR + "/train_vw.csv"
         vw_train_pd.to_csv(train_file, index=False)
-        # print("Saving cv_vw ....")
+        # logger.debug("Saving cv_vw ....")
         # cv_file = DATA_DIR + "/cv_vw.csv"
         # vw_cv = tovw(x=X_test, y=None)
         # vw_cv_pd = pd.Series(vw_cv)
@@ -1048,19 +1096,19 @@ class TaxiTripDuration():
         # self.train_vowpal_wabbit_from_file()
         # self.score_vowpal_wabbit(Y_test.values)
 
-        print("Converting test_pre to vowpal_wabbit")
+        logger.debug("Converting test_pre to vowpal_wabbit")
         eval_file = DATA_DIR + "/test_vw.csv"
         data = self.eval_data.drop('id', axis=1).astype(float)
         vw_eval = tovw(x=data, y=None)
-        print("Saving eval_vw ....")
+        logger.debug("Saving eval_vw ....")
         vw_eval_pd = pd.Series(vw_eval)
         vw_eval_pd.to_csv(eval_file, index=False)
-        print("Done save_vw")
+        logger.debug("Done save_vw")
 
     # Train model using vowpal_wabbit
     @timecall
     def train_vowpal_wabbit(self):
-        print("Training model using vowpal_wabbit")
+        logger.info("Training model using vowpal_wabbit")
         cache_file = DATA_DIR + "/train_vw.cache"
         try:
             os.remove(cache_file)
@@ -1074,27 +1122,27 @@ class TaxiTripDuration():
             cache_file + " --passes " + str(num_passes) + " -f " + model_file + \
             " --noconstant" + " --learning_rate " + str(learning_rate)
         # + " -q ::"
-        print(command)
+        logger.debug(command)
         # result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
         result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
 
     # Score model using vowpal_wabbit
     @timecall
     def score_vowpal_wabbit(self, Y_test):
-        print("Scoring model using vowpal_wabbit")
+        logger.info("Scoring model using vowpal_wabbit")
         cv_file = DATA_DIR + "/cv_vw.csv"
         model_file = DATA_DIR + "/model.vw"
         pred_file = DATA_DIR + "/cv_predict.csv"
         command = "/usr/local/bin/vw -t " + cv_file + \
             " -i " + model_file + " -p " + pred_file + " --quiet"
-        print("Predicting cross validation model using vowpal_wabbit")
-        print(command)
+        logger.debug("Predicting cross validation model using vowpal_wabbit")
+        logger.debug(command)
         result = subprocess.check_output(
             command, stderr=subprocess.STDOUT, shell=True)
         pred_pd = pd.read_csv(pred_file, header=None)
         Y_pred_log = pred_pd.values
         score = self.rmsle(y=Y_test, y_pred=Y_pred_log, log=False)
-        print("RMLSE score:", score)
+        logger.debug("RMLSE score:" + str(score))
 
     # Predict model using vowpal_wabbit
     @timecall
@@ -1104,8 +1152,8 @@ class TaxiTripDuration():
         pred_file = DATA_DIR + "/test_predict.csv"
         command = "/usr/local/bin/vw -t " + eval_file + \
             " -i " + model_file + " -p " + pred_file + " --quiet"
-        print("Predicting for eval model ..")
-        print(command)
+        logger.debug("Predicting for eval model ..")
+        logger.debug(command)
         result = subprocess.check_output(
             command, stderr=subprocess.STDOUT, shell=True)
         # result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
@@ -1121,7 +1169,7 @@ class TaxiTripDuration():
         Y_eval = np.exp(Y_eval_log.ravel())
         eval_output = self.eval_data.copy()
         eval_output.loc[:, self.label] = Y_eval
-        print("Saving prediction to disk")
+        logger.debug("Saving prediction to disk")
         today = str(dtime.date.today())
         eval_output[['id', self.label]].to_csv(
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
@@ -1132,11 +1180,24 @@ class TaxiTripDuration():
 if __name__ == "__main__":
     option = 2
     model_choice = LIGHTGBM
+    logger = logging.getLogger('newyork-taxi-duration')
+    logger.setLevel(logging.DEBUG)
+    formatter = logging.Formatter(
+        '%(asctime)s - %(levelname)s - %(message)s')
+    ch = logging.StreamHandler(sys.stdout)
+    ch.setLevel(LOG_LEVEL)
+    ch.setFormatter(formatter)
+    logger.addHandler(ch)
+    # create file handler which logs even debug messages
+    fh = logging.FileHandler(DATA_DIR + '/model.log', mode='a')
+    fh.setLevel(logging.DEBUG)
+    logger.addHandler(fh)
     base_class = TaxiTripDuration(LABEL, model_choice)
     # Load and preprocessed data
     if option == 1:
         base_class.load_data()
         base_class.check_null_data()
+        quit()
         base_class.preprocess_data()
         base_class.check_null_data()
         base_class.feature_correlation()
@@ -1152,7 +1213,7 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_kfold_single()
         base_class.predict_save()
-        base_class.importance_features()
+        # base_class.importance_features()
         # base_class.plot_ft_importance()
     # Load process data and train model with Kfold, aggregate result then
     # train again with aggregated data
@@ -1182,6 +1243,12 @@ if __name__ == "__main__":
         base_class.convert_2_vowpal_wabbit()
         base_class.train_vowpal_wabbit()
         base_class.predict_save_vowpal_wabbit()
+
+    # ----------------------LIGHTGBM ----------------------
+    # cross validate lightgbm, to find best model hyper-parameters
+    elif option == 33:
+        base_class.load_preprocessed_data()
+        base_class.lgbm_cv()
 
     # ------------------------------ default -------------------------
     # combine preprocess and training model

@@ -834,4 +834,54 @@
 	* best model train round: 2039
 	* train time: 873.2032713890076
 	* RMSLE without-log: (0.31787662896) =>0.319737233272
-    + Submision score: 0.383 => 							
+    + Submision score: 0.383 => 0.398							
+- Round 75:
+    + Base model: Round 74
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=4096, max_bin=1024
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round: 1789
+	* train time: 779.1963686943054
+	* RMSLE without-log: (0.31787662896) => 0.320930091473
+    + Submision score: 0.383 => 0.385
+- Round 76:
+    + Base model: Round 75
+	* LGBMRegressor
+	* 'learning_rate': 0.03, num_leaves=4096, max_bin=1024, min_data_in_leaf=100,
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round: 651
+	* train time: 430.4107961654663
+	* RMSLE without-log: 0.320930091473 => 0.320515793758
+    + Submision score: 0.383 => 0.384	
+- Round 77:
+    + Base model: Round 76
+	* LGBMRegressor
+	* 'learning_rate': 0.01, num_leaves=4096, max_bin=1024, min_data_in_leaf=100,
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round: 1814
+	* train time: 1210.5160865783691
+	* RMSLE without-log:0.320515793758 => 0.320260748897
+    + Submision score: 0.383 => 0.383
+- Round 78:
+    + Base model: Round 77
+	* LGBMRegressor
+	* 'learning_rate': 0.01, num_leaves=16384, max_bin=1024, min_data_in_leaf=100,
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round: 1381
+	* train time: 1887.764794588089
+	* RMSLE without-log:0.320260748897 => 0.322163547467
+    + Submision score: 0.383 => 0.385
+- Round 79:
+    + Base model: Round 78
+	* LGBMRegressor
+	* 'learning_rate': 0.01, num_leaves=8192, max_bin=1024, min_data_in_leaf=100,
+	* no cat_features
+	* target_log = np.log(target)
+	* best model train round:1394 
+	* train time: 1689.6206121444702
+	* RMSLE without-log:0.320260748897 => 0.321646406478
+    + Submision score: 0.383 => 0.384

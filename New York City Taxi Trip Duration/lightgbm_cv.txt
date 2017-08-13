@@ -1,0 +1,48 @@
+1. - params: 'learning_rate': 0.03, 'num_leaves': 1024, 'max_bin': 3100,
+   - cv: 0.329097 + 0.00209653 
+2. - params: 'learning_rate': 0.03, 'num_leaves': 1024, 'max_bin': 255,
+   - cv: 0.329097 + 0.00209653
+3. - params: 'learning_rate': 0.03, 'num_leaves': 2048, 'max_bin': 255,
+   - cv: 0.326557 + 0.00190665
+4. - params: 'learning_rate': 0.03, 'num_leaves': 4096, 'max_bin': 255,
+   - cv: 0.325061 + 0.00192114  
+5. - params: 'learning_rate': 0.03, 'num_leaves': 8192, 'max_bin': 255,
+   - cv: 0.325885 + 0.00202884      
+   - 1086.508 seconds
+6. - params: 'learning_rate': 0.03, 'num_leaves': 8192, 'max_bin': 4096,
+   - cv: 0.325885 + 0.00202884         
+   - 1138.899 seconds 
+7. - params: 'learning_rate': 0.03, 'num_leaves': 8192, 'max_bin': 1024,
+   - cv: 0.325885 + 0.00202884         
+   - 1173.207 seconds
+8. - params: 'learning_rate': 0.03, 'num_leaves': 4096, 'max_bin': 1024,
+   - cv: 0.325061 + 0.00192114 => LB: 0.385
+   - 647.197 seconds        
+9. - params: 'learning_rate': 0.03, 'num_leaves': 4096, 'max_bin': 1024, 'min_data_in_leaf': 100,
+   - cv: 0.323702 + 0.00189964  => Best, LB: 0.384
+   - 719.897 seconds           
+10 - params: 'learning_rate': 0.03, 'num_leaves': 4096, 'max_bin': 1024, 'min_data_in_leaf': 200,
+   - cv: 0.324084 + 0.00194285
+   - 719.213 seconds              
+#-----------------------------------------------------------------------------------------------   
+11 - params: 'learning_rate': 0.01, 'num_leaves': 4096, 'max_bin': 1024, 'min_data_in_leaf': 100,
+   - cv: 0.342004 + 0.00190841 =>  LB: 0.383 => Best
+   - 762.174 seconds                 
+12 - params: 'learning_rate': 0.01, 'num_leaves': 8192, 'max_bin': 1024, 'min_data_in_leaf': 100,
+   - cv: 0.340428 + 0.00187058 => LB: 0.384
+   - 1054.057 seconds
+13 - params: 'learning_rate': 0.01, 'num_leaves': 16384, 'max_bin': 1024, 'min_data_in_leaf': 100,
+   - cv: 0.340364 + 0.00183123 => LB: 0.385
+   - 1291.684 seconds
+14 - params: 'learning_rate': 0.01, 'num_leaves': 32768, 'max_bin': 1024, 'min_data_in_leaf': 100,
+   - cv: 0.340364 + 0.00183123
+   - 1986.627 seconds
+15 - params: 'learning_rate': 0.01, 'num_leaves': 20000, 'max_bin': 1024, 'min_data_in_leaf': 100,
+   - cv: 0.340364 + 0.00183123
+   - 1390.009 seconds
+16 - params: 'learning_rate': 0.01, 'num_leaves': 16384, 'max_bin': 1024, 'min_data_in_leaf': 200,
+   - cv: 0.343447 + 0.00180689
+   - 846.252 seconds 
+17 - params: 'learning_rate': 0.01, 'num_leaves': 16384, 'max_bin': 2048, 'min_data_in_leaf': 100,
+   - cv: 0.340364 + 0.00183123
+   - 1445.859 seconds    
