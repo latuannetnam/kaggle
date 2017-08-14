@@ -731,12 +731,21 @@ class TaxiTripDuration():
         #                           min_child_weight=MIN_CHILD_WEIGHT,
         #                           colsample_bytree=COLSAMPLE_BYTREE,
         #                           n_jobs=-1)
-        model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+        # model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
+        #                      learning_rate=LEARNING_RATE,
+        #                      min_child_weight=MIN_CHILD_WEIGHT,
+        #                      gamma=0,
+        #                      random_state=1000,
+        #                      n_jobs=-1)
+        model = XGBRegressor(n_estimators=N_ROUNDS,
+                             max_depth=6,
                              learning_rate=LEARNING_RATE,
-                             min_child_weight=MIN_CHILD_WEIGHT,
-                             gamma=0,
+                             #  min_child_weight=1,
+                             #  gamma=0,
                              random_state=1000,
-                             n_jobs=-1)
+                             n_jobs=-1,
+                             silent=False
+                             )
         return model
 
     # Cross validation for xgboost model
@@ -754,10 +763,10 @@ class TaxiTripDuration():
         lgb_train = xgb.DMatrix(train_set, target_log)
         params = {
             'learning_rate': 0.1,
-            # 'max_depth': 10,
-            # 'min_child_weight': 5,
+            'max_depth': 10,
+            'min_child_weight': 1,
             # 'gamma': 1,
-            'silent': 1
+            # 'silent': 1
         }
         early_stopping_rounds = 10
         cv_results = xgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
@@ -766,7 +775,7 @@ class TaxiTripDuration():
                             verbose_eval=10, show_stdv=True, seed=1000)
         # logger.debug(cv_results)
         # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
-        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])    
+        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])
 
     def vowpalwabbit_model(self):
         model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)

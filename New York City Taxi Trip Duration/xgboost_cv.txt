@@ -13,7 +13,11 @@
  - cv: train-rmse:0.282851+0.000791667	test-rmse:0.321753+0.000352533
  - time: 1274.228 seconds 
  - LB: 0.38488 
-5. Params: 'learning_rate': 0.1, 'max_depth': 0, 'min_child_weight': 1
- - cv: 
- - time: 
+5. Params: 'learning_rate': 0.1, 'max_depth': 6, 'min_child_weight': 1
+ - cv: train-rmse:0.330839+0.000261875 test-rmse:0.338167+0.000409552
+ - time: 701.568 seconds
+ - LB: 0.38090
+6. Params: 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+ - cv: train-rmse:0.274278+0.00034796  test-rmse:0.320815+0.000454157
+ - time: 1171.814 seconds
  - LB: 
