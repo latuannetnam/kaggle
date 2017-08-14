@@ -725,7 +725,7 @@ class TaxiTripDuration():
         correlation = data.corr()[self.label].sort_values()
         logger.debug(str(correlation))
 
-    def xgboost_model(self):
+    def xgb_model(self):
         # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
         #                           learning_rate=LEARNING_RATE,
         #                           min_child_weight=MIN_CHILD_WEIGHT,
@@ -734,8 +734,39 @@ class TaxiTripDuration():
         model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
                              learning_rate=LEARNING_RATE,
                              min_child_weight=MIN_CHILD_WEIGHT,
+                             gamma=0,
+                             random_state=1000,
                              n_jobs=-1)
         return model
+
+    # Cross validation for xgboost model
+    @timecall
+    def xgb_cv(self):
+        logger.info("Prepare data to CV model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        # X_train, X_test, Y_train, Y_test = train_test_split(
+        #     train_set, target_log, train_size=0.85, random_state=1234)
+        # lgb_train = lgb.Dataset(X_test, Y_test)
+        lgb_train = xgb.DMatrix(train_set, target_log)
+        params = {
+            'learning_rate': 0.1,
+            # 'max_depth': 10,
+            # 'min_child_weight': 5,
+            # 'gamma': 1,
+            'silent': 1
+        }
+        early_stopping_rounds = 10
+        cv_results = xgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
+                            metrics="rmse", shuffle=True,
+                            early_stopping_rounds=early_stopping_rounds,
+                            verbose_eval=10, show_stdv=True, seed=1000)
+        # logger.debug(cv_results)
+        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
+        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])    
 
     def vowpalwabbit_model(self):
         model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)
@@ -762,7 +793,7 @@ class TaxiTripDuration():
                               nthread=-1, silent=True)
         return model
 
-    # Crossvalidation for lightgbm model
+    # Cross validation for lightgbm model
     @timecall
     def lgbm_cv(self):
         logger.info("Prepare data to CV model")
@@ -862,7 +893,7 @@ class TaxiTripDuration():
                 # categorical_feature=categorical_features_indices
             )
         else:
-            self.model = self.xgboost_model()
+            self.model = self.xgb_model()
             self.model.fit(
                 X_train, Y_train, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
@@ -879,10 +910,10 @@ class TaxiTripDuration():
                 X_test, num_iteration=self.model.best_iteration)
         elif model_choice == XGB:
             logger.debug("Predicting for:" + str(model_choice) +
-                         ". Best round:" + str(self.model.bst.best_iteration) +
-                         ". N_tree_limit:" + str(self.model.bst.best_ntree_limit))
+                         ". Best round:" + str(self.model.best_iteration) +
+                         ". N_tree_limit:" + str(self.model.best_ntree_limit))
             y_pred = self.model.predict(
-                X_test, ntree_limit=self.model.bst.best_ntree_limit)
+                X_test, ntree_limit=self.model.best_ntree_limit)
         else:
             y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
@@ -1032,10 +1063,10 @@ class TaxiTripDuration():
                 data, num_iteration=self.model.best_iteration)
         elif model_choice == XGB:
             logger.debug("Predicting for:" + str(model_choice) +
-                         ". Best round:" + str(self.model.bst.best_iteration) +
-                         ". N_tree_limit:" + str(self.model.bst.best_ntree_limit))
+                         ". Best round:" + str(self.model.best_iteration) +
+                         ". N_tree_limit:" + str(self.model.best_ntree_limit))
             Y_eval_log = self.model.predict(
-                data, ntree_limit=self.model.bst.best_ntree_limit)
+                data, ntree_limit=self.model.best_ntree_limit)
         else:
             Y_eval_log = self.model.predict(data)
         Y_eval = np.exp(Y_eval_log.ravel())
@@ -1178,8 +1209,8 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2
-    model_choice = LIGHTGBM
+    option = 43
+    model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -1249,6 +1280,11 @@ if __name__ == "__main__":
     elif option == 33:
         base_class.load_preprocessed_data()
         base_class.lgbm_cv()
+
+    # -------------------- XGBOOST --------------
+    elif option == 43:
+        base_class.load_preprocessed_data()
+        base_class.xgb_cv()
 
     # ------------------------------ default -------------------------
     # combine preprocess and training model

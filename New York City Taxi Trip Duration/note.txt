@@ -885,3 +885,34 @@
 	* train time: 1689.6206121444702
 	* RMSLE without-log:0.320260748897 => 0.321646406478
     + Submision score: 0.383 => 0.384
+19: 2017-08-11: XGBRegressor
+- Round 80:
+    + Base model: Round 57
+	* XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5
+	* added n_tree_limit in xgboost.predict	 
+	* target_log = np.log(target)
+	* best model train round: 1387 => 1492
+	* train time: 2079.768365383148
+	* RMSLE without-log: 0.315679178625 => 0.315402829663
+    + Submision score: 0.380 => 0.38045
+- Round 81:
+    + Base model: Round 80
+	* XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5, 'gamma': 1
+	* added n_tree_limit in xgboost.predict	 
+	* target_log = np.log(target)
+	* best model train round: 324
+	* train time: 507.14076113700867
+	* RMSLE without-log: 0.315402829663 => 0.321074187444
+    + Submision score: 0.380 => 0.38488	
+- Round 82:
+    + Base model: Round 81
+	* XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 5, 'gamma': 0.2
+	* added n_tree_limit in xgboost.predict	 
+	* target_log = np.log(target)
+	* best model train round: 702
+	* train time: 851.6674802303314
+	* RMSLE without-log: 0.315402829663 => 0.317003309189
+    + Submision score: 0.38045 => 0.38090
