@@ -738,9 +738,9 @@ class TaxiTripDuration():
         #                      random_state=1000,
         #                      n_jobs=-1)
         model = XGBRegressor(n_estimators=N_ROUNDS,
-                             max_depth=20,
+                             max_depth=10,
                              learning_rate=LEARNING_RATE,
-                             min_child_weight=5,
+                             min_child_weight=2,
                              #  gamma=0,
                              random_state=1000,
                              n_jobs=-1,
@@ -763,8 +763,8 @@ class TaxiTripDuration():
         lgb_train = xgb.DMatrix(train_set, target_log)
         params = {
             'learning_rate': 0.1,
-            'max_depth': 20,
-            'min_child_weight': 5,
+            'max_depth': 10,
+            'min_child_weight': 2,
             # 'gamma': 1,
             # 'silent': 1
         }

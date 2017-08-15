@@ -935,7 +935,7 @@
 	* best model train round: 1513
 	* train time: 2125.335698366165
 	* RMSLE without-log: 0.320264523865 => 0.315268059834
-    + Submision score: 0.38090 => 0.38017	
+    + Submision score: 0.38090 => 0.38017 => Best	
 - Round 85:
     + Base model: Round 84
 	* XGBRegressor
@@ -950,6 +950,16 @@
     + Base model: Round 85
 	* XGBRegressor
 	* 'learning_rate': 0.1, 'max_depth': 20, 'min_child_weight': 5, 'gamma': 0
+	* added n_tree_limit in xgboost.predict	 
+	* target_log = np.log(target)
+	* best model train round: 496
+	* train time: 1277.2605113983154
+	* RMSLE without-log: 0.315268059834 => 0.32044403701
+    + Submision score: 0.38017 => 0.38381
+- Round 86:
+    + Base model: Round 85
+	* XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 2, 'gamma': 0
 	* added n_tree_limit in xgboost.predict	 
 	* target_log = np.log(target)
 	* best model train round: 

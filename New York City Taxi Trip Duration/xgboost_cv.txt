@@ -36,4 +36,8 @@
 10. Params: 'learning_rate': 0.1, 'max_depth': 20, 'min_child_weight': 5
  - cv: train-rmse:0.0643808+0.00191663	test-rmse:0.320086+0.000692013 
  - time: 2494.482 seconds
- - LB:     
+ - LB: 0.38381 => overfit    
+11. Params: 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 2
+ - cv: train-rmse:0.275237+0.00059727	test-rmse:0.32102+0.000375956
+ - time: 1041.901 seconds
+ - LB: 
