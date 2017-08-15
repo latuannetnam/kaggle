@@ -738,9 +738,9 @@ class TaxiTripDuration():
         #                      random_state=1000,
         #                      n_jobs=-1)
         model = XGBRegressor(n_estimators=N_ROUNDS,
-                             max_depth=6,
+                             max_depth=20,
                              learning_rate=LEARNING_RATE,
-                             #  min_child_weight=1,
+                             min_child_weight=5,
                              #  gamma=0,
                              random_state=1000,
                              n_jobs=-1,
@@ -751,7 +751,7 @@ class TaxiTripDuration():
     # Cross validation for xgboost model
     @timecall
     def xgb_cv(self):
-        logger.info("Prepare data to CV model")
+        logger.info("Prepare data to CV XGBoost model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
@@ -763,8 +763,8 @@ class TaxiTripDuration():
         lgb_train = xgb.DMatrix(train_set, target_log)
         params = {
             'learning_rate': 0.1,
-            'max_depth': 10,
-            'min_child_weight': 1,
+            'max_depth': 20,
+            'min_child_weight': 5,
             # 'gamma': 1,
             # 'silent': 1
         }
@@ -805,7 +805,7 @@ class TaxiTripDuration():
     # Cross validation for lightgbm model
     @timecall
     def lgbm_cv(self):
-        logger.info("Prepare data to CV model")
+        logger.info("Prepare data to CV LightGBM model")
         data = self.train_data
         target = data[self.label]
         target_log = np.log(target)
