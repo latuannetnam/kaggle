@@ -740,7 +740,7 @@ class TaxiTripDuration():
         model = XGBRegressor(n_estimators=N_ROUNDS,
                              max_depth=10,
                              learning_rate=LEARNING_RATE,
-                             min_child_weight=2,
+                             min_child_weight=1,
                              #  gamma=0,
                              random_state=1000,
                              n_jobs=-1,
@@ -799,7 +799,7 @@ class TaxiTripDuration():
                               num_leaves=4096,
                               max_bin=1024,
                               min_data_in_leaf=100,
-                              nthread=-1, silent=True)
+                              nthread=-1, silent=False)
         return model
 
     # Cross validation for lightgbm model
@@ -1163,7 +1163,8 @@ class TaxiTripDuration():
             " --noconstant" + " --learning_rate " + str(learning_rate)
         # + " -q ::"
         logger.debug(command)
-        # result = subprocess.check_output(command, stderr=subprocess.STDOUT, shell=True)
+        # result = subprocess.check_output(command, stderr=subprocess.STDOUT,
+        # shell=True)
         result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
 
     # Score model using vowpal_wabbit
@@ -1196,7 +1197,8 @@ class TaxiTripDuration():
         logger.debug(command)
         result = subprocess.check_output(
             command, stderr=subprocess.STDOUT, shell=True)
-        # result = subprocess.call(command, stderr=subprocess.STDOUT, shell=True)
+        # result = subprocess.call(command, stderr=subprocess.STDOUT,
+        # shell=True)
 
     # predict and save trip_durarion based on vowpal_wabbit
     @timecall
@@ -1215,11 +1217,182 @@ class TaxiTripDuration():
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
             compression='gzip')
 
+    # Build models for level 1
+    def build_models_level1(self):
+        logger.info('Bulding models level 1..')
+        models = []
+        # model_name = model.__class__.__name__
+        # XGBoost
+        models.append(self.xgb_model())
+        models.append(self.lgbm_model())
+        return models
+
+    # Kfold, train for each model, stack result
+    @timecall
+    def train_base_models(self):
+        # Credit
+        # to:https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
+        logger.info("Prepare data to train base model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        total_rmse = 0
+        X_in = train_set.values
+        Y_in = target_log.values
+        T_in = self.eval_data.drop(
+            ['id'], axis=1).astype(float).values
+        models = self.build_models_level1()
+        logger.info("Training for model level 1 ...")
+        # n_folds = len(models)
+        n_folds = N_FOLDS
+        kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
+        S_train = np.zeros((X_in.shape[0], len(models)))
+        S_test = np.zeros((T_in.shape[0], len(models)))
+        logger.debug("X shape:" + str(X_in.shape) + " Y shape:" +
+                     str(Y_in.shape) + " Test shape:" + str(T_in.shape))
+        logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
+                     str(S_test.shape))
+        all_rmse = 0
+        early_stopping_rounds = 50
+        start = time.time()
+        for i in range(len(models)):
+            model = models[i]
+            model_name = model.__class__.__name__
+            logger.debug("Base model:" + model_name)
+            S_test_i = np.zeros((T_in.shape[0], n_folds))
+            model_rmse = 0
+            for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
+                X_train = X_in[train_idx]
+                Y_train = Y_in[train_idx]
+                X_holdout = X_in[test_idx]
+                y_holdout = Y_in[test_idx]
+                if model_name == 'XGBRegressor':
+                    model.fit(
+                        X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
+                        eval_metric="rmse",
+                        early_stopping_rounds=early_stopping_rounds,
+                        verbose=10
+                    )
+                    y_pred = model.predict(
+                        X_holdout, ntree_limit=model.best_ntree_limit)[:]
+                    S_train[test_idx, i] = y_pred
+                    S_test_i[:, j] = model.predict(
+                        T_in, ntree_limit=model.best_ntree_limit)[:]
+                elif model_name == 'LGBMRegressor':
+                    model.fit(
+                        X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
+                        eval_metric="rmse",
+                        early_stopping_rounds=early_stopping_rounds,
+                        verbose=10,
+                        # feature_name=features,
+                        # categorical_feature=cat_features
+                        # categorical_feature=categorical_features_indices
+                    )
+                    y_pred = model.predict(
+                            X_holdout, num_iteration=model.best_iteration)[:]
+                    S_train[test_idx, i] = y_pred
+                    S_test_i[:, j] = model.predict(
+                        T_in, num_iteration=model.best_iteration)[:]
+                else:
+                    model.fit(X_train, y_train)
+                    y_pred = model.predict(X_holdout)[:]
+                    S_train[test_idx, i] = y_pred
+                    S_test_i[:, j] = model.predict(T_in)[:]
+
+                rmse1 = self.rmsle(y_holdout, y_pred, log=False)
+                model_rmse = model_rmse + rmse1
+                all_rmse = all_rmse + rmse1
+                logger.debug("fold:" + str(j + 1) + " rmse:" + str(rmse1))
+
+            S_test[:, i] = S_test_i.mean(1)
+            logger.debug("Model rmse:" + str(model_rmse / (j + 1)))
+        end = time.time() - start
+        logger.debug("All AVG rmse:" + str(all_rmse / (j + 1) / len(models)))
+        logger.info("Done training base models:" + str(end))
+        # print("Detect zero value")
+        # print(np.where(S_train == 0))
+        # print(np.where(S_test == 0))
+        # save pre-train data
+        self.save_pretrained_data(S_train, Y_in, S_test)
+        return S_train, S_test
+
+    # save pretrained data from train_base_models
+    @timecall
+    def save_pretrained_data(self, X_in, Y_in, T_in):
+        logger.info("Saving pretrained data .. ")
+        d_train = pd.DataFrame(data=X_in)
+        d_train['label'] = Y_in
+        d_train['id'] = self.train_data['id']
+        d_train.to_csv(DATA_DIR + '/train_stack.csv', index=False)
+        d_test = pd.DataFrame(data=T_in)
+        d_test['id'] = self.eval_data['id']
+        d_test.to_csv(DATA_DIR + '/test_stack.csv', index=False)
+
+    # load pretrained data
+    @timecall
+    def load_pretrained_data(self):
+        logger.info("Loading pretrained data .. ")
+        d_train = pd.read_csv(DATA_DIR + '/train_stack.csv')
+        d_test = pd.read_csv(DATA_DIR + '/test_stack.csv')
+        return d_train, d_test
+
+    @timecall
+    def train_stack_model(self):
+        logger.info("Prepare data to train stack model")
+        S_train, S_test = self.load_pretrained_data()
+        target_log = S_train['label']
+        train_set = S_train.drop(['label', 'id'], axis=1)
+        X_train, X_test, Y_train, Y_test = train_test_split(
+            train_set, target_log, train_size=0.85, random_state=1234)
+        model = LGBMRegressor(objective='regression_l2',
+                              metric='l2_root',
+                              n_estimators=N_ROUNDS,
+                              #   n_estimators=10,
+                              learning_rate=0.03,
+                              num_leaves=1024,
+                              #  max_bin=1024,
+                              #  min_data_in_leaf=100,
+                              nthread=-1, silent=False)
+        early_stopping_rounds = 50
+        start = time.time()
+        model.fit(
+            X_train, Y_train, eval_set=[(X_test, Y_test)],
+            eval_metric="rmse",
+            early_stopping_rounds=early_stopping_rounds,
+            verbose=10,
+            # feature_name=features,
+                        # categorical_feature=cat_features
+                        # categorical_feature=categorical_features_indices
+        )
+
+        end = time.time() - start
+        logger.info("Done training for stack model:" + str(end))
+
+        eval_set = S_test.drop(['id'], axis=1)
+        logger.debug("Predicting for stack model" +
+                     ". Best round:" + str(model.best_iteration))
+        Y_eval_log = model.predict(
+            eval_set, num_iteration=model.best_iteration)
+        self.save_stacked_data(Y_eval_log)
+
+    @timecall
+    def save_stacked_data(self, Y_eval_log):
+        logger.info("Saving submission for stack model to disk")
+        Y_eval = np.exp(Y_eval_log.ravel())
+        eval_output = self.eval_data.copy()
+        eval_output.loc[:, self.label] = Y_eval
+        today = str(dtime.date.today())
+        eval_output[['id', self.label]].to_csv(
+            DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
+            compression='gzip')
+
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2
-    model_choice = XGB
+    option = 5
+    model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -1261,6 +1434,17 @@ if __name__ == "__main__":
     elif option == 4:
         base_class.load_preprocessed_data()
         base_class.train_predict_kfold_aggregate()
+
+    # stacking model:
+    elif option == 5:
+        base_class.load_preprocessed_data()
+        base_class.train_base_models()
+        base_class.train_stack_model()
+
+    # load pretrain-data from train_base_model and predict
+    elif option == 6:
+        base_class.load_preprocessed_data()
+        base_class.train_stack_model()
 
     # Load process data and search for best model parameters
     elif option == 10:
@@ -1307,3 +1491,5 @@ if __name__ == "__main__":
         base_class.predict_save()
         base_class.importance_features()
         # base_class.plot_ft_importance()
+
+    logger.info("Done!")
