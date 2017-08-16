@@ -1,0 +1,32 @@
+1. Params(round=200): 'learning_rate': 0.03, num_leaves=1024 
+ - cv: round:145 .rmse:0.313147447322+0.00209841432048 => Best
+ - time: 103.013 seconds
+ - LB: 0.37789
+2. Params(round=200): 'learning_rate': 0.03, num_leaves=2048
+ - cv: round:143 .rmse:0.313584979901+0.0020900409768
+ - time: 133.808 seconds
+ - LB:
+3. Params(round=200): 'learning_rate': 0.03, num_leaves=1024, max_bin=510
+ - cv: round:145 .rmse:0.313147447322+0.00209841432048 
+ - time: 102.195 seconds
+ - LB: 
+4. Params(round=200): 'learning_rate': 0.03, num_leaves=1024, max_bin=1024
+ - cv: round:145 .rmse:0.313147447322+0.00209841432048
+ - time: 
+ - LB:  
+5. Params(round=200): 'learning_rate': 0.03, num_leaves=512
+ - cv: round:151 .rmse:0.312801970866+0.0020924595022
+ - time: 
+ - LB:   
+6. Params(round=200): 'learning_rate': 0.01, num_leaves=1024
+ - cv: round:200 .rmse:0.325878949881+0.00212447136099
+ - time: 
+ - LB:
+ 7. Params(round=200): 'learning_rate': 0.01, num_leaves=2048
+ - cv: round:200 .rmse:0.326137772803+0.00210452281844
+ - time: 
+ - LB:     
+ 8. Params(round=200): 'learning_rate': 0.01, num_leaves=1024, max_bin=1024
+ - cv: round:200 .rmse:0.325878949881+0.00212447136099
+ - time: 120.325 seconds
+ - LB:  

@@ -1291,7 +1291,7 @@ class TaxiTripDuration():
                         # categorical_feature=categorical_features_indices
                     )
                     y_pred = model.predict(
-                            X_holdout, num_iteration=model.best_iteration)[:]
+                        X_holdout, num_iteration=model.best_iteration)[:]
                     S_train[test_idx, i] = y_pred
                     S_test_i[:, j] = model.predict(
                         T_in, num_iteration=model.best_iteration)[:]
@@ -1350,12 +1350,12 @@ class TaxiTripDuration():
                               metric='l2_root',
                               n_estimators=N_ROUNDS,
                               #   n_estimators=10,
-                              learning_rate=0.03,
+                              learning_rate=0.01,
                               num_leaves=1024,
                               #  max_bin=1024,
                               #  min_data_in_leaf=100,
                               nthread=-1, silent=False)
-        early_stopping_rounds = 50
+        early_stopping_rounds = 10
         start = time.time()
         model.fit(
             X_train, Y_train, eval_set=[(X_test, Y_test)],
@@ -1388,21 +1388,21 @@ class TaxiTripDuration():
         params = {
             'objective': 'regression_l2',
             'metric': 'l2_root',
-            'learning_rate': 0.03,
+            'learning_rate': 0.01,
             'num_leaves': 1024,
             # 'max_bin': 1024,
             # 'min_data_in_leaf': 100,
             # 'nthread': -1,
             'verbose': 1
         }
-        early_stopping_rounds = 50
-        cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
+        early_stopping_rounds = 10
+        logger.debug("Cross validating for stack model ...")
+        cv_results = lgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
                             metrics="rmse", shuffle=True,
                             early_stopping_rounds=early_stopping_rounds,
                             verbose_eval=10, show_stdv=True, seed=1000)
-        # logger.debug(cv_results)
-        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
-        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])    
+        logger.debug("round:" + str(len(cv_results['rmse-mean'])) + " .rmse:" +
+                     str(cv_results['rmse-mean'][-1]) + "+" + str(cv_results['rmse-stdv'][-1]))
 
     @timecall
     def save_stacked_data(self, Y_eval_log):
@@ -1418,7 +1418,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 53
+    option = 6
     model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
