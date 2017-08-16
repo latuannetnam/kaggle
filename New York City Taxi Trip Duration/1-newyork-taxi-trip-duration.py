@@ -1259,7 +1259,7 @@ class TaxiTripDuration():
         for i in range(len(models)):
             model = models[i]
             model_name = model.__class__.__name__
-            logger.debug("Base model:" + model_name)
+            logger.debug("Base model " + str(i) + ":" + model_name)
             S_test_i = np.zeros((T_in.shape[0], n_folds))
             model_rmse = 0
             for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
