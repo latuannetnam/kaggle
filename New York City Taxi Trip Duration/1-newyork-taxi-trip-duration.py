@@ -1377,6 +1377,33 @@ class TaxiTripDuration():
             eval_set, num_iteration=model.best_iteration)
         self.save_stacked_data(Y_eval_log)
 
+    # Cross validation for stack model
+    @timecall
+    def stack_cv(self):
+        logger.info("Prepare data to CV Stack model")
+        S_train, S_test = self.load_pretrained_data()
+        target_log = S_train['label']
+        train_set = S_train.drop(['label', 'id'], axis=1)
+        lgb_train = lgb.Dataset(train_set, target_log)
+        params = {
+            'objective': 'regression_l2',
+            'metric': 'l2_root',
+            'learning_rate': 0.03,
+            'num_leaves': 1024,
+            # 'max_bin': 1024,
+            # 'min_data_in_leaf': 100,
+            # 'nthread': -1,
+            'verbose': 1
+        }
+        early_stopping_rounds = 50
+        cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
+                            metrics="rmse", shuffle=True,
+                            early_stopping_rounds=early_stopping_rounds,
+                            verbose_eval=10, show_stdv=True, seed=1000)
+        # logger.debug(cv_results)
+        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
+        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])    
+
     @timecall
     def save_stacked_data(self, Y_eval_log):
         logger.info("Saving submission for stack model to disk")
@@ -1391,7 +1418,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 5
+    option = 53
     model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
@@ -1435,13 +1462,13 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.train_predict_kfold_aggregate()
 
-    # stacking model:
+    # Load process data and train model with stacking model:
     elif option == 5:
         base_class.load_preprocessed_data()
         base_class.train_base_models()
         base_class.train_stack_model()
 
-    # load pretrain-data from train_base_model and predict
+    # load pretrain-data from train_base_model and train with stacking model
     elif option == 6:
         base_class.load_preprocessed_data()
         base_class.train_stack_model()
@@ -1478,6 +1505,10 @@ if __name__ == "__main__":
     elif option == 43:
         base_class.load_preprocessed_data()
         base_class.xgb_cv()
+
+    # ------------- Stack model
+    elif option == 53:
+        base_class.stack_cv()
 
     # ------------------------------ default -------------------------
     # combine preprocess and training model
