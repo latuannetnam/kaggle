@@ -87,7 +87,7 @@ MIN_CHILD_WEIGHT = 5
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 10000
-# N_ROUNDS = 100
+# N_ROUNDS = 10
 LOG_LEVEL = logging.DEBUG
 
 
@@ -725,7 +725,7 @@ class TaxiTripDuration():
         correlation = data.corr()[self.label].sort_values()
         logger.debug(str(correlation))
 
-    def xgb_model(self):
+    def xgb_model(self, random_state=1000):
         # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
         #                           learning_rate=LEARNING_RATE,
         #                           min_child_weight=MIN_CHILD_WEIGHT,
@@ -742,7 +742,7 @@ class TaxiTripDuration():
                              learning_rate=LEARNING_RATE,
                              min_child_weight=1,
                              #  gamma=0,
-                             random_state=1000,
+                             random_state=random_state,
                              n_jobs=-1,
                              silent=False
                              )
@@ -773,22 +773,8 @@ class TaxiTripDuration():
                             metrics="rmse", shuffle=True,
                             early_stopping_rounds=early_stopping_rounds,
                             verbose_eval=10, show_stdv=True, seed=1000)
-        # logger.debug(cv_results)
-        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
-        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])
 
-    def vowpalwabbit_model(self):
-        model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)
-        return model
-
-    def catboost_model(self):
-        model = CatBoostRegressor(
-            iterations=N_ROUNDS * 3, learning_rate=0.1, depth=MAX_DEPTH,
-            use_best_model=True, train_dir=DATA_DIR + "/node_modules",
-            verbose=True)
-        return model
-
-    def lgbm_model(self):
+    def lgbm_model(self, random_state=1024):
         model = LGBMRegressor(objective='regression_l2',
                               metric='l2_root',
                               n_estimators=N_ROUNDS,
@@ -799,6 +785,7 @@ class TaxiTripDuration():
                               num_leaves=4096,
                               max_bin=1024,
                               min_data_in_leaf=100,
+                              seed=random_state,
                               nthread=-1, silent=False)
         return model
 
@@ -853,6 +840,17 @@ class TaxiTripDuration():
         #     data.loc[:, col] = data[col].astype(int)
         # logger.debug(data.dtypes)
         return categorical_features_indices
+
+    def vowpalwabbit_model(self):
+        model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)
+        return model
+
+    def catboost_model(self):
+        model = CatBoostRegressor(
+            iterations=N_ROUNDS * 3, learning_rate=0.1, depth=MAX_DEPTH,
+            use_best_model=True, train_dir=DATA_DIR + "/node_modules",
+            verbose=True)
+        return model
 
     @timecall
     def train_model(self):
@@ -1222,9 +1220,10 @@ class TaxiTripDuration():
         logger.info('Bulding models level 1..')
         models = []
         # model_name = model.__class__.__name__
-        # XGBoost
-        models.append(self.xgb_model())
-        models.append(self.lgbm_model())
+        models.append(self.xgb_model(random_state=1000))
+        models.append(self.lgbm_model(random_state=1024))
+        models.append(self.lgbm_model(random_state=123))
+        models.append(self.lgbm_model(random_state=789))
         return models
 
     # Kfold, train for each model, stack result
@@ -1418,7 +1417,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 6
+    option = 5
     model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
