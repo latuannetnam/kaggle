@@ -1430,6 +1430,7 @@ if __name__ == "__main__":
     # create file handler which logs even debug messages
     fh = logging.FileHandler(DATA_DIR + '/model.log', mode='a')
     fh.setLevel(logging.DEBUG)
+    fh.setFormatter(formatter)
     logger.addHandler(fh)
     base_class = TaxiTripDuration(LABEL, model_choice)
     # Load and preprocessed data
