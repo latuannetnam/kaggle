@@ -727,7 +727,7 @@ class TaxiTripDuration():
         correlation = data.corr()[self.label].sort_values()
         logger.debug(str(correlation))
 
-    def xgb_model(self, random_state=1000):
+    def xgb_model(self, learning_rate=LEARNING_RATE, random_state=1000):
         # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
         #                           learning_rate=LEARNING_RATE,
         #                           min_child_weight=MIN_CHILD_WEIGHT,
@@ -741,7 +741,7 @@ class TaxiTripDuration():
         #                      n_jobs=-1)
         model = XGBRegressor(n_estimators=N_ROUNDS,
                              max_depth=10,
-                             learning_rate=LEARNING_RATE,
+                             learning_rate=learning_rate,
                              min_child_weight=1,
                              #  gamma=0,
                              random_state=random_state,
@@ -1230,10 +1230,12 @@ class TaxiTripDuration():
         logger.info('Bulding models level 1..')
         models = []
         # model_name = model.__class__.__name__
+        # models.append(self.lgbm_model(random_state=123))
+        # models.append(self.lgbm_model(random_state=789))
+        models.append(self.xgb_model(learning_rate=0.03, random_state=456))
+        models.append(self.xgb_model(
+            learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
-        models.append(self.lgbm_model(random_state=123))
-        models.append(self.lgbm_model(random_state=789))
-        models.append(self.xgb_model(random_state=1000))
         return models
 
     # Kfold, train for each model, stack result
@@ -1286,7 +1288,8 @@ class TaxiTripDuration():
                         verbose=10
                     )
                     logger.debug("fold:" + str(j + 1) +
-                                 " done training. Predicting for RMSLE")
+                                 " done training. Best round:" +
+                                 str(model.best_ntree_limit) + " .Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, ntree_limit=model.best_ntree_limit)[:]
                     S_train[test_idx, i] = y_pred
@@ -1303,7 +1306,8 @@ class TaxiTripDuration():
                         # categorical_feature=categorical_features_indices
                     )
                     logger.debug("fold:" + str(j + 1) +
-                                 " done training. Predicting for RMSLE")
+                                 " done training. Best round:" +
+                                 str(model.best_iteration) + " .Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, num_iteration=model.best_iteration)[:]
                     S_train[test_idx, i] = y_pred
