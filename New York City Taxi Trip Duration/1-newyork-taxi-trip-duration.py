@@ -86,8 +86,8 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 5
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
-N_ROUNDS = 10000
-# N_ROUNDS = 10
+N_ROUNDS = 15000
+# N_ROUNDS = 100
 LOG_LEVEL = logging.DEBUG
 
 
@@ -745,7 +745,7 @@ class TaxiTripDuration():
                              random_state=random_state,
                              n_jobs=-1,
                              silent=False
-                             )
+                            )
         return model
 
     # Cross validation for xgboost model
@@ -775,16 +775,24 @@ class TaxiTripDuration():
                             verbose_eval=10, show_stdv=True, seed=1000)
 
     def lgbm_model(self, random_state=1024):
+        # model = LGBMRegressor(objective='regression_l2',
+        #                       metric='l2_root',
+        #                       n_estimators=N_ROUNDS,
+        #                       #   n_estimators=10,
+        #                       #   max_depth=MAX_DEPTH,
+        #                       learning_rate=0.01,
+        #                       #   min_child_weight=MIN_CHILD_WEIGHT,
+        #                       num_leaves=4096,
+        #                       max_bin=1024,
+        #                       min_data_in_leaf=100,
+        #                       seed=random_state,
+        #                       nthread=-1, silent=False)
         model = LGBMRegressor(objective='regression_l2',
                               metric='l2_root',
                               n_estimators=N_ROUNDS,
                               #   n_estimators=10,
-                              #   max_depth=MAX_DEPTH,
                               learning_rate=0.01,
-                              #   min_child_weight=MIN_CHILD_WEIGHT,
-                              num_leaves=4096,
-                              max_bin=1024,
-                              min_data_in_leaf=100,
+                              num_leaves=1024,
                               seed=random_state,
                               nthread=-1, silent=False)
         return model
@@ -1220,10 +1228,10 @@ class TaxiTripDuration():
         logger.info('Bulding models level 1..')
         models = []
         # model_name = model.__class__.__name__
-        models.append(self.xgb_model(random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
         models.append(self.lgbm_model(random_state=123))
         models.append(self.lgbm_model(random_state=789))
+        models.append(self.xgb_model(random_state=1000))
         return models
 
     # Kfold, train for each model, stack result
@@ -1259,7 +1267,7 @@ class TaxiTripDuration():
         for i in range(len(models)):
             model = models[i]
             model_name = model.__class__.__name__
-            logger.debug("Base model " + str(i) + ":" + model_name)
+            logger.debug("Base model " + str(i + 1) + ":" + model_name)
             S_test_i = np.zeros((T_in.shape[0], n_folds))
             model_rmse = 0
             for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
@@ -1304,9 +1312,15 @@ class TaxiTripDuration():
                 model_rmse = model_rmse + rmse1
                 all_rmse = all_rmse + rmse1
                 logger.debug("fold:" + str(j + 1) + " rmse:" + str(rmse1))
+                # end of for j
 
             S_test[:, i] = S_test_i.mean(1)
             logger.debug("Model rmse:" + str(model_rmse / (j + 1)))
+            # cleanup memory
+            del model
+            del S_test_i
+            # end of for i
+            
         end = time.time() - start
         logger.debug("All AVG rmse:" + str(all_rmse / (j + 1) / len(models)))
         logger.info("Done training base models:" + str(end))
