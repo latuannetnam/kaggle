@@ -61,6 +61,7 @@ import csv
 import subprocess
 import os
 import logging
+import copy
 # Other
 # from geographiclib.geodesic import Geodesic
 # import osmnx as ox
@@ -1266,12 +1267,12 @@ class TaxiTripDuration():
         early_stopping_rounds = 50
         start = time.time()
         for i in range(len(models)):
-            model = models[i]
-            model_name = model.__class__.__name__
+            model_name = models[i].__class__.__name__
             logger.debug("Base model " + str(i + 1) + ":" + model_name)
             S_test_i = np.zeros((T_in.shape[0], n_folds))
             model_rmse = 0
             for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
+                model = copy.copy(models[i])
                 logger.debug("fold:" + str(j + 1) + " begin training ...")
                 X_train = X_in[train_idx]
                 Y_train = Y_in[train_idx]
@@ -1320,12 +1321,13 @@ class TaxiTripDuration():
                 model_rmse = model_rmse + rmse1
                 all_rmse = all_rmse + rmse1
                 logger.debug("fold:" + str(j + 1) + " rmse:" + str(rmse1))
+                # cleanup memory
+                del model
                 # end of for j
 
             S_test[:, i] = S_test_i.mean(1)
             logger.debug("Model rmse:" + str(model_rmse / (j + 1)))
             # cleanup memory
-            del model
             del S_test_i
             # end of for i
 
