@@ -78,16 +78,17 @@ VW = 2
 CATBOOST = 3
 LIGHTGBM = 4
 # Learning param
-# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10 => Best score: -0.33525880214884474
+# 'learning_rate': 0.1, 'min_child_weight': 1, 'max_depth': 10 => Best
+# 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
 # 'learning_rate': 0.1, 'max_depth': 5, 'min_child_weight': 10
 # 'max_depth': 5, 'learning_rate': 0.1, 'min_child_weight': 5
 # {'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1}
 LEARNING_RATE = 0.1
-MIN_CHILD_WEIGHT = 5
+MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 15000
-# N_ROUNDS = 100
+# N_ROUNDS = 10
 LOG_LEVEL = logging.DEBUG
 
 
@@ -745,7 +746,7 @@ class TaxiTripDuration():
                              random_state=random_state,
                              n_jobs=-1,
                              silent=False
-                            )
+                             )
         return model
 
     # Cross validation for xgboost model
@@ -1271,6 +1272,7 @@ class TaxiTripDuration():
             S_test_i = np.zeros((T_in.shape[0], n_folds))
             model_rmse = 0
             for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
+                logger.debug("fold:" + str(j + 1) + " begin training ...")
                 X_train = X_in[train_idx]
                 Y_train = Y_in[train_idx]
                 X_holdout = X_in[test_idx]
@@ -1282,6 +1284,8 @@ class TaxiTripDuration():
                         early_stopping_rounds=early_stopping_rounds,
                         verbose=10
                     )
+                    logger.debug("fold:" + str(j + 1) +
+                                 " done training. Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, ntree_limit=model.best_ntree_limit)[:]
                     S_train[test_idx, i] = y_pred
@@ -1297,6 +1301,8 @@ class TaxiTripDuration():
                         # categorical_feature=cat_features
                         # categorical_feature=categorical_features_indices
                     )
+                    logger.debug("fold:" + str(j + 1) +
+                                 " done training. Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, num_iteration=model.best_iteration)[:]
                     S_train[test_idx, i] = y_pred
@@ -1304,6 +1310,8 @@ class TaxiTripDuration():
                         T_in, num_iteration=model.best_iteration)[:]
                 else:
                     model.fit(X_train, y_train)
+                    logger.debug("fold:" + str(j + 1) +
+                                 " done training. Predicting for RMSLE")
                     y_pred = model.predict(X_holdout)[:]
                     S_train[test_idx, i] = y_pred
                     S_test_i[:, j] = model.predict(T_in)[:]
@@ -1320,7 +1328,7 @@ class TaxiTripDuration():
             del model
             del S_test_i
             # end of for i
-            
+
         end = time.time() - start
         logger.debug("All AVG rmse:" + str(all_rmse / (j + 1) / len(models)))
         logger.info("Done training base models:" + str(end))
