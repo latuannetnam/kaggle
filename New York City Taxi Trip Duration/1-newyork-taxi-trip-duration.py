@@ -1445,7 +1445,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 5
+    option = 6
     model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
