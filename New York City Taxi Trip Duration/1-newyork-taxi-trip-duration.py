@@ -1232,9 +1232,9 @@ class TaxiTripDuration():
         # model_name = model.__class__.__name__
         # models.append(self.lgbm_model(random_state=123))
         # models.append(self.lgbm_model(random_state=789))
-        models.append(self.xgb_model(learning_rate=0.03, random_state=456))
-        # models.append(self.xgb_model(
-        #     learning_rate=LEARNING_RATE, random_state=1000))
+        # models.append(self.xgb_model(learning_rate=0.03, random_state=456))
+        models.append(self.xgb_model(
+            learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
         return models
 
@@ -1366,42 +1366,72 @@ class TaxiTripDuration():
         return d_train, d_test
 
     @timecall
-    def train_stack_model(self):
+    def train_stack_model(self, model_choice=LIGHTGBM):
         logger.info("Prepare data to train stack model")
         S_train, S_test = self.load_pretrained_data()
         target_log = S_train['label']
         train_set = S_train.drop(['label', 'id'], axis=1)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
-        model = LGBMRegressor(objective='regression_l2',
-                              metric='l2_root',
-                              n_estimators=N_ROUNDS,
-                              #   n_estimators=10,
-                              learning_rate=0.01,
-                              num_leaves=1024,
-                              #  max_bin=1024,
-                              #  min_data_in_leaf=100,
-                              nthread=-1, silent=False)
         early_stopping_rounds = 10
         start = time.time()
-        model.fit(
-            X_train, Y_train, eval_set=[(X_test, Y_test)],
-            eval_metric="rmse",
-            early_stopping_rounds=early_stopping_rounds,
-            verbose=10,
-            # feature_name=features,
-                        # categorical_feature=cat_features
-                        # categorical_feature=categorical_features_indices
-        )
+        logger.debug("Training stack model ...")
+        if model_choice == LIGHTGBM:
+            model = LGBMRegressor(objective='regression_l2',
+                                  metric='l2_root',
+                                  n_estimators=N_ROUNDS,
+                                  #   n_estimators=10,
+                                  learning_rate=0.01,
+                                  num_leaves=1024,
+                                  #  max_bin=1024,
+                                  #  min_data_in_leaf=100,
+                                  seed=1111,
+                                  nthread=-1, silent=False)
+
+            model.fit(
+                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                eval_metric="rmse",
+                early_stopping_rounds=early_stopping_rounds,
+                verbose=10,
+                # feature_name=features,
+                            # categorical_feature=cat_features
+                            # categorical_feature=categorical_features_indices
+            )
+        elif model_choice == XGB:
+            model = XGBRegressor(n_estimators=N_ROUNDS,
+                                 max_depth=10,
+                                 learning_rate=0.03,
+                                 min_child_weight=1,
+                                 #  gamma=0,
+                                 random_state=567,
+                                 n_jobs=-1,
+                                 silent=False
+                                 )
+            model.fit(
+                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                eval_metric="rmse",
+                early_stopping_rounds=early_stopping_rounds,
+                verbose=10,
+                # feature_name=features,
+                # categorical_feature=cat_features
+                # categorical_feature=categorical_features_indices
+            )
 
         end = time.time() - start
         logger.info("Done training for stack model:" + str(end))
 
         eval_set = S_test.drop(['id'], axis=1)
-        logger.debug("Predicting for stack model" +
-                     ". Best round:" + str(model.best_iteration))
-        Y_eval_log = model.predict(
-            eval_set, num_iteration=model.best_iteration)
+        if model_choice == LIGHTGBM:
+            logger.debug("Predicting for stack model" +
+                         ". Best round:" + str(model.best_iteration))
+            Y_eval_log = model.predict(
+                eval_set, num_iteration=model.best_iteration)
+        elif model_choice == XGB:
+            logger.debug("Predicting for stack model" +
+                         ". Best round:" + str(model.best_ntree_limit))
+            Y_eval_log = model.predict(
+                eval_set, ntree_limit=model.best_ntree_limit)
+        logger.debug("Done predicting!")
         self.save_stacked_data(Y_eval_log)
 
     # Cross validation for stack model
@@ -1446,7 +1476,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     option = 6
-    model_choice = LIGHTGBM
+    model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -1494,12 +1524,12 @@ if __name__ == "__main__":
     elif option == 5:
         base_class.load_preprocessed_data()
         base_class.train_base_models()
-        base_class.train_stack_model()
+        base_class.train_stack_model(model_choice=model_choice)
 
     # load pretrain-data from train_base_model and train with stacking model
     elif option == 6:
         base_class.load_preprocessed_data()
-        base_class.train_stack_model()
+        base_class.train_stack_model(model_choice=model_choice)
 
     # Load process data and search for best model parameters
     elif option == 10:
