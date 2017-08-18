@@ -1233,8 +1233,8 @@ class TaxiTripDuration():
         # models.append(self.lgbm_model(random_state=123))
         # models.append(self.lgbm_model(random_state=789))
         models.append(self.xgb_model(learning_rate=0.03, random_state=456))
-        models.append(self.xgb_model(
-            learning_rate=LEARNING_RATE, random_state=1000))
+        # models.append(self.xgb_model(
+        #     learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
         return models
 
