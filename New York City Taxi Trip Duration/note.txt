@@ -18,6 +18,8 @@
  - Best model: round 24: 0.381 (optimized model hyper-params: 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10)
  - Best model: round 28: 0.380 (cleanup data: (data[label] < 22 * 3600) & (data[label] > 10) + 'learning_rate': 0.1, 'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1)
  - Best model: round 95: 0.37627 (Stack model: XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03) )
+ - Best model: round 96: 0.37399 (Stack model: XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03)) + new feature: directon
+
  
 1. 2017-07-21
 - Round 1:
@@ -1130,4 +1132,25 @@
 		* best model train round: 237 
 		* train time: 
 		* RMSLE without-log: 0.31359 => 0.314354
-    + Submision score: 0.37637 =>  0.37627 => Best
+    + Submision score: 0.37637 =>  0.37627
+2017-08-19:	
+- Round 96: Stack model
+    + Base model: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.313979901429 => 0.3112062235560
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0. 316645070975 => 0.311270633371
+			. LB: 
+		* train time: 15186.800484418869
+		* target_log = np.log(target)
+		* added cluster for location + direction
+		* RMSLE without-log: 0.315312486202 => 0.311238428463
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* best model train round: 232
+		* train time: 
+		* RMSLE without-log: 0.314354 => 0.310241
+    + Submision score: 0.37627 => 0.37399 => Best

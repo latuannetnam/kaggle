@@ -52,6 +52,6 @@
  # added direction for location 
  13. Params: 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
  - base round 6
- - cv: 
+ - cv: train-rmse:0.269032+0.00029202  test-rmse:0.317245+0.000664175
  - time: 
  
