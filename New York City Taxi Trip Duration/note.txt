@@ -17,6 +17,7 @@
  - Best model: round 22: 0.386 (KFold=5)
  - Best model: round 24: 0.381 (optimized model hyper-params: 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10)
  - Best model: round 28: 0.380 (cleanup data: (data[label] < 22 * 3600) & (data[label] > 10) + 'learning_rate': 0.1, 'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1)
+ - Best model: round 95: 0.37627 (Stack model: XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03) )
  
 1. 2017-07-21
 - Round 1:
@@ -1110,7 +1111,7 @@
 		* best model train round: 227
 		* train time: 106.15630888938904 
 		* RMSLE without-log: 0.31359 
-    + Submision score: 0.37646 => 0.37637 => Best
+    + Submision score: 0.37646 => 0.37637 
 - Round 95: Stack model
     + Base model: 
 		* XGBRegressor:  
@@ -1129,4 +1130,4 @@
 		* best model train round: 
 		* train time: 
 		* RMSLE without-log: 0.31359 => 
-    + Submision score: 0.37637 =>
+    + Submision score: 0.37637 =>  0.37627 => Best
