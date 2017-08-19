@@ -340,6 +340,17 @@ class TaxiTripDuration():
         b = self.haversine_np(lon1, lat1, lon1, lat2)
         return a + b
 
+    # calculate direction
+    # credit: https://www.kaggle.com/gaborfodor/from-eda-to-the-top-lb-0-367
+    def bearing_array(self, lng1, lat1, lng2, lat2):
+        AVG_EARTH_RADIUS = 6371  # in km
+        lng_delta_rad = np.radians(lng2 - lng1)
+        lat1, lng1, lat2, lng2 = map(np.radians, (lat1, lng1, lat2, lng2))
+        y = np.sin(lng_delta_rad) * np.cos(lat2)
+        x = np.cos(lat1) * np.sin(lat2) - np.sin(lat1) * \
+            np.cos(lat2) * np.cos(lng_delta_rad)
+        return np.degrees(np.arctan2(y, x))
+
     @timecall
     def feature_haversine(self):
         logger.info("Feature engineering: haversine_distance")
@@ -355,6 +366,15 @@ class TaxiTripDuration():
         data.loc[:, 'manhattan_distance'] = self.manhattan_np(
             data['pickup_longitude'], data['pickup_latitude'],
             data['dropoff_longitude'], data['dropoff_latitude'])
+
+    # make new feature base on direction
+    @timecall
+    def feature_direction(self):
+        logger.info("Feature engineering: direction based on lat & lon")
+        data = self.combine_data
+        data.loc[:, 'direction'] = self.bearing_array(
+            data['pickup_longitude'], data['pickup_latitude'],
+            data['dropoff_longitude'], data['dropoff_latitude'])        
 
     def estimate_total_distance(self):
         logger.info("Estimating total_distance ... ")
@@ -612,11 +632,6 @@ class TaxiTripDuration():
     @timecall
     def feature_cluster(self):
         data = self.combine_data
-        # logger.debug("Cluster for starting_street_tf")
-        # col_use = ['pickup_hour', 'starting_street_tf']
-        # col_cluster = 'pkhour_starting_street_cluster'
-        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
-        # data.loc[:, col_cluster] = clusters
         logger.info("Cluster for starting_street_tf, end_street_tf")
         col_use = ['starting_street_tf', 'end_street_tf']
         col_cluster = 'location_cluster'
@@ -630,6 +645,17 @@ class TaxiTripDuration():
         logger.debug("Cluster for dropoff")
         col_use = ['dropoff_latitude', 'dropoff_longitude']
         col_cluster = 'dropoff_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+        # experiment
+        logger.debug("Cluster for location and pickup_hour")
+        col_use = ['pickup_hour', 'pickup_latitude', 'pickup_longitude']
+        col_cluster = 'pk_hour_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+        logger.debug("Cluster for location and pickup_whour")
+        col_use = ['pickup_whour', 'pickup_latitude', 'pickup_longitude']
+        col_cluster = 'pk_whour_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
@@ -651,6 +677,7 @@ class TaxiTripDuration():
         self.feature_left_turns()
         self.feature_right_turns()
         self.feature_cluster()
+        self.feature_direction()
         # Expriment
         #
         # self.feature_speed_mean()
@@ -766,7 +793,7 @@ class TaxiTripDuration():
         params = {
             'learning_rate': 0.1,
             'max_depth': 10,
-            'min_child_weight': 2,
+            'min_child_weight': 1,
             # 'gamma': 1,
             # 'silent': 1
         }
@@ -816,11 +843,11 @@ class TaxiTripDuration():
             'objective': 'regression_l2',
             'metric': 'l2_root',
             'learning_rate': 0.01,
-            'num_leaves': 4096,
-            'max_bin': 1024,
-            'min_data_in_leaf': 100,
+            'num_leaves': 1024,
+            # 'max_bin': 1024,
+            # 'min_data_in_leaf': 100,
             # 'nthread': -1,
-            'verbose': 0
+            'verbose': 1
         }
         early_stopping_rounds = 50
         cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
@@ -1436,30 +1463,31 @@ class TaxiTripDuration():
 
     # Cross validation for stack model
     @timecall
-    def stack_cv(self):
+    def stack_cv(self, model_choice=XGB):
         logger.info("Prepare data to CV Stack model")
         S_train, S_test = self.load_pretrained_data()
         target_log = S_train['label']
         train_set = S_train.drop(['label', 'id'], axis=1)
-        lgb_train = lgb.Dataset(train_set, target_log)
-        params = {
-            'objective': 'regression_l2',
-            'metric': 'l2_root',
-            'learning_rate': 0.01,
-            'num_leaves': 1024,
-            # 'max_bin': 1024,
-            # 'min_data_in_leaf': 100,
-            # 'nthread': -1,
-            'verbose': 1
-        }
-        early_stopping_rounds = 10
-        logger.debug("Cross validating for stack model ...")
-        cv_results = lgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
-                            metrics="rmse", shuffle=True,
-                            early_stopping_rounds=early_stopping_rounds,
-                            verbose_eval=10, show_stdv=True, seed=1000)
-        logger.debug("round:" + str(len(cv_results['rmse-mean'])) + " .rmse:" +
-                     str(cv_results['rmse-mean'][-1]) + "+" + str(cv_results['rmse-stdv'][-1]))
+        if model_choice == LIGHTGBM:
+            lgb_train = lgb.Dataset(train_set, target_log)
+            params = {
+                'objective': 'regression_l2',
+                'metric': 'l2_root',
+                'learning_rate': 0.01,
+                'num_leaves': 1024,
+                # 'max_bin': 1024,
+                # 'min_data_in_leaf': 100,
+                # 'nthread': -1,
+                'verbose': 1
+            }
+            early_stopping_rounds = 10
+            logger.debug("Cross validating for stack model ...")
+            cv_results = lgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
+                                metrics="rmse", shuffle=True,
+                                early_stopping_rounds=early_stopping_rounds,
+                                verbose_eval=10, show_stdv=True, seed=1000)
+            logger.debug("round:" + str(len(cv_results['rmse-mean'])) + " .rmse:" +
+                         str(cv_results['rmse-mean'][-1]) + "+" + str(cv_results['rmse-stdv'][-1]))
 
     @timecall
     def save_stacked_data(self, Y_eval_log):
@@ -1475,7 +1503,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 5
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
@@ -1495,7 +1523,6 @@ if __name__ == "__main__":
     if option == 1:
         base_class.load_data()
         base_class.check_null_data()
-        quit()
         base_class.preprocess_data()
         base_class.check_null_data()
         base_class.feature_correlation()

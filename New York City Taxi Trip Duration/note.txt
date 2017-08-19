@@ -1116,18 +1116,18 @@
     + Base model: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.313979901429 => 
+			. RMSLE without-log: 0.313979901429
 			. LB: 0.38017
 		* LGBMRegressor: 
-			. 'learning_rate': 0.01, num_leaves=4096, max_bin=1024, min_data_in_leaf=100
-			. RMSLE without-log: 0.316250790001 => 
-			. LB: 0.38132 =>
-		* train time: 19649.848478794098 => 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.316250790001 => 0. 316645070975
+			. LB: 0.38132
+		* train time: 16250.022941589355
 		* target_log = np.log(target)
-		* RMSLE without-log: 0.315115345715	 =>
+		* RMSLE without-log: 0.315115345715	 => 0.315312486202
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
-		* best model train round: 
+		* best model train round: 237 
 		* train time: 
-		* RMSLE without-log: 0.31359 => 
+		* RMSLE without-log: 0.31359 => 0.314354
     + Submision score: 0.37637 =>  0.37627 => Best

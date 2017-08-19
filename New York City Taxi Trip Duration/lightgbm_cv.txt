@@ -46,3 +46,9 @@
 17 - params: 'learning_rate': 0.01, 'num_leaves': 16384, 'max_bin': 2048, 'min_data_in_leaf': 100,
    - cv: 0.340364 + 0.00183123
    - 1445.859 seconds    
+
+#-----------------------------------------------------------------------------------------------   
+# added Cluster for location and pickup_hour + pickup_whour   
+11 - params: 'learning_rate': 0.01, 'num_leaves': 1024
+   - cv: 0.349663 + 0.00191459
+   - 383.861
