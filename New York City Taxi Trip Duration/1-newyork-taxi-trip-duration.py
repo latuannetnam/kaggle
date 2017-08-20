@@ -1353,8 +1353,20 @@ class TaxiTripDuration():
                     S_train[test_idx, i] = y_pred
                     S_test_i[:, j] = model.predict(
                         T_in, num_iteration=model.best_iteration)[:]
-                elif model_name=="CatBoostRegressor":
-                            
+                elif model_name == "CatBoostRegressor":
+                    model.fit(
+                        X_train, Y_train, eval_set=(X_holdout, y_holdout),
+                        use_best_model=True,
+                        verbose=True
+                    )
+                    logger.debug("fold:" + str(j + 1) +
+                                 " done training. Best round:" +
+                                 str(model.tree_count_) + " .Predicting for RMSLE")
+                    y_pred = model.predict(
+                        X_holdout, ntree_limit=model.tree_count_, verbose=True)
+                    S_train[test_idx, i] = y_pred
+                    S_test_i[:, j] = model.predict(
+                        T_in, ntree_limit=model.tree_count_)[:]
                 else:
                     model.fit(X_train, y_train)
                     logger.debug("fold:" + str(j + 1) +
@@ -1518,8 +1530,8 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 2  
-    model_choice = CATBOOST
+    option = 5
+    model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(

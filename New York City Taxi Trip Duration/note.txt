@@ -1165,3 +1165,28 @@
 		* train time: 
 		* RMSLE without-log: 0.314354 => 0.310241
     + Submision score: 0.37627 => 0.37399 => Best
+2017-08-20:		
+- Round 98: Stack model
+    + Base model: 
+		* CatBoostRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10,
+			. RMSLE without-log: 
+			. LB: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.3112062235560 =>
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.311270633371 =>
+			. LB: 
+		* train time: 
+		* target_log = np.log(target)
+		* added cluster for location + direction
+		* RMSLE without-log: 0.311238428463 =>
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* best model train round: 
+		* train time: 
+		* RMSLE without-log: 0.310241 =>
+    + Submision score: 0.37399 => 
