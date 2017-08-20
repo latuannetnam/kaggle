@@ -71,7 +71,7 @@ pd.options.display.float_format = '{:,.4f}'.format
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
-N_FOLDS = 2
+N_FOLDS = 5
 N_CLUSTERS = 200  # Kmeans number of cluster
 # Model choice
 XGB = 1
@@ -88,8 +88,8 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
-# N_ROUNDS = 15000
-N_ROUNDS = 2
+N_ROUNDS = 15000
+# N_ROUNDS = 2
 LOG_LEVEL = logging.DEBUG
 
 
@@ -920,9 +920,8 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=25000,
-            # iterations=N_ROUNDS * 2, => overfit if iteration > 20k
-            # iterations=10,
+            iterations=25000,  # => overfit if iteration > 20k
+            # iterations=2,
             learning_rate=0.1,
             depth=MAX_DEPTH,
             loss_function='RMSE',
@@ -1366,7 +1365,7 @@ class TaxiTripDuration():
                     )
                     logger.debug("fold:" + str(j + 1) +
                                  " done training. Best round:" +
-                                 str(model.best_ntree_limit) + " .Predicting for RMSLE")
+                                 str(model.best_ntree_limit) + " . Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, ntree_limit=model.best_ntree_limit)[:]
                     S_train[test_idx, i] = y_pred
@@ -1384,7 +1383,7 @@ class TaxiTripDuration():
                     )
                     logger.debug("fold:" + str(j + 1) +
                                  " done training. Best round:" +
-                                 str(model.best_iteration) + " .Predicting for RMSLE")
+                                 str(model.best_iteration) + " . Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, num_iteration=model.best_iteration)[:]
                     S_train[test_idx, i] = y_pred
@@ -1398,7 +1397,7 @@ class TaxiTripDuration():
                     )
                     logger.debug("fold:" + str(j + 1) +
                                  " done training. Best round:" +
-                                 str(model.tree_count_) + " .Predicting for RMSLE")
+                                 str(model.tree_count_) + " . Predicting for RMSLE")
                     y_pred = model.predict(
                         X_holdout, ntree_limit=model.tree_count_, verbose=True)
                     S_train[test_idx, i] = y_pred
@@ -1424,7 +1423,7 @@ class TaxiTripDuration():
             end_sub = time.time() - start_sub
             logger.debug("Model rmse:" + str(model_rmse / (j + 1)))
             logger.debug("Done training for " + model_name +
-                         " . Trained time:" + str(end_sub))
+                         ". Trained time:" + str(end_sub))
             # cleanup memory
             del S_test_i
             # end of for i
