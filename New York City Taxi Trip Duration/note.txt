@@ -980,6 +980,17 @@
 	* train time: 1429.1299285888672
 	* RMSLE without-log: 0.315268059834 => 0.315325770346
     + Submision score: 0.38017 => 0.38053
+- Round 99:
+    + Base model: Round 82
+	* XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+	* added n_tree_limit in xgboost.predict	 
+	* added feature cluster_count for (dropoff_cluster by pickup_hour + pickup_whour)
+	* target_log = np.log(target)
+	* best model train round: 1316
+	* train time: 4442.041965007782
+	* RMSLE without-log: 0.315268059834 => 0.312084220093
+    + Submision score: 0.38017 => 0.37795
 
 20: 2017-08-15: LGBMRegressor
 - Round 87:
@@ -992,6 +1003,8 @@
 	* train time: 1510.8735432624817
 	* RMSLE without-log:0.320260748897 => 0.317506379624
     + Submision score: 0.383 => 0.38132
+
+#------------------------- Stack model-------------------------------------	
 21: 2017-08-16: Stack models
 - Round 88: Stack model
     + Base model: 
@@ -1170,7 +1183,7 @@
     + Base model: 
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 
+			. RMSLE without-log: 0.329556229071
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1

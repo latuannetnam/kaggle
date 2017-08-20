@@ -637,27 +637,62 @@ class TaxiTripDuration():
         col_cluster = 'location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
-        logger.debug("Cluster for pickup")
+        logger.info("Cluster for pickup")
         col_use = ['pickup_latitude', 'pickup_longitude']
         col_cluster = 'pickup_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
-        logger.debug("Cluster for dropoff")
+        logger.info("Cluster for dropoff")
         col_use = ['dropoff_latitude', 'dropoff_longitude']
         col_cluster = 'dropoff_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
         # experiment
-        logger.debug("Cluster for location and pickup_hour")
+        logger.info("Cluster for pickup location and pickup_hour")
         col_use = ['pickup_hour', 'pickup_latitude', 'pickup_longitude']
         col_cluster = 'pk_hour_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
-        logger.debug("Cluster for location and pickup_whour")
+        logger.info("Cluster for pickup location and pickup_whour")
         col_use = ['pickup_whour', 'pickup_latitude', 'pickup_longitude']
         col_cluster = 'pk_whour_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
+        # experiment 2
+        logger.info("Cluster for drop-off location and pickup_hour")
+        col_use = ['pickup_hour', 'dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'pk_hour_dropoff_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+        logger.info("Cluster for drop-off location and pickup_whour")
+        col_use = ['pickup_whour', 'dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'pk_whour_dropoff_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+    # Calculate count by cluster
+    @timecall
+    def cal_cluster_count(self, col):
+        logger.debug("calcuate cluster count by " + col)
+        data = self.combine_data
+        group_col = 'id'
+        data_grp = data[[col, group_col]]
+        data_st = data_grp.groupby(
+            col, as_index=False).count().sort_values(col).reset_index()
+        data_sr = pd.Series(data_st[group_col], index=data_st[col])
+        data_dict = data_sr.to_dict()
+        col_count = col + '_count'
+        data.loc[:, col_count] = data[col].map(data_dict)
+        data.loc[:, col_count].fillna(data[col_count].mean(), inplace=True)
+
+    @timecall
+    def feature_cluster_count(self):
+        col = 'pk_hour_dropoff_location_cluster'
+        logger.info("Cluster count for " + col)
+        self.cal_cluster_count(col)
+        col = 'pk_whour_dropoff_location_cluster'
+        logger.info("Cluster count for " + col)
+        self.cal_cluster_count(col)
 
     def drop_unused_cols(self):
         data = self.combine_data
@@ -678,6 +713,7 @@ class TaxiTripDuration():
         self.feature_right_turns()
         self.feature_cluster()
         self.feature_direction()
+        self.feature_cluster_count()
         # Expriment
         #
         # self.feature_speed_mean()
@@ -1530,7 +1566,7 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 5
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
