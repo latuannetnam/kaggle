@@ -625,6 +625,7 @@
 	* train time: 1577.4168784618378
 	* RMSLE without-log: 0.314919531323 => 0.31608909162
     + Submision score: 0.380 => 0.380			
+#--------------------------------CatBoostRegressor-----------------------------------------------------	
 - Round 53:
     + Base model: CatBoostRegressor
 	* iterations=10000, learning_rate=0.1, depth=10 
@@ -664,6 +665,16 @@
 	* train time: 
 	* RMSLE without-log: 
     + Submision score: 
+- Round 97:
+    + Base model: CatBoostRegressor
+	* iterations=30000, learning_rate=0.1, depth=10 
+	* added cluster for location + direction
+	* target_log = np.log(target)
+	* best model train round: 44513
+	* train time: 19388.68798017502
+	* RMSLE without-log: 0.315358555895
+    + Submision score: 	0.38284
+#-------------------------------------------------------------------------------------	
 - Round 57:
     + Base model: XGBRegressor
 	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 

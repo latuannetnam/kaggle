@@ -40,8 +40,8 @@ from sklearn.cluster import MiniBatchKMeans, KMeans
 from xgboost.sklearn import XGBRegressor
 import xgboost as xgb
 from xgboost import plot_importance
-# # CatBoost
-# from catboost import Pool, CatBoostRegressor
+# CatBoost
+from catboost import Pool, CatBoostRegressor
 # Vowpal Wabbit
 # from vowpalwabbit.sklearn_vw import VWRegressor
 # from vowpalwabbit.sklearn_vw import tovw
@@ -374,7 +374,7 @@ class TaxiTripDuration():
         data = self.combine_data
         data.loc[:, 'direction'] = self.bearing_array(
             data['pickup_longitude'], data['pickup_latitude'],
-            data['dropoff_longitude'], data['dropoff_latitude'])        
+            data['dropoff_longitude'], data['dropoff_latitude'])
 
     def estimate_total_distance(self):
         logger.info("Estimating total_distance ... ")
@@ -882,9 +882,15 @@ class TaxiTripDuration():
         model = VWRegressor(learning_rate=0.1, quiet=False, passes=100)
         return model
 
-    def catboost_model(self):
+    def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=N_ROUNDS * 3, learning_rate=0.1, depth=MAX_DEPTH,
+            iterations=20000,
+            # iterations=N_ROUNDS * 2, => overfit if iteration > 20k
+            # iterations=10,
+            learning_rate=0.1,
+            depth=MAX_DEPTH,
+            loss_function='RMSE',
+            random_seed=random_state,
             use_best_model=True, train_dir=DATA_DIR + "/node_modules",
             verbose=True)
         return model
@@ -900,7 +906,7 @@ class TaxiTripDuration():
             ['id', self.label], axis=1).astype(float)
         # categorical_features_indices = self.convert_to_categrorical_features(
         #     train_set)
-        logger.info("Training model ....")
+        logger.info("Training model ...." + str(model_choice))
         features = train_set.columns.values.tolist()
         logger.debug("Features:" + str(len(features)))
         logger.debug(features)
@@ -920,10 +926,10 @@ class TaxiTripDuration():
             self.model.fit(X_train, Y_train)
         elif model_choice == CATBOOST:
             self.model = self.catboost_model()
-
             self.model.fit(
                 X_train, Y_train, eval_set=(X_test, Y_test),
-                cat_features=categorical_features_indices, verbose=True
+                use_best_model=True,
+                verbose=True
             )
         elif model_choice == LIGHTGBM:
             self.model = self.lgbm_model()
@@ -946,7 +952,8 @@ class TaxiTripDuration():
             )
 
         end = time.time() - start
-        logger.debug("Done training:" + str(end))
+        model_name = self.model.__class__.__name__
+        logger.debug("Done training for" + model_name + ". Time:" + str(end))
         if model_choice == LIGHTGBM:
             logger.debug("Predicting for:" + str(model_choice) +
                          ". Best round:" + str(self.model.best_iteration))
@@ -958,6 +965,11 @@ class TaxiTripDuration():
                          ". N_tree_limit:" + str(self.model.best_ntree_limit))
             y_pred = self.model.predict(
                 X_test, ntree_limit=self.model.best_ntree_limit)
+        elif model_choice == CATBOOST:
+            logger.debug("Predicting for:" + str(model_choice) +
+                         ". N_tree_limit:" + str(self.model.tree_count_))
+            y_pred = self.model.predict(
+                X_test, ntree_limit=self.model.tree_count_, verbose=True)
         else:
             y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
@@ -1260,6 +1272,7 @@ class TaxiTripDuration():
         # models.append(self.lgbm_model(random_state=123))
         # models.append(self.lgbm_model(random_state=789))
         # models.append(self.xgb_model(learning_rate=0.03, random_state=456))
+        models.append(self.catboost_model())
         models.append(self.xgb_model(
             learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
@@ -1340,6 +1353,8 @@ class TaxiTripDuration():
                     S_train[test_idx, i] = y_pred
                     S_test_i[:, j] = model.predict(
                         T_in, num_iteration=model.best_iteration)[:]
+                elif model_name=="CatBoostRegressor":
+                            
                 else:
                     model.fit(X_train, y_train)
                     logger.debug("fold:" + str(j + 1) +
@@ -1503,8 +1518,8 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 5
-    model_choice = XGB
+    option = 2  
+    model_choice = CATBOOST
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -1551,12 +1566,12 @@ if __name__ == "__main__":
     elif option == 5:
         base_class.load_preprocessed_data()
         base_class.train_base_models()
-        base_class.train_stack_model(model_choice=model_choice)
+        base_class.train_stack_model(model_choice=XGB)
 
     # load pretrain-data from train_base_model and train with stacking model
     elif option == 6:
         base_class.load_preprocessed_data()
-        base_class.train_stack_model(model_choice=model_choice)
+        base_class.train_stack_model(model_choice=XGB)
 
     # Load process data and search for best model parameters
     elif option == 10:
