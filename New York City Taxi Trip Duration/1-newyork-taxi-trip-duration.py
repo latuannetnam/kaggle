@@ -71,7 +71,7 @@ pd.options.display.float_format = '{:,.4f}'.format
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
-N_FOLDS = 5
+N_FOLDS = 2
 N_CLUSTERS = 200  # Kmeans number of cluster
 # Model choice
 XGB = 1
@@ -88,8 +88,8 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
-N_ROUNDS = 15000
-# N_ROUNDS = 10
+# N_ROUNDS = 15000
+N_ROUNDS = 2
 LOG_LEVEL = logging.DEBUG
 
 
@@ -920,7 +920,7 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=20000,
+            iterations=25000,
             # iterations=N_ROUNDS * 2, => overfit if iteration > 20k
             # iterations=10,
             learning_rate=0.1,
@@ -1345,6 +1345,7 @@ class TaxiTripDuration():
         early_stopping_rounds = 50
         start = time.time()
         for i in range(len(models)):
+            start_sub = time.time()
             model_name = models[i].__class__.__name__
             logger.debug("Base model " + str(i + 1) + ":" + model_name)
             S_test_i = np.zeros((T_in.shape[0], n_folds))
@@ -1420,7 +1421,10 @@ class TaxiTripDuration():
                 # end of for j
 
             S_test[:, i] = S_test_i.mean(1)
+            end_sub = time.time() - start_sub
             logger.debug("Model rmse:" + str(model_rmse / (j + 1)))
+            logger.debug("Done training for " + model_name +
+                         " . Trained time:" + str(end_sub))
             # cleanup memory
             del S_test_i
             # end of for i
@@ -1566,7 +1570,8 @@ class TaxiTripDuration():
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
-    option = 1
+    start = time.time()
+    option = 5
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
@@ -1670,5 +1675,5 @@ if __name__ == "__main__":
         base_class.predict_save()
         base_class.importance_features()
         # base_class.plot_ft_importance()
-
-    logger.info("Done!")
+    end = time.time() - start
+    logger.info("Done. Total time:" + str(end))

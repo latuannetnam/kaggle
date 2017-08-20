@@ -19,6 +19,7 @@
  - Best model: round 28: 0.380 (cleanup data: (data[label] < 22 * 3600) & (data[label] > 10) + 'learning_rate': 0.1, 'max_depth': 10, 'colsample_bytree': 0.9, 'min_child_weight': 1)
  - Best model: round 95: 0.37627 (Stack model: XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03) )
  - Best model: round 96: 0.37399 (Stack model: XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03)) + new feature: directon
+ - Best model: round 98: 0.37370 (Stack model: CatBoostRegressor (0.1) + XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03)) + new feature: directon 
 
  
 1. 2017-07-21
@@ -1177,7 +1178,7 @@
 		* best model train round: 232
 		* train time: 
 		* RMSLE without-log: 0.314354 => 0.310241
-    + Submision score: 0.37627 => 0.37399 => Best
+    + Submision score: 0.37627 => 0.37399
 2017-08-20:		
 - Round 98: Stack model
     + Base model: 
@@ -1187,19 +1188,19 @@
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.3112062235560 =>
+			. RMSLE without-log: 0.3112062235560 => 0.311206223556
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.311270633371 =>
+			. RMSLE without-log: 0.311270633371 => 0.311270630771
 			. LB: 
-		* train time: 
+		* train time: 38184.949978113174
 		* target_log = np.log(target)
 		* added cluster for location + direction
-		* RMSLE without-log: 0.311238428463 =>
+		* RMSLE without-log: 0.311238428463 => 0.317344361133
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
-		* best model train round: 
-		* train time: 
-		* RMSLE without-log: 0.310241 =>
-    + Submision score: 0.37399 => 
+		* best model train round: 260
+		* train time: 134.77944326400757
+		* RMSLE without-log: 0.310241 => 0.309508
+    + Submision score: 0.37399 => 0.37370 => Best
