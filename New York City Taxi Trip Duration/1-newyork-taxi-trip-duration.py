@@ -1645,7 +1645,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 2
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)

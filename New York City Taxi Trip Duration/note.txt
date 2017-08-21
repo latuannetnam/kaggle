@@ -982,7 +982,7 @@
 	* RMSLE without-log: 0.315268059834 => 0.315325770346
     + Submision score: 0.38017 => 0.38053
 - Round 99:
-    + Base model: Round 82
+    + Base model: Round 98
 	* XGBRegressor
 	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
 	* added n_tree_limit in xgboost.predict	 
@@ -993,7 +993,7 @@
 	* RMSLE without-log: 0.315268059834 => 0.312084220093
     + Submision score: 0.38017 => 0.37795
 - Round 103:
-    + Base model: Round 99
+    + Base model: Round 102
 	* XGBRegressor
 	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
 	* added n_tree_limit in xgboost.predict	 
@@ -1003,7 +1003,7 @@
 	* best model train round: 1131
 	* train time: 4342.305188655853
 	* RMSLE without-log: 0.312084220093 => 0.312379072638
-    + Submision score: 0.37795	=> 0.37855 => Best
+    + Submision score: 0.37795	=> 0.37855 
 
 20: 2017-08-15: LGBMRegressor
 - Round 87:
