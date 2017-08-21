@@ -992,6 +992,18 @@
 	* train time: 4442.041965007782
 	* RMSLE without-log: 0.315268059834 => 0.312084220093
     + Submision score: 0.38017 => 0.37795
+- Round 103:
+    + Base model: Round 99
+	* XGBRegressor
+	* 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+	* added n_tree_limit in xgboost.predict	 
+	* added feature cluster_count for (dropoff_cluster by pickup_hour + pickup_whour)
+	* added cluster + cluster_count for pickup, dropoff by weekday
+	* target_log = np.log(target)
+	* best model train round: 1131
+	* train time: 4342.305188655853
+	* RMSLE without-log: 0.312084220093 => 0.312379072638
+    + Submision score: 0.37795	=> 0.37855 => Best
 
 20: 2017-08-15: LGBMRegressor
 - Round 87:
@@ -1258,8 +1270,8 @@
     + Base model: 
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, iterations=20000 
-			. RMSLE without-log: 0.321657851058
-			. train time: 
+			. RMSLE without-log: 0.321657851058 => 0.327220952283
+			. train time: 27385.687201976776
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
@@ -1281,3 +1293,31 @@
 		* train time: 
 		* RMSLE without-log: 0.310135	
     + Submision score: 0.37391 =>
+- Round 104: Stack model
+    + Base model: 
+		* CatBoostRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, iterations=20000 
+			. RMSLE without-log: 
+			. train time: 
+			. LB: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 
+			. train time: 
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log:  
+			. train time: 
+			. LB: 
+		* train time: 
+		* target_log = np.log(target)
+		* added cluster_count
+		* added cluster + cluster_count for pickup, dropoff by weekday
+		* RMSLE without-log: 
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* best model train round: 
+		* train time: 
+		* RMSLE without-log: 
+    + Submision score: 
