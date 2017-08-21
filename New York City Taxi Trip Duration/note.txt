@@ -1207,7 +1207,7 @@
 - Round 100: Stack model
     + Base model: 
 		* CatBoostRegressor:  
-			. 'learning_rate': 0.1, 'max_depth': 10,
+			. 'learning_rate': 0.1, 'max_depth': 10, iterations=25000 => overfit
 			. RMSLE without-log: 0.329556229071 => 0.321657851058
 			. train time: 38062.957418203354
 			. LB: 
@@ -1231,3 +1231,26 @@
 		* train time: 181
 		* RMSLE without-log: 0.309508 => 0.310135	
     + Submision score: 0.37370 => 0.37391
+2017-08-21:	
+- Round 101: Stack model
+    + Base model: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.311206223556 => 0.311292443602
+			. train time: 8250.806457519531
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.311270630771 => 0.311248106626
+			. train time: 7856.804503440857
+			. LB: 
+		* train time: 54170.570033073425
+		* target_log = np.log(target)
+		* added cluster_count
+		* RMSLE without-log: 0.317344361133 => 0.314732800429
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* best model train round: 254
+		* train time: 151.37224006652832
+		* RMSLE without-log: 0.310135 => 0.310451	
+    + Submision score: 0.37391 => 0.37415

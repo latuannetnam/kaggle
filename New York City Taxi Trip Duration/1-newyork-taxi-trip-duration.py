@@ -920,7 +920,7 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=25000,  # => overfit if iteration > 20k
+            iterations=20000,  # => overfit if iteration > 20k
             # iterations=2,
             learning_rate=0.1,
             depth=MAX_DEPTH,
@@ -1462,6 +1462,8 @@ class TaxiTripDuration():
     def train_stack_model(self, model_choice=LIGHTGBM):
         logger.info("Prepare data to train stack model")
         S_train, S_test = self.load_pretrained_data()
+        logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
+                     str(S_test.shape))
         target_log = S_train['label']
         train_set = S_train.drop(['label', 'id'], axis=1)
         X_train, X_test, Y_train, Y_test = train_test_split(
@@ -1570,7 +1572,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 5
+    option = 6
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
