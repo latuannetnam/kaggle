@@ -687,7 +687,7 @@ class TaxiTripDuration():
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for drop-off location and pickup_weekday")
-        col_use = ['pickup_whour', 'dropoff_latitude', 'dropoff_longitude']
+        col_use = ['pickup_weekday', 'dropoff_latitude', 'dropoff_longitude']
         col_cluster = 'pk_weekday_dropoff_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
@@ -786,7 +786,7 @@ class TaxiTripDuration():
         self.feature_right_turns()
         self.feature_cluster()
         self.feature_direction()
-        self.feature_cluster_count()
+        # self.feature_cluster_count()
         # Expriment
         #
         # self.feature_speed_mean()
@@ -1645,7 +1645,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 5
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
