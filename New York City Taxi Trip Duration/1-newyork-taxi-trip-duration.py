@@ -784,9 +784,12 @@ class TaxiTripDuration():
         self.feature_manhattan()
         self.feature_left_turns()
         self.feature_right_turns()
-        self.feature_cluster()
+        self.feature_total_turns()
         self.feature_direction()
-        # self.feature_cluster_count()
+        self.feature_cluster()
+
+        # Expriment
+        self.feature_cluster_count()
         # Expriment
         #
         # self.feature_speed_mean()
@@ -1645,7 +1648,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 5
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)

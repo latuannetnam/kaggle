@@ -1326,26 +1326,26 @@
     + Base model: 
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, iterations=20000 
-			. RMSLE without-log: 0.330450377426 =>
-			. train time: 30951.256221055984 =>
+			. RMSLE without-log: 0.330450377426 => 0.331059048354
+			. train time: 30951.256221055984 => 27202.265921354294
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.31200444004 =>
-			. train time: 8543.655898332596 =>
+			. RMSLE without-log: 0.31200444004 => 0.311905564816
+			. train time: 8543.655898332596 => 6761.2394824028015
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.311476885066 =>
-			. train time: 10866.278344392776 =>
+			. RMSLE without-log: 0.311476885066 => 0.311135328956
+			. train time: 10866.278344392776 => 8372.475480556488
 			. LB: 
 		* target_log = np.log(target)
 		* removed cluster_count
-		* train time: 50361.19199371338 =>
-		* RMSLE without-log: 0.317977234177 =>
+		* train time: 50361.19199371338 => 42335.98299074173
+		* RMSLE without-log: 0.317977234177 => 0.318033314042
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
-		* best model train round: 
-		* train time: 
-		* RMSLE without-log: 0.310315 =>
-    + Submision score: 0.37432 =>	
+		* best model train round: 270
+		* train time: 189.0228180885315
+		* RMSLE without-log: 0.310315 => 0.310207
+    + Submision score: 0.37432 => 0.37399	
