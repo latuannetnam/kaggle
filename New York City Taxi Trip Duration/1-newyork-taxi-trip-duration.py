@@ -1570,16 +1570,16 @@ class TaxiTripDuration():
             )
         elif model_choice == XGB:
             model = XGBRegressor(
-                                 #  n_estimators=N_ROUNDS,
-                                 n_estimators=500,
-                                 max_depth=10,
-                                 learning_rate=0.03,
-                                 min_child_weight=1,
-                                 #  gamma=0,
-                                 random_state=567,
-                                 n_jobs=-1,
-                                 silent=False
-                                 )
+                #  n_estimators=N_ROUNDS,
+                n_estimators=500,
+                max_depth=10,
+                learning_rate=0.03,
+                min_child_weight=1,
+                #  gamma=0,
+                random_state=567,
+                n_jobs=-1,
+                silent=False
+            )
             model.fit(
                 train_set, target_log, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
@@ -1606,6 +1606,116 @@ class TaxiTripDuration():
                 eval_set, ntree_limit=model.best_ntree_limit)
         logger.debug("Done predicting!")
         self.save_stacked_data(Y_eval_log)
+
+    # Train stack using Kflow and arrgregate predicted datas
+    @timecall
+    def train_stack_model_kfold(self, model_choice=XGB):
+        logger.info("Prepare data to train stack model using kfold")
+        S_train, S_test = self.load_pretrained_data()
+        logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
+                     str(S_test.shape))
+        target_log = S_train['label']
+        train_set = S_train.drop(['label', 'id'], axis=1)
+        total_rmse = 0
+        early_stopping_rounds = 10
+        n_folds = N_FOLDS
+        kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
+        X_in = train_set.values
+        Y_in = target_log.values
+        T_in = S_test.drop(['id'], axis=1).values
+        S_test_total = np.zeros((T_in.shape[0], 1))
+        S_test_kfold = np.zeros((T_in.shape[0], n_folds))
+        early_stopping_rounds = 10
+        total_time = 0
+
+        if model_choice == LIGHTGBM:
+            model = LGBMRegressor(objective='regression_l2',
+                                  metric='l2_root',
+                                  n_estimators=N_ROUNDS,
+                                  #   n_estimators=10,
+                                  learning_rate=0.01,
+                                  num_leaves=1024,
+                                  #  max_bin=1024,
+                                  #  min_data_in_leaf=100,
+                                  seed=1111,
+                                  nthread=-1, silent=False)
+
+        elif model_choice == XGB:
+            model = XGBRegressor(
+                n_estimators=N_ROUNDS,
+                # n_estimators=10,
+                max_depth=10,
+                learning_rate=0.03,
+                min_child_weight=1,
+                #  gamma=0,
+                random_state=567,
+                n_jobs=-1,
+                silent=False
+            )
+        model_name = model_name = model.__class__.__name__
+        start = time.time()
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
+            logger.debug("fold:" + str(j + 1) + " begin training ...")
+            X_train = X_in[train_idx]
+            Y_train = Y_in[train_idx]
+            X_holdout = X_in[test_idx]
+            y_holdout = Y_in[test_idx]
+            if model_name == 'XGBRegressor':
+                model.fit(
+                    X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
+                    eval_metric="rmse",
+                    early_stopping_rounds=early_stopping_rounds,
+                    verbose=10
+                )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Best round:" +
+                             str(model.best_ntree_limit) + " . Predicting for RMSLE")
+                y_pred = model.predict(
+                    X_holdout, ntree_limit=model.best_ntree_limit)[:]
+                S_test_kfold[:, j] = model.predict(
+                    T_in, ntree_limit=model.best_ntree_limit)[:]
+            elif model_name == 'LGBMRegressor':
+                model.fit(
+                    X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
+                    eval_metric="rmse",
+                    early_stopping_rounds=early_stopping_rounds,
+                    verbose=10,
+                    # feature_name=features,
+                    # categorical_feature=cat_features
+                    # categorical_feature=categorical_features_indices
+                )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Best round:" +
+                             str(model.best_iteration) + " . Predicting for RMSLE")
+                y_pred = model.predict(
+                    X_holdout, num_iteration=model.best_iteration)[:]
+                S_test_kfold[:, j] = model.predict(
+                    T_in, num_iteration=model.best_iteration)[:]
+            elif model_name == "CatBoostRegressor":
+                model.fit(
+                    X_train, Y_train, eval_set=(X_holdout, y_holdout),
+                    use_best_model=True,
+                    verbose=True
+                )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Best round:" +
+                             str(model.tree_count_) + " . Predicting for RMSLE")
+                y_pred = model.predict(
+                    X_holdout, ntree_limit=model.tree_count_, verbose=True)
+                S_test_kfold[:, j] = model.predict(
+                    T_in, ntree_limit=model.tree_count_)[:]
+
+            rmse1 = self.rmsle(y_holdout, y_pred, log=False)
+            total_rmse = total_rmse + rmse1
+            logger.debug("fold:" + str(j + 1) + " rmse:" + str(rmse1))
+            # end of for j
+
+        S_test_total = S_test_kfold.mean(1)
+        end = time.time() - start
+        logger.debug("All rmse:" + str(total_rmse / (j + 1)))
+        logger.debug("Done training for " + model_name +
+                     ". Trained time:" + str(end))
+        self.save_stacked_data(S_test_total)             
 
     # Cross validation for stack model
     @timecall
@@ -1650,7 +1760,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 6
+    option = 8
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
@@ -1705,6 +1815,17 @@ if __name__ == "__main__":
     elif option == 6:
         base_class.load_preprocessed_data()
         base_class.train_stack_model(model_choice=XGB)
+
+    # Load process data and train model with stacking model using kfold:
+    elif option == 7:
+        base_class.load_preprocessed_data()
+        base_class.train_base_models()
+        base_class.train_stack_model_kfold(model_choice=XGB)
+
+    # load pretrain-data from train_base_model and train with stacking model using kfold
+    elif option == 8:
+        base_class.load_preprocessed_data()
+        base_class.train_stack_model_kfold(model_choice=XGB)    
 
     # Load process data and search for best model parameters
     elif option == 10:
