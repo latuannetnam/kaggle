@@ -789,7 +789,7 @@ class TaxiTripDuration():
         self.feature_cluster()
 
         # Expriment
-        self.feature_cluster_count()
+        # self.feature_cluster_count()
         # Expriment
         #
         # self.feature_speed_mean()
@@ -1760,7 +1760,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 8
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
