@@ -1372,7 +1372,7 @@
 		* RMSLE without-log: 0.318033314042 => 0.31661435915
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
-		* best model train round: 270 => 249
-		* train time: 129.83565425872803
-		* RMSLE without-log: 0.310207 => 0.309997
-    + Submision score: 0.37399 => 0.37392		
+		* best model train round: 270 => 249 => (20000  all train_set) 
+		* train time: 129.83565425872803 => (12184.7882008552 all train_set )
+		* RMSLE without-log: 0.310207 => 0.309997 => (0.240825 all train_set) , (0.296618, N_ROUNDS=500)
+    + Submision score: 0.37399 => 0.37392 => (0.37962 all train_set) , (0.37431,N_ROUNDS=500)		

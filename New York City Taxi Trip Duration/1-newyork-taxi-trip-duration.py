@@ -1560,7 +1560,7 @@ class TaxiTripDuration():
                                   nthread=-1, silent=False)
 
             model.fit(
-                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                train_set, target_log, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
                 verbose=10,
@@ -1569,7 +1569,9 @@ class TaxiTripDuration():
                             # categorical_feature=categorical_features_indices
             )
         elif model_choice == XGB:
-            model = XGBRegressor(n_estimators=N_ROUNDS,
+            model = XGBRegressor(
+                                 #  n_estimators=N_ROUNDS,
+                                 n_estimators=500,
                                  max_depth=10,
                                  learning_rate=0.03,
                                  min_child_weight=1,
@@ -1579,7 +1581,7 @@ class TaxiTripDuration():
                                  silent=False
                                  )
             model.fit(
-                X_train, Y_train, eval_set=[(X_test, Y_test)],
+                train_set, target_log, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
                 verbose=10,
@@ -1648,7 +1650,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 5
+    option = 6
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
