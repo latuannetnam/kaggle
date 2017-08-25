@@ -21,6 +21,7 @@
  - Best model: round 96: 0.37399 (Stack model: XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03)) + new feature: directon
  - Best model: round 98: 0.37370 (Stack model: CatBoostRegressor (0.1) + XGBRegressor (0.1) + LGBMRegressor (0.01) => XGBRegressor (0.03)) + new feature: directon 
  - Best model: round 108: 0.37330 (Stack model + kfold (base on round 98))
+ - Best model: round 109: 0.37304 (Stack model + kfold (removed cluster_count)) 
  
 1. 2017-07-21
 - Round 1:
@@ -1432,24 +1433,27 @@
     + Base model: 
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.329556229071 =>
+			. RMSLE without-log: 0.329556229071 => 0.332846582116
+			. time: 30358.694513320923
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.311206223556 =>
+			. RMSLE without-log: 0.311206223556 => 0.311576716352
+			. time: 7864.157855510712
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.311270630771 =>
+			. RMSLE without-log: 0.311270630771 => 0.31088085136
+			* time: 9081.705178976059
 			. LB: 
-		* train time: 
 		* target_log = np.log(target)
 		* remove cluster_count
 		* added total_turns, direction
-		* RMSLE without-log: 0.317344361133 =>
+		* train time: 47304.55904865265
+		* RMSLE without-log: 0.317344361133 => 0.318434716609
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
-		* train time: 
-		* RMSLE without-log: 0.308353120899 =>
-    + Submision score: 0.37330 => 
+		* train time: 539.1456367969513
+		* RMSLE without-log: 0.308353120899 => 0.308266749604
+    + Submision score: 0.37330 => 0.37304 => Best
