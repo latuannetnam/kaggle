@@ -134,39 +134,44 @@ class TaxiTripDuration():
         self.target = train_data[label]
         self.combine_data = pd.concat(
             [train_data[features], eval_data], keys=['train', 'eval'])
-        # self.load_and_combine_weather_data() => No score change
+        self.load_and_combine_weather_data()
         logger.debug("combine data:" + str(len(self.combine_data)))
         features = self.combine_data.columns.values
         logger.debug("Original features:" + str(len(features)))
         logger.debug(features)
         logger.info("Data loaded")
 
+    @timecall
     def load_and_combine_weather_data(self):
         logger.debug("Loading weather data ..")
         weather_data = pd.read_csv(
             DATA_DIR + "/weather_data_nyc_centralpark_2016.csv")
-        logger.debug("Weather data len:", len(weather_data))
+        logger.debug("Weather data len:" + str(len(weather_data)))
         # Convert date string to date_obj
         weather_data.loc[:, 'date_obj'] = pd.to_datetime(
             weather_data['date'], dayfirst=True).dt.date
         # convert object columns
-        col = 'precipitation'
-        T_value = 0.01
-        weather_data.loc[weather_data[col] == 'T'] = T_value
-        weather_data.loc[:, col] = weather_data[col].astype(float)
+        # logger.debug("Convert object columns")
+        # col = 'precipitation'
+        # T_value = 0.01
+        # weather_data.loc[weather_data[col] == 'T'] = T_value
+        # weather_data.loc[:, col] = weather_data[col].astype(float)
 
-        col = 'snow fall'
-        weather_data.loc[weather_data[col] == 'T'] = T_value
-        weather_data.loc[:, col] = weather_data[col].astype(float)
+        # col = 'snow fall'
+        # weather_data.loc[weather_data[col] == 'T'] = T_value
+        # weather_data.loc[:, col] = weather_data[col].astype(float)
 
-        col = 'snow depth'
-        weather_data.loc[weather_data[col] == 'T'] = T_value
-        weather_data.loc[:, col] = weather_data[col].astype(float)
-        weather_data.drop('date', axis=1, inplace=True)
+        # col = 'snow depth'
+        # weather_data.loc[weather_data[col] == 'T'] = T_value
+        # weather_data.loc[:, col] = weather_data[col].astype(float)
+        # weather_data.drop('date', axis=1, inplace=True)
 
         weather_data = weather_data.set_index('date_obj')
-
+        cols = ['maximum temerature',
+                'minimum temperature', 'average temperature']
+        weather_data = weather_data[cols]
         # Convert combine_data datetime string to date_obj => join with weather
+        logger.debug("Merging weather data with train set ... ")
         self.combine_data.loc[:, 'date_obj'] = pd.to_datetime(
             self.combine_data['pickup_datetime'], format="%Y-%m-%d").dt.date
         # Join combine_data and weather_data
@@ -175,6 +180,7 @@ class TaxiTripDuration():
 
         # Drop un-used cols
         self.combine_data.drop('date_obj', axis=1, inplace=True)
+        logger.debug("Done merging...")
 
     @timecall
     def load_preprocessed_data(self):
@@ -1715,7 +1721,7 @@ class TaxiTripDuration():
         logger.debug("All rmse:" + str(total_rmse / (j + 1)))
         logger.debug("Done training for " + model_name +
                      ". Trained time:" + str(end))
-        self.save_stacked_data(S_test_total)             
+        self.save_stacked_data(S_test_total)
 
     # Cross validation for stack model
     @timecall
@@ -1822,10 +1828,11 @@ if __name__ == "__main__":
         base_class.train_base_models()
         base_class.train_stack_model_kfold(model_choice=XGB)
 
-    # load pretrain-data from train_base_model and train with stacking model using kfold
+    # load pretrain-data from train_base_model and train with stacking model
+    # using kfold
     elif option == 8:
         base_class.load_preprocessed_data()
-        base_class.train_stack_model_kfold(model_choice=XGB)    
+        base_class.train_stack_model_kfold(model_choice=XGB)
 
     # Load process data and search for best model parameters
     elif option == 10:
