@@ -1,16 +1,20 @@
 # New York City Taxi Trip Duration
 # Share code and data to improve ride time predictions
+# Data set:
 # https://www.kaggle.com/c/nyc-taxi-trip-duration/data
+# https://www.kaggle.com/cabaki/knycmetars2016
+# https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
+# https://www.kaggle.com/mathijs/weather-data-in-new-york-city-2016 => Not use
+
 # install: http://jupyter-contrib-nbextensions.readthedocs.io/en/latest/install.html
 # install: https://github.com/Jupyter-contrib/jupyter_nbextensions_configurator
 # install GDAL: https://sandbox.idre.ucla.edu/sandbox/tutorials/installing-gdal-for-windows
 # install osmnx: http://geoffboeing.com/2014/09/using-geopandas-windows/
 # Credit to:
 # https://www.kaggle.com/ankasor/driving-distance-using-open-street-maps-data/notebook
-# https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
 # https://www.kaggle.com/gaborfodor/from-eda-to-the-top-lb-0-368/notebook
 # https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-classified/notebook
-# https://www.kaggle.com/mathijs/weather-data-in-new-york-city-2016
+# https://www.kaggle.com/onlyshadow/a-practical-guide-to-ny-taxi-data-0-379/notebook
 
 # System
 import datetime as dtime
@@ -134,7 +138,14 @@ class TaxiTripDuration():
         self.target = train_data[label]
         self.combine_data = pd.concat(
             [train_data[features], eval_data], keys=['train', 'eval'])
-        self.load_and_combine_weather_data()
+        self.convert_datetime()
+        # Load weather data from:
+        # https://www.kaggle.com/mathijs/weather-data-in-new-york-city-2016 => Not use
+        # self.load_and_combine_weather_data()
+        # Load weather data from:
+        # https://www.kaggle.com/cabaki/knycmetars2016
+        self.load_and_combine_weather_data_metar()
+
         logger.debug("combine data:" + str(len(self.combine_data)))
         features = self.combine_data.columns.values
         logger.debug("Original features:" + str(len(features)))
@@ -180,6 +191,45 @@ class TaxiTripDuration():
 
         # Drop un-used cols
         self.combine_data.drop('date_obj', axis=1, inplace=True)
+        logger.debug("Done merging...")
+
+    @timecall
+    def load_and_combine_weather_data_metar(self):
+        logger.debug("Loading weather data from KNYC Metar 2016..")
+        weather = pd.read_csv(
+            DATA_DIR + "/KNYC_Metars.csv")
+        logger.debug("Weather data len:" + str(len(weather)))
+        weather.loc[:, 'snow'] = 1 * (weather.Events == 'Snow') + \
+            1 * (weather.Events == 'Fog\n\t,\nSnow')
+        weather.loc[:, 'datetime_obj'] = pd.to_datetime(weather['Time'])
+        weather.loc[:, 'pickup_year'] = weather['datetime_obj'].dt.year
+        weather.loc[:, 'pickup_month'] = weather['datetime_obj'].dt.month
+        weather.loc[:, 'pickup_day'] = weather['datetime_obj'].dt.day
+        weather.loc[:, 'pickup_hour'] = weather['datetime_obj'].dt.hour
+        weather = weather[['pickup_year', 'pickup_month', 'pickup_day',
+                           'pickup_hour', 'Temp.', 'Precip', 'snow', 'Visibility']]
+
+        # split train_set and eval_set
+        train_set = self.combine_data.loc['train']
+        eval_set = self.combine_data.loc['eval']
+        # Join combine_data and weather_data
+        logger.debug("Merging weather data with train set ... ")
+        train_set = pd.merge(train_set, weather, on=[
+            'pickup_year', 'pickup_month', 'pickup_day', 'pickup_hour'], how='left')
+        logger.debug("Merging weather data with eval set ... ")    
+        eval_set = pd.merge(eval_set, weather, on=[
+            'pickup_year', 'pickup_month', 'pickup_day', 'pickup_hour'], how='left')    
+        logger.debug(" combine train_set and eval_set ... ")        
+        self.combine_data = pd.concat(
+            [train_set, eval_set], keys=['train', 'eval'])
+            
+        # FillNAN
+        data = self.combine_data
+        data.loc[:, 'Visibility'].fillna(
+            data['Visibility'].mean(), inplace=True)
+        data.loc[:, 'Precip'].fillna(data['Precip'].mean(), inplace=True)
+        data.loc[:, 'Temp.'].fillna(data['Temp.'].mean(), inplace=True)
+        data.loc[:, 'snow'].fillna(0, inplace=True)
         logger.debug("Done merging...")
 
     @timecall
@@ -782,7 +832,7 @@ class TaxiTripDuration():
     def preprocess_data(self):
         logger.info("Preproccesing data ...")
         self.fillnan()
-        self.convert_datetime()
+        # self.convert_datetime() => moved to load_data
         self.convert_starting_street()
         self.convert_end_street()
         self.convert_store_and_fwd_flag()
