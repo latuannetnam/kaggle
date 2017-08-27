@@ -206,31 +206,43 @@ class TaxiTripDuration():
         weather.loc[:, 'pickup_month'] = weather['datetime_obj'].dt.month
         weather.loc[:, 'pickup_day'] = weather['datetime_obj'].dt.day
         weather.loc[:, 'pickup_hour'] = weather['datetime_obj'].dt.hour
+        # weather = weather[['pickup_year', 'pickup_month', 'pickup_day',
+        #                    'pickup_hour', 'Temp.', 'Precip', 'snow', 'Visibility']]
         weather = weather[['pickup_year', 'pickup_month', 'pickup_day',
-                           'pickup_hour', 'Temp.', 'Precip', 'snow', 'Visibility']]
+                           'pickup_hour', 'Temp.', 'snow']]
 
         # split train_set and eval_set
         train_set = self.combine_data.loc['train']
         eval_set = self.combine_data.loc['eval']
         # Join combine_data and weather_data
-        logger.debug("Merging weather data with train set ... ")
+        logger.debug("Merging weather data with train set ... " +
+                     str(len(train_set)))
         train_set = pd.merge(train_set, weather, on=[
             'pickup_year', 'pickup_month', 'pickup_day', 'pickup_hour'], how='left')
-        logger.debug("Merging weather data with eval set ... ")    
+        logger.debug("train set merged " + str(len(train_set)) +
+                     " " + str(len(self.target)))
+        logger.debug("Merging weather data with eval set ... " +
+                     str(len(eval_set)))
         eval_set = pd.merge(eval_set, weather, on=[
-            'pickup_year', 'pickup_month', 'pickup_day', 'pickup_hour'], how='left')    
-        logger.debug(" combine train_set and eval_set ... ")        
+            'pickup_year', 'pickup_month', 'pickup_day', 'pickup_hour'], how='left')
+        logger.debug("eval set merged " + str(len(eval_set)))
+        logger.debug(" combine train_set and eval_set ... ")
         self.combine_data = pd.concat(
             [train_set, eval_set], keys=['train', 'eval'])
-            
+
         # FillNAN
         data = self.combine_data
-        data.loc[:, 'Visibility'].fillna(
-            data['Visibility'].mean(), inplace=True)
-        data.loc[:, 'Precip'].fillna(data['Precip'].mean(), inplace=True)
-        data.loc[:, 'Temp.'].fillna(data['Temp.'].mean(), inplace=True)
+        # data.loc[:, 'Visibility'].fillna(
+        #     data['Visibility'].mean(), inplace=True)
+        # data.loc[:, 'Precip'].fillna(data['Precip'].mean(), inplace=True)
         data.loc[:, 'snow'].fillna(0, inplace=True)
+        data.loc[:, 'Temp.'].fillna(data['Temp.'].mean(), inplace=True)
         logger.debug("Done merging...")
+        # test
+        # print(self.target.isnull().sum())
+        # train_set.loc[:, self.label] = self.target.values
+        # print(train_set[self.label].isnull().sum())
+        # quit()
 
     @timecall
     def load_preprocessed_data(self):
@@ -869,7 +881,8 @@ class TaxiTripDuration():
 
         # Save preprocess data
         train_set = self.combine_data.loc['train'].copy()
-        train_set.loc[:, self.label] = self.target
+        train_set.loc[:, self.label] = self.target.values
+        logger.debug("Check null of label:" + str(train_set[self.label].isnull().sum()))
         eval_set = self.combine_data.loc['eval']
         logger.debug("Saving train set ...")
         train_set.to_csv(DATA_DIR + '/train_pre.csv', index=False)
@@ -1143,6 +1156,8 @@ class TaxiTripDuration():
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
         logger.debug("RMSLE score:" + str(score) +
                      " RMSLE without-log:" + str(score1))
+        print(y_pred[:5])
+        quit()
 
     # Train using Kflow
     @timecall
@@ -1816,7 +1831,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 7
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
