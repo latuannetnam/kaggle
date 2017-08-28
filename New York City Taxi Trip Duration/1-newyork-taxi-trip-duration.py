@@ -199,17 +199,23 @@ class TaxiTripDuration():
         weather = pd.read_csv(
             DATA_DIR + "/KNYC_Metars.csv")
         logger.debug("Weather data len:" + str(len(weather)))
-        weather.loc[:, 'snow'] = 1 * (weather.Events == 'Snow') + \
-            1 * (weather.Events == 'Fog\n\t,\nSnow')
+        weather.loc[:, 'snow'] = 1 * (weather.Events.str.contains('Snow'))
+        weather.loc[:, 'heavy_snow'] = 1 * (weather.Conditions == 'Heavy Snow')
+        weather.loc[:, 'rain'] = 1 * (weather.Events.str.contains('Rain'))
+        weather.loc[:, 'heavy_rain'] = 1 * (weather.Conditions == 'Heavy Rain')
+        weather.loc[:, 'fog'] = 1 * (weather.Events.str.contains('Fog'))
         weather.loc[:, 'datetime_obj'] = pd.to_datetime(weather['Time'])
         weather.loc[:, 'pickup_year'] = weather['datetime_obj'].dt.year
         weather.loc[:, 'pickup_month'] = weather['datetime_obj'].dt.month
         weather.loc[:, 'pickup_day'] = weather['datetime_obj'].dt.day
         weather.loc[:, 'pickup_hour'] = weather['datetime_obj'].dt.hour
-        # weather = weather[['pickup_year', 'pickup_month', 'pickup_day',
-        #                    'pickup_hour', 'Temp.', 'Precip', 'snow', 'Visibility']]
         weather = weather[['pickup_year', 'pickup_month', 'pickup_day',
-                           'pickup_hour', 'Temp.', 'snow']]
+                           'pickup_hour',
+                           'Temp.', 'Precip', 'Wind Speed',
+                           'Dew Point', 'Visibility',
+                           'snow', 'rain', 'fog', 'heavy_snow', 'heavy_rain']]
+        # weather = weather[['pickup_year', 'pickup_month', 'pickup_day',
+        #                    'pickup_hour', 'Temp.', 'snow']]
 
         # split train_set and eval_set
         train_set = self.combine_data.loc['train']
@@ -232,11 +238,19 @@ class TaxiTripDuration():
 
         # FillNAN
         data = self.combine_data
-        # data.loc[:, 'Visibility'].fillna(
-        #     data['Visibility'].mean(), inplace=True)
-        # data.loc[:, 'Precip'].fillna(data['Precip'].mean(), inplace=True)
-        data.loc[:, 'snow'].fillna(0, inplace=True)
         data.loc[:, 'Temp.'].fillna(data['Temp.'].mean(), inplace=True)
+        data.loc[:, 'Precip'].fillna(data['Precip'].mean(), inplace=True)
+        data.loc[:, 'Wind Speed'].fillna(
+            data['Wind Speed'].mean(), inplace=True)
+        data.loc[:, 'Dew Point'].fillna(data['Dew Point'].mean(), inplace=True)
+        data.loc[:, 'Visibility'].fillna(
+            data['Visibility'].mean(), inplace=True)
+        data.loc[:, 'snow'].fillna(0, inplace=True)
+        data.loc[:, 'rain'].fillna(0, inplace=True)
+        data.loc[:, 'fog'].fillna(0, inplace=True)
+        data.loc[:, 'heavy_snow'].fillna(0, inplace=True)
+        data.loc[:, 'heavy_rain'].fillna(0, inplace=True)
+
         logger.debug("Done merging...")
         # test
         # print(self.target.isnull().sum())
@@ -882,7 +896,8 @@ class TaxiTripDuration():
         # Save preprocess data
         train_set = self.combine_data.loc['train'].copy()
         train_set.loc[:, self.label] = self.target.values
-        logger.debug("Check null of label:" + str(train_set[self.label].isnull().sum()))
+        logger.debug("Check null of label:" +
+                     str(train_set[self.label].isnull().sum()))
         eval_set = self.combine_data.loc['eval']
         logger.debug("Saving train set ...")
         train_set.to_csv(DATA_DIR + '/train_pre.csv', index=False)
