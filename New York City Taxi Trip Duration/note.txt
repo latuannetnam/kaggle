@@ -23,6 +23,7 @@
  - Best model: round 108: 0.37330 (Stack model + kfold (base on round 98))
  - Best model: round 109: 0.37304 (Stack model + kfold (removed cluster_count)) 
  - Best model: round 110: 0.37273 (Stack model + kfold (added weather_data)) 
+ - Best model: round 113: 0.37257 (Stack model + kfold (added weather_data, col_use= 'Temp.', 'Precip', 'Wind Speed', 'Dew Point', 'Visibility','snow', 'rain', 'fog', 'heavy_snow', 'heavy_rain')) 
  
 1. 2017-07-21
 - Round 1:
@@ -1570,5 +1571,5 @@
 		* Kfold: 5
 		* train time: 
 		* RMSLE without-log: 0.308120459306 => 
-    + Submision score: 0.37277 => 
+    + Submision score: 0.37277 => 0.37257 => Best
 	
