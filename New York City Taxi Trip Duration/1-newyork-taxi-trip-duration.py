@@ -55,6 +55,7 @@ from sklearn.grid_search import GridSearchCV
 from sklearn.preprocessing import LabelEncoder, StandardScaler
 from sklearn.feature_selection import SelectFromModel
 from sklearn.cluster import MiniBatchKMeans, KMeans
+from sklearn.decomposition import PCA
 # # XGB
 from xgboost.sklearn import XGBRegressor
 import xgboost as xgb
@@ -849,6 +850,28 @@ class TaxiTripDuration():
         logger.info("Cluster count for " + col)
         self.cal_cluster_count(col)
 
+    # Calculate PCA for location
+    @timecall
+    def feature_pca(self):
+        logger.info("Feature engineering: PCA for location")
+        data = self.combine_data
+        coords = np.vstack((data[['pickup_latitude', 'pickup_longitude']].values,
+                            data[['dropoff_latitude', 'dropoff_longitude']].values
+                            ))
+        logger.debug("PCA fiting ...")
+        pca = PCA().fit(coords)
+        logger.debug("Tranform PCA features ...")
+        data.loc[:, 'pickup_pca0'] = pca.transform(
+            data[['pickup_latitude', 'pickup_longitude']])[:, 0]
+        data.loc[:, 'pickup_pca1'] = pca.transform(
+            data[['pickup_latitude', 'pickup_longitude']])[:, 1]
+        data.loc[:, 'dropoff_pca0'] = pca.transform(
+            data[['dropoff_latitude', 'dropoff_longitude']])[:, 0]
+        data.loc[:, 'dropoff_pca1'] = pca.transform(
+            data[['dropoff_latitude', 'dropoff_longitude']])[:, 1]
+        data.loc[:, 'pca_manhattan'] = np.abs(
+            data['dropoff_pca1'] - data['pickup_pca1']) + np.abs(data['dropoff_pca0'] - data['pickup_pca0'])
+
     def drop_unused_cols(self):
         data = self.combine_data
         data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
@@ -869,6 +892,7 @@ class TaxiTripDuration():
         self.feature_total_turns()
         self.feature_direction()
         self.feature_cluster()
+        self.feature_pca()
 
         # Expriment
         # self.feature_cluster_count()

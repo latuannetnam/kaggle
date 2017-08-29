@@ -1542,34 +1542,62 @@
 		* RMSLE without-log: 0.308120459306 => 0.307957028127
     + Submision score: 0.37277 => 0.37305
 2017-08-28:
-- Round 113: Stack model
-    + Base model:based round 111
+- Round 113: Stack model + kfold
+    + Base model:based round 112
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.326463879008 => 
-			. time: 35648.67615222931 => 
+			. RMSLE without-log: 0.326463879008 => 0.326045268915
+			. time: 35648.67615222931 => 38644.04991841316
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.311240324021 => 
-			. time: 8374.936891555786 => 
+			. RMSLE without-log: 0.311240324021 => 0.310714971694
+			. time: 8374.936891555786 => 9818.439695596695
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.310339158202 => 
-			* time: 10659.038615942001 => 
+			. RMSLE without-log: 0.310339158202 => 0.310226857841
+			* time: 10659.038615942001 => 11729.922056436539
 			. LB: 
 		* target_log = np.log(target)
 		* added weather_data from https://www.kaggle.com/cabaki/knycmetars2016: 
 		     . col_use=  'Temp.', 'Precip', 'Wind Speed',
                          'Dew Point', 'Visibility',
                          'snow', 'rain', 'fog', 'heavy_snow', 'heavy_rain'
-		* train time: 54682.6602230072 => 
-		* RMSLE without-log: 0.316014453744 => 
+		* train time: 54682.6602230072 => 60192.413803100586
+		* RMSLE without-log: 0.316014453744 => 0.31566236615
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
 		* train time: 
 		* RMSLE without-log: 0.308120459306 => 
     + Submision score: 0.37277 => 0.37257 => Best
-	
+2017-08-29:
+- Round 114: Stack model + kfold
+    + Base model:based round 113
+		* CatBoostRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10,
+			. RMSLE without-log: 0.326045268915 =>
+			. time: 38644.04991841316 =>
+			. LB: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.310714971694 =>
+			. time: 9818.439695596695 =>
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.310226857841 =>
+			* time: 11729.922056436539 =>
+			. LB: 
+		* target_log = np.log(target)
+		* added feature: PCA for location
+		* train time: 60192.413803100586 =>
+		* RMSLE without-log: 0.31566236615 =>
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 
+		* RMSLE without-log: 0.308120459306 => 
+    + Submision score: 0.37257 => 
+		
