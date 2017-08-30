@@ -1602,4 +1602,34 @@
 		* RMSLE without-log: 0.308120459306 => 0.306161598024
 	+ Total time: 66849.52451658249	
     + Submision score: 0.37257 => 0.37157 => Best
+2017-08-30:
+- Round 115: Stack model + kfold
+    + Base model:based round 114
+		* CatBoostRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10,
+			. RMSLE without-log: 0.326045268915 => 0.327237582388
+			. time: 38644.04991841316 => 40676.020208358765
+			. LB: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.310714971694 => 0.311017144962
+			. time: 9818.439695596695 => 12038.630622148514
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.310226857841 => 0.307364091206
+			* time: 11729.922056436539 => 13481.448738336563
+			. LB: 
+		* target_log = np.log(target)
+		* added feature: PCA for location
+		* removed: cleanup invalid trip_duration
+		* train time: 60192.413803100586 => 66196.11234974861
+		* RMSLE without-log: 0.31566236615 => 0.315206272852
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 590.0392031669617
+		* RMSLE without-log: 0.308120459306 => 0.306161598024
+	+ Total time: 66849.52451658249	
+    + Submision score: 0.37257 => 0.37157 => Best	
 		

@@ -132,8 +132,8 @@ class TaxiTripDuration():
         train_osm_data = train_osm[col_use]
         eval_osm_data = eval_osm[col_use]
         train_data = train_osm_data.join(train_data.set_index('id'), on='id')
-        # Cleanup data
-        train_data = self.cleanup_data(train_data)
+        # Cleanup data => temporarily removed
+        # train_data = self.cleanup_data(train_data) 
         eval_data = eval_osm_data.join(eval_data.set_index('id'), on='id')
         features = eval_data.columns.values
         self.target = train_data[label]
