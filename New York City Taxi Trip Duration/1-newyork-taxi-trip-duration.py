@@ -133,7 +133,7 @@ class TaxiTripDuration():
         eval_osm_data = eval_osm[col_use]
         train_data = train_osm_data.join(train_data.set_index('id'), on='id')
         # Cleanup data => temporarily removed
-        # train_data = self.cleanup_data(train_data) 
+        train_data = self.cleanup_data(train_data) 
         eval_data = eval_osm_data.join(eval_data.set_index('id'), on='id')
         features = eval_data.columns.values
         self.target = train_data[label]
@@ -306,7 +306,8 @@ class TaxiTripDuration():
         size1 = len(data)
         logger.info("Cleanup data. Size before:" + str(size1))
         label = self.label
-        data = data[(data[label] < 22 * 3600) & (data[label] > 10)]
+        # data = data[(data[label] < 22 * 3600) & (data[label] > 10)]
+        data = data[(data[label] < 22 * 3600)]
         size2 = len(data)
         logger.info("Finish cleanup. Size after:" + str(size2) +
                     " .Total removed:" + str(size1 - size2))
