@@ -26,6 +26,8 @@
  - Best model: round 113: 0.37257 (Stack model + kfold (added weather_data, col_use= 'Temp.', 'Precip', 'Wind Speed', 'Dew Point', 'Visibility','snow', 'rain', 'fog', 'heavy_snow', 'heavy_rain')) 
  - Best model: round 114: 0.37157 (Stack model + kfold (added weather_data,PCA for location))  
  - Best model: round 115: 0.37050 (Stack model + kfold (added weather_data,PCA for location, removed: cleanup invalid trip_duration))=> reduce overfit 
+ - Best model: round 116: 0.36829 (Stack model + kfold (added weather_data,PCA for location, cleanup trip_duration> 22*3600))
+ 
  
 1. 2017-07-21
 - Round 1:
@@ -1638,29 +1640,29 @@
     + Base model:based round 115
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.387628629723 =>
-			. time: 40250.2110350132 =>
+			. RMSLE without-log: 0.387628629723 => 0.333471172946
+			. time: 40250.2110350132 => 61397.0281829834
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.373226444542 =>
-			. time: 9782.530477762222 =>
+			. RMSLE without-log: 0.373226444542 => 0.325821441544
+			. time: 9782.530477762222 => 13375.370455026627
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.371007161689 =>
-			* time: 9020.854282855988 =>
+			. RMSLE without-log: 0.371007161689 => 0.323636529191
+			* time: 9020.854282855988 => 13432.284525871277
 			. LB: 
 		* target_log = np.log(target)
 		* added feature: PCA for location
 		* cleanup trip_duration> 22*3600
-		* train time: 59053.59773540497 =>
-		* RMSLE without-log: 0.377287411985 =>
+		* train time: 59053.59773540497 => 88204.68500208855
+		* RMSLE without-log: 0.377287411985 => 0.327643047894
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
-		* train time: 716.1195282936096
-		* RMSLE without-log: 0.368994450248 =>
-	+ Total time: 59823.65178966522 =>
-    + Submision score: 0.37050 => 
+		* train time: 863.30850481987
+		* RMSLE without-log: 0.368994450248 => 0.322028878075
+	+ Total time: 59823.65178966522 => 89125.10751652718
+    + Submision score: 0.37050 => 0.36829 => Best
 		
