@@ -116,15 +116,9 @@ class TaxiTripDuration():
         # from:https://www.kaggle.com/c/nyc-taxi-trip-duration/data
         train_data = pd.read_csv(DATA_DIR + "/train.csv")
         eval_data = pd.read_csv(DATA_DIR + "/test.csv")
-        # Download from:
-        # https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
-        train_osm = pd.read_csv(DATA_DIR + "/fastest_route_train.csv")
-        eval_osm = pd.read_csv(DATA_DIR + "/fastest_route_test.csv")
         logger.debug("train size:" + str(train_data.shape) +
                      " test size:" + str(eval_data.shape))
-        logger.debug("train_osm size:" + str(train_osm.shape) +
-                     " test osm size:" + str(eval_osm.shape))
-
+        train_osm, eval_osm = self.load_traffic_orsm()
         logger.debug("Merging  2 data sets ...")
         col_use = ['id', 'total_distance', 'total_travel_time',
                    'number_of_steps',
@@ -133,8 +127,10 @@ class TaxiTripDuration():
         eval_osm_data = eval_osm[col_use]
         train_data = train_osm_data.join(train_data.set_index('id'), on='id')
         # Cleanup data => temporarily removed
-        train_data = self.cleanup_data(train_data) 
         eval_data = eval_osm_data.join(eval_data.set_index('id'), on='id')
+        logger.debug("Atter merging: train size:" + str(train_data.shape) +
+                     " test size:" + str(eval_data.shape))
+        train_data = self.cleanup_data(train_data)
         features = eval_data.columns.values
         self.target = train_data[label]
         self.combine_data = pd.concat(
@@ -152,6 +148,31 @@ class TaxiTripDuration():
         logger.debug("Original features:" + str(len(features)))
         logger.debug(features)
         logger.info("Data loaded")
+
+    @timecall
+    def load_traffic_orsm_old(self):
+        # Download from:
+        # https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
+        logger.info("Loading OSRM old data ...")
+        train_osm = pd.read_csv(DATA_DIR + "/fastest_route_train.csv")
+        eval_osm = pd.read_csv(DATA_DIR + "/fastest_route_test.csv")
+        logger.debug("train_osm size:" + str(train_osm.shape) +
+                     " test osm size:" + str(eval_osm.shape))
+        return train_osm, eval_osm
+
+    @timecall
+    def load_traffic_orsm(self):
+        # Download from:
+        # https://www.kaggle.com/oscarleo/new-york-city-taxi-with-osrm
+        logger.info("Loading OSRM data ...")
+        fr1 = pd.read_csv(DATA_DIR + '/fastest_routes_train_part_1.csv')
+        fr2 = pd.read_csv(DATA_DIR + '/fastest_routes_train_part_2.csv')
+        train_osm = pd.concat((fr1, fr2))
+        eval_osm = pd.read_csv(DATA_DIR + "/fastest_routes_test.csv")
+
+        logger.debug("train_osm size:" + str(train_osm.shape) +
+                     " test osm size:" + str(eval_osm.shape))
+        return train_osm, eval_osm
 
     @timecall
     def load_and_combine_weather_data(self):
@@ -499,7 +520,7 @@ class TaxiTripDuration():
         data.loc[data[col1] == 0, 'number_of_streets'] = 1
         logger.debug("check for total_distance=0 and haversine_distance=0")
         train_set = data.loc['train'].copy()
-        train_set.loc[:, self.label] = self.target
+        train_set.loc[:, self.label] = self.target.values
         train_set.loc[(train_set[col] == 0.) & (
             train_set[col1] == 0.), self.label] = 0
         self.target = train_set[self.label]
@@ -508,7 +529,7 @@ class TaxiTripDuration():
     def cal_speed(self, distance_col):
         col = 'speed'
         data_speed = self.combine_data.loc['train'].copy()
-        data_speed.loc[:, self.label] = self.target
+        data_speed.loc[:, self.label] = self.target.values
         data_speed.loc[:, col] = data_speed[distance_col] / \
             data_speed[self.label]
         data_speed.loc[:, col].fillna(data_speed[col].mean(), inplace=True)
@@ -661,7 +682,7 @@ class TaxiTripDuration():
     def cal_trip_delay(self):
         col = 'trip_delay'
         data = self.combine_data.loc['train'].copy()
-        data.loc[:, self.label] = self.target
+        data.loc[:, self.label] = self.target.values
         data.loc[:, col] = data[self.label] - data['total_travel_time']
         data.loc[:, col].fillna(0, inplace=True)
         return data
@@ -971,7 +992,7 @@ class TaxiTripDuration():
     def feature_correlation(self):
         logger.info("Feature correlation ...")
         data = self.combine_data.loc['train'].copy()
-        data.loc[:, self.label] = self.target
+        data.loc[:, self.label] = self.target.values
         correlation = data.corr()[self.label].sort_values()
         logger.debug(str(correlation))
 
