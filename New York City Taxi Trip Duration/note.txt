@@ -1697,4 +1697,34 @@
 		* RMSLE without-log: 0.322028878075 =>
 	+ Total time: 89125.10751652718 => 
     + Submision score: 0.36829 => 
+- Round 118: Stack model + kfold
+    + Base model:based round 116
+		* CatBoostRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10,
+			. RMSLE without-log: 0.333471172946 =>
+			. time: 61397.0281829834 =>
+			. LB: 
+		* XGBRegressor:  
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.325821441544 =>
+			. time: 13375.370455026627 =>
+			. LB: 
+		* LGBMRegressor: 
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.323636529191 =>
+			* time: 13432.284525871277 =>
+			. LB: 
+		* target_log = np.log(target)
+		* added feature: PCA for location
+		* cleanup trip_duration>= 1000000
+		* use new osrm data
+		* train time: 88204.68500208855 =>
+		* RMSLE without-log: 0.327643047894 =>
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 
+		* RMSLE without-log: 0.322028878075 =>
+	+ Total time: 89125.10751652718 => 
+    + Submision score: 0.36829 => 	
 		

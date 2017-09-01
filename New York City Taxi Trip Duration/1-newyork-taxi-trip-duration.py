@@ -327,8 +327,10 @@ class TaxiTripDuration():
         size1 = len(data)
         logger.info("Cleanup data. Size before:" + str(size1))
         label = self.label
-        # data = data[(data[label] < 22 * 3600) & (data[label] > 10)]
-        data = data[(data[label] < 22 * 3600)]
+        # data = data[(data[label] < 22 * 3600) & (data[label] > 10)] # => underfit
+        # data = data[(data[label] < 22 * 3600)] # => Best
+        data = data[(data[label] < 1000000)]
+        # data = data[(data[label] > 0)]
         size2 = len(data)
         logger.info("Finish cleanup. Size after:" + str(size2) +
                     " .Total removed:" + str(size1 - size2))
@@ -342,6 +344,7 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_month'] = data['datetime_obj'].dt.month
         data.loc[:, 'pickup_weekday'] = data['datetime_obj'].dt.weekday
         data.loc[:, 'pickup_day'] = data['datetime_obj'].dt.day
+        # data.loc[:, 'pickup_dayofyear'] = data['datetime_obj'].dt.dayofyear
         data.loc[:, 'pickup_hour'] = data['datetime_obj'].dt.hour
         data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * \
             24 + data['pickup_hour']
@@ -1084,14 +1087,14 @@ class TaxiTripDuration():
         params = {
             'objective': 'regression_l2',
             'metric': 'l2_root',
-            'learning_rate': 0.01,
+            'learning_rate': 0.1,
             'num_leaves': 1024,
             # 'max_bin': 1024,
             # 'min_data_in_leaf': 100,
             # 'nthread': -1,
             'verbose': 1
         }
-        early_stopping_rounds = 50
+        early_stopping_rounds = 10
         cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
                             metrics="rmse", shuffle=True,
                             early_stopping_rounds=early_stopping_rounds,
