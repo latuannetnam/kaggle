@@ -55,14 +55,20 @@
 
 #---------------------------------------------------
 12 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
-   - data = data[(data[label] < 22 * 3600)] 
+   - data = data[(data[label] < 22 * 3600)] # 79200
    - cv: 0.329659 + 0.0017467
    - time:681.858535528183
+   - LB. 0.36829
 13 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
    - data = data[(data[label] < 1000000)] 
    - cv: 0.375446 + 0.00217418
    - time: 662.3229517936707
+   - LB. 0.37039
 14 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
    - data = data[(data[label] > 0)] 
    - cv: 0.376231 + 0.00235142
    - time: 546.2754459381104
+14 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
+   - data = data[(data[label] <= 86000)] 
+   - cv: 0.354882 + 0.00146315
+   - time: 551.352 seconds
