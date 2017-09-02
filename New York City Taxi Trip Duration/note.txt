@@ -1671,8 +1671,8 @@
     + Base model:based round 116
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.333471172946 =>
-			. time: 61397.0281829834 =>
+			. RMSLE without-log: 0.333471172946 => 0.333679031229
+			. time: 61397.0281829834 => 71622.44921731949
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
@@ -1701,30 +1701,30 @@
     + Base model:based round 116
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.333471172946 =>
-			. time: 61397.0281829834 =>
+			. RMSLE without-log: 0.327237582388 => 0.385278118506
+			. time: 61397.0281829834 => 45482.87898159027
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.325821441544 =>
-			. time: 13375.370455026627 =>
+			. RMSLE without-log: 0.373226444542 => 0.372961455041
+			. time: 13375.370455026627 => 10105.482141256332
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.323636529191 =>
-			* time: 13432.284525871277 =>
+			. RMSLE without-log: 0.371007161689 => 0.370690316014
+			* time: 13432.284525871277 => 10991.767904043198
 			. LB: 
 		* target_log = np.log(target)
 		* added feature: PCA for location
 		* cleanup trip_duration>= 1000000
 		* use new osrm data
-		* train time: 88204.68500208855 =>
-		* RMSLE without-log: 0.327643047894 =>
+		* train time: 59053.59773540497 => 66580.13073587418
+		* RMSLE without-log: 0.377287411985 => 0.376309963187
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
-		* train time: 
-		* RMSLE without-log: 0.322028878075 =>
-	+ Total time: 89125.10751652718 => 
-    + Submision score: 0.36829 => 	
+		* train time: 619.3691041469574
+		* RMSLE without-log: 0.368994450248 => 0.3687232896
+	+ Total time: 89125.10751652718 => 67259.40835118294
+    + Submision score: 0.37050 => 0.37039	
 		
