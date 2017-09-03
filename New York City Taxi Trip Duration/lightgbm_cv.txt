@@ -72,3 +72,9 @@
    - data = data[(data[label] <= 86000)] 
    - cv: 0.354882 + 0.00146315
    - time: 551.352 seconds
+15 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
+   - data = data[(data[label] < 22 * 3600)] # 79200
+   - added new feature_coordinate
+   - cv: 0.329389 + 0.00158515
+   - time: 598
+   - LB. 

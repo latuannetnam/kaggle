@@ -902,7 +902,7 @@ class TaxiTripDuration():
     # calculate new corrination based on pickup, dropoff location
     @timecall
     def feature_coordinate(self):
-        log.info("Feature engineering: new coordinate")
+        logger.info("Feature engineering: new coordinate")
         data = self.combine_data
         data.loc[:, 'center_latitude'] = (
             data['pickup_latitude'].values + data['dropoff_latitude'].values) / 2
@@ -1914,7 +1914,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 1
+    option = 33
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
