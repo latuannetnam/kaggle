@@ -15,6 +15,7 @@
 # https://www.kaggle.com/gaborfodor/from-eda-to-the-top-lb-0-368/notebook
 # https://www.kaggle.com/headsortails/nyc-taxi-eda-update-the-fast-the-classified/notebook
 # https://www.kaggle.com/onlyshadow/a-practical-guide-to-ny-taxi-data-0-379/notebook
+# https://www.kaggle.com/misfyre/stacking-model-378-lb-375-cv
 
 # System
 import datetime as dtime
@@ -328,10 +329,10 @@ class TaxiTripDuration():
         logger.info("Cleanup data. Size before:" + str(size1))
         label = self.label
         # data = data[(data[label] < 22 * 3600) & (data[label] > 10)] # => underfit
-        # data = data[(data[label] < 22 * 3600)] # => Best
         # data = data[(data[label] < 1000000)] # => stack: 0.3687232896
         # data = data[(data[label] > 0)]
-        data = data[(data[label] <= 86000)]
+        # data = data[(data[label] <= 86000)]
+        data = data[(data[label] < 22 * 3600)]  # => Best
         size2 = len(data)
         logger.info("Finish cleanup. Size after:" + str(size2) +
                     " .Total removed:" + str(size1 - size2))
@@ -345,7 +346,7 @@ class TaxiTripDuration():
         data.loc[:, 'pickup_month'] = data['datetime_obj'].dt.month
         data.loc[:, 'pickup_weekday'] = data['datetime_obj'].dt.weekday
         data.loc[:, 'pickup_day'] = data['datetime_obj'].dt.day
-        # data.loc[:, 'pickup_dayofyear'] = data['datetime_obj'].dt.dayofyear
+        data.loc[:, 'pickup_dayofyear'] = data['datetime_obj'].dt.dayofyear
         data.loc[:, 'pickup_hour'] = data['datetime_obj'].dt.hour
         data.loc[:, 'pickup_whour'] = data['pickup_weekday'] * \
             24 + data['pickup_hour']
@@ -898,6 +899,22 @@ class TaxiTripDuration():
         data.loc[:, 'pca_manhattan'] = np.abs(
             data['dropoff_pca1'] - data['pickup_pca1']) + np.abs(data['dropoff_pca0'] - data['pickup_pca0'])
 
+    # calculate new corrination based on pickup, dropoff location
+    @timecall
+    def feature_coordinate(self):
+        log.info("Feature engineering: new coordinate")
+        data = self.combine_data
+        data.loc[:, 'center_latitude'] = (
+            data['pickup_latitude'].values + data['dropoff_latitude'].values) / 2
+        data.loc[:, 'center_longitude'] = (
+            data['pickup_longitude'].values + data['dropoff_longitude'].values) / 2
+
+        logger.info("Cluster for new coordinate")
+        col_use = ['center_latitude', 'center_longitude']
+        col_cluster = 'center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
     def drop_unused_cols(self):
         data = self.combine_data
         data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
@@ -919,6 +936,7 @@ class TaxiTripDuration():
         self.feature_direction()
         self.feature_cluster()
         self.feature_pca()
+        self.feature_coordinate()
 
         # Expriment
         # self.feature_cluster_count()
@@ -1896,7 +1914,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 7
+    option = 1
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)

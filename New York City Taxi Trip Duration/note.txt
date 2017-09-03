@@ -1731,18 +1731,18 @@
     + Base model:based round 118
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.385278118506 =>
-			. time: 45482.87898159027 =>
+			. RMSLE without-log: 0.385278118506 => 0.360560553087
+			. time: 45482.87898159027 => 53560.22021651268
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.372961455041 =>
-			. time: 10105.482141256332 =>
+			. RMSLE without-log: 0.372961455041 => 0.351125912876
+			. time: 10105.482141256332 => 11409.517009973526
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.370690316014 =>
-			* time: 10991.767904043198 =>
+			. RMSLE without-log: 0.370690316014 => 0.349092162992
+			* time: 10991.767904043198 => 12069.585541963577
 			. LB: 
 		* target_log = np.log(target)
 		* added feature: PCA for location
@@ -1753,8 +1753,8 @@
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
-		* train time: 619.3691041469574
-		* RMSLE without-log: 0.3687232896 =>
-	+ Total time: 67259.40835118294 =>
-    + Submision score: 0.37039 => 		
+		* train time: 597.9565739631653	
+		* RMSLE without-log: 0.3687232896 => 0.347164310051
+	+ Total time: 67259.40835118294 => 77718.83980798721
+    + Submision score: 0.37039 => 0.36973		
 		
