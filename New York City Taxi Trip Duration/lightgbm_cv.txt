@@ -68,13 +68,26 @@
    - data = data[(data[label] > 0)] 
    - cv: 0.376231 + 0.00235142
    - time: 546.2754459381104
-14 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
+15 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
    - data = data[(data[label] <= 86000)] 
    - cv: 0.354882 + 0.00146315
    - time: 551.352 seconds
-15 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
+   - LB: 0.36973 
+16 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
    - data = data[(data[label] < 22 * 3600)] # 79200
    - added new feature_coordinate
    - cv: 0.329389 + 0.00158515
    - time: 598
-   - LB. 
+17 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
+   - data = data[(data[label] < 22 * 3600)] # 79200
+   - added new center corrdinate
+   - feature cluster: day, dayofyear, center corrdinate 
+   - cv: 0.328975 + 0.00122347 => Best
+   - time: 727
+18 - params: 'learning_rate': 0.1, 'num_leaves': 1024, 'num_round': 300
+   - data = data[(data[label] < 22 * 3600)] # 79200
+   - added new center corrdinate
+   - feature cluster: day, dayofyear, center corrdinate, total_distance 
+   - cv: 0.328975 + 0.00122347 => 0.330183
+   - time: 771
+   

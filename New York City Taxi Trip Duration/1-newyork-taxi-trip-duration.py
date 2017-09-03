@@ -764,65 +764,172 @@ class TaxiTripDuration():
         col_cluster = 'dropoff_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
-        # experiment
+
+        logger.info("Cluster for center coordinate")
+        col_use = ['center_latitude', 'center_longitude']
+        col_cluster = 'center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        # 'pickup_latitude', 'pickup_longitude'
         logger.info("Cluster for pickup location and pickup_hour")
         col_use = ['pickup_hour', 'pickup_latitude', 'pickup_longitude']
-        col_cluster = 'pk_hour_pickup_location_cluster'
+        col_cluster = 'hour_pickup_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for pickup location and pickup_whour")
         col_use = ['pickup_whour', 'pickup_latitude', 'pickup_longitude']
-        col_cluster = 'pk_whour_pickup_location_cluster'
+        col_cluster = 'whour_pickup_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for pickup location and pickup_weekday")
         col_use = ['pickup_weekday', 'pickup_latitude', 'pickup_longitude']
-        col_cluster = 'pk_weekday_pickup_location_cluster'
+        col_cluster = 'weekday_pickup_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
-        # experiment 2
+        logger.info("Cluster for pickup location and pickup_day")
+        col_use = ['pickup_day', 'pickup_latitude', 'pickup_longitude']
+        col_cluster = 'day_pickup_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for pickup location and pickup_dayofyear")
+        col_use = ['pickup_dayofyear', 'pickup_latitude', 'pickup_longitude']
+        col_cluster = 'dayofyear_pickup_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        # 'dropoff_latitude', 'dropoff_longitude'
         logger.info("Cluster for drop-off location and pickup_hour")
         col_use = ['pickup_hour', 'dropoff_latitude', 'dropoff_longitude']
-        col_cluster = 'pk_hour_dropoff_location_cluster'
+        col_cluster = 'hour_dropoff_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for drop-off location and pickup_whour")
         col_use = ['pickup_whour', 'dropoff_latitude', 'dropoff_longitude']
-        col_cluster = 'pk_whour_dropoff_location_cluster'
+        col_cluster = 'whour_dropoff_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for drop-off location and pickup_weekday")
         col_use = ['pickup_weekday', 'dropoff_latitude', 'dropoff_longitude']
-        col_cluster = 'pk_weekday_dropoff_location_cluster'
+        col_cluster = 'weekday_dropoff_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
-        # expriement 3
+        logger.info("Cluster for drop-off location and pickup_day")
+        col_use = ['pickup_day', 'dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'day_dropoff_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for drop-off location and pickup_dayofyear")
+        col_use = ['pickup_dayofyear', 'dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'dayofyear_dropoff_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        # pickup + drop-off
         logger.info("Cluster for pickup + drop-off location and pickup_hour")
         col_use = ['pickup_hour', 'pickup_latitude',
                    'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']
-        col_cluster = 'pk_hour_location_cluster'
+        col_cluster = 'hour_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for pickup + drop-off location and pickup_whour")
         col_use = ['pickup_whour', 'pickup_latitude',
                    'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']
-        col_cluster = 'pk_whour_location_cluster'
+        col_cluster = 'whour_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
         logger.info("Cluster for pickup + drop-off location and pickup_weekday")
         col_use = ['pickup_weekday', 'pickup_latitude',
                    'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']
-        col_cluster = 'pk_weekday_location_cluster'
+        col_cluster = 'weekday_location_cluster'
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for pickup + drop-off location and pickup_day")
+        col_use = ['pickup_day', 'pickup_latitude',
+                   'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'day_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for pickup + drop-off location and pickup_dayofyear")
+        col_use = ['pickup_dayofyear', 'pickup_latitude',
+                   'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']
+        col_cluster = 'dayofyear_location_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        # center coordinate
+        logger.info("Cluster for center coordinate and pickup_hour")
+        col_use = ['pickup_hour', 'center_latitude', 'center_longitude']
+        col_cluster = 'hour_center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for center coordinate and pickup_whour")
+        col_use = ['pickup_whour', 'center_latitude', 'center_longitude']
+        col_cluster = 'whour_center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for center coordinate and pickup_weekday")
+        col_use = ['pickup_weekday', 'center_latitude', 'center_longitude']
+        col_cluster = 'weekday_center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for center coordinate and pickup_day")
+        col_use = ['pickup_day', 'center_latitude', 'center_longitude']
+        col_cluster = 'day_center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        logger.info("Cluster for center coordinate and pickup_dayofyear")
+        col_use = ['pickup_dayofyear', 'center_latitude', 'center_longitude']
+        col_cluster = 'dayofyear_center_cluster'
+        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        data.loc[:, col_cluster] = clusters
+
+        # total_distance
+        # logger.info("Cluster for total_distance and pickup_hour")
+        # col_use = ['pickup_hour', 'total_distance']
+        # col_cluster = 'hour_distance_cluster'
+        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        # data.loc[:, col_cluster] = clusters
+
+        # logger.info("Cluster for total_distance and pickup_whour")
+        # col_use = ['pickup_whour', 'total_distance']
+        # col_cluster = 'whour_distance_cluster'
+        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        # data.loc[:, col_cluster] = clusters
+
+        # logger.info("Cluster for total_distance and pickup_weekday")
+        # col_use = ['pickup_weekday', 'total_distance']
+        # col_cluster = 'weekday_distance_cluster'
+        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        # data.loc[:, col_cluster] = clusters
+
+        # logger.info("Cluster for total_distance and pickup_day")
+        # col_use = ['pickup_day', 'total_distance']
+        # col_cluster = 'day_distance_cluster'
+        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        # data.loc[:, col_cluster] = clusters
+
+        # logger.info("Cluster for total_distance and pickup_dayofyear")
+        # col_use = ['pickup_dayofyear', 'total_distance']
+        # col_cluster = 'dayofyear_distance_cluster'
+        # clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
+        # data.loc[:, col_cluster] = clusters
 
     # Calculate count by cluster
     @timecall
@@ -909,12 +1016,6 @@ class TaxiTripDuration():
         data.loc[:, 'center_longitude'] = (
             data['pickup_longitude'].values + data['dropoff_longitude'].values) / 2
 
-        logger.info("Cluster for new coordinate")
-        col_use = ['center_latitude', 'center_longitude']
-        col_cluster = 'center_cluster'
-        clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
-        data.loc[:, col_cluster] = clusters
-
     def drop_unused_cols(self):
         data = self.combine_data
         data.drop(['pickup_datetime', 'datetime_obj', 'starting_street',
@@ -934,9 +1035,9 @@ class TaxiTripDuration():
         self.feature_right_turns()
         self.feature_total_turns()
         self.feature_direction()
-        self.feature_cluster()
         self.feature_pca()
         self.feature_coordinate()
+        self.feature_cluster()
 
         # Expriment
         # self.feature_cluster_count()
@@ -1914,7 +2015,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 33
+    option = 7
     model_choice = XGB
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
