@@ -27,6 +27,7 @@
  - Best model: round 114: 0.37157 (Stack model + kfold (added weather_data,PCA for location))  
  - Best model: round 115: 0.37050 (Stack model + kfold (added weather_data,PCA for location, removed: cleanup invalid trip_duration))=> reduce overfit 
  - Best model: round 116: 0.36829 (Stack model + kfold (added weather_data,PCA for location, cleanup trip_duration> 22*3600))
+ - Best model: round 120: 0.36780 (Stack model + kfold (added features cluster: day, dayofyear, center coordinate)) 
  
  
 1. 2017-07-21
@@ -1763,18 +1764,18 @@
     + Base model:based round 117
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.333679031229 =>
-			. time: 71622.44921731949 =>
+			. RMSLE without-log: 0.333679031229 => 0.333537212449
+			. time: 71622.44921731949 => 65639.8083229065
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.325981278733 =>
-			. time: 14417.451380729675 => 
+			. RMSLE without-log: 0.325981278733 => 0.324881245082
+			. time: 14417.451380729675 => 15774.599432945251
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.323638516817 =>
-			* time: 14623.296204328537 =>
+			. RMSLE without-log: 0.323638516817 => 0.323155644191
+			* time: 14623.296204328537 => 19118.618359565735
 			. LB: 
 		* target_log = np.log(target)
 		* added feature: PCA for location
@@ -1782,13 +1783,13 @@
 		* use new osrm data
 		* new feature: center coordinate
 		* new features cluster: day, dayofyear, center corrdinate
-		* train time: 100663.198720932 =>
-		* RMSLE without-log: 0.327766275593 =>
+		* train time: 100663.198720932 => 100533.13107514381
+		* RMSLE without-log: 0.327766275593 => 0.327191367241
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
 		* train time: 
-		* RMSLE without-log: 0.322005743723 =>
-	+ Total time: 101403.87996983528 =>
-    + Submision score: 0.36872 => 
+		* RMSLE without-log: 0.322005743723 => 0.321297416885
+	+ Total time: 101403.87996983528 => 101239.12630271912
+    + Submision score: 0.36872 => 0.36780 => Best
 		
