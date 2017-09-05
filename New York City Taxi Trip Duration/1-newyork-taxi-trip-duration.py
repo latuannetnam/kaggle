@@ -89,6 +89,7 @@ XGB = 1
 VW = 2
 CATBOOST = 3
 LIGHTGBM = 4
+ETREE = 5
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 1, 'max_depth': 10 => Best
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
@@ -99,8 +100,8 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
-N_ROUNDS = 20000
-# N_ROUNDS = 2
+# N_ROUNDS = 20000
+N_ROUNDS = 100
 LOG_LEVEL = logging.DEBUG
 
 
@@ -1249,14 +1250,24 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=20000,  # => overfit if iteration > 20k
-            # iterations=2,
+            # iterations=20000,  # => overfit if iteration > 20k
+            iterations=100,
             learning_rate=0.1,
             depth=MAX_DEPTH,
             loss_function='RMSE',
             random_seed=random_state,
             use_best_model=True, train_dir=DATA_DIR + "/node_modules",
             verbose=True)
+        return model
+
+    def etree_model(self, random_state=911):
+        model = ExtraTreesRegressor(
+            n_estimators=100,  #
+            # n_estimators=10,  #
+            max_depth=50,  # RMSLE: 0.345792675039
+            random_state=random_state,
+            n_jobs=-1,
+            verbose=2)
         return model
 
     @timecall
@@ -1280,6 +1291,7 @@ class TaxiTripDuration():
                         ]
         logger.debug("Categorial features:")
         logger.debug(cat_features)
+        logger.debug("Training ...")
         # logger.debug(train_set[cat_features].describe())
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
@@ -1306,6 +1318,11 @@ class TaxiTripDuration():
                 # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
+        elif model_choice == ETREE:
+            self.model = self.etree_model()
+            self.model.fit(
+                X_train, Y_train
+            )
         else:
             self.model = self.xgb_model()
             self.model.fit(
@@ -1317,7 +1334,7 @@ class TaxiTripDuration():
 
         end = time.time() - start
         model_name = self.model.__class__.__name__
-        logger.debug("Done training for" + model_name + ". Time:" + str(end))
+        logger.debug("Done training for " + model_name + ". Time:" + str(end))
         if model_choice == LIGHTGBM:
             logger.debug("Predicting for:" + str(model_choice) +
                          ". Best round:" + str(self.model.best_iteration))
@@ -1335,12 +1352,12 @@ class TaxiTripDuration():
             y_pred = self.model.predict(
                 X_test, ntree_limit=self.model.tree_count_, verbose=True)
         else:
+            logger.debug("Predicting for:" + str(model_choice))
             y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
         logger.debug("RMSLE score:" + str(score) +
                      " RMSLE without-log:" + str(score1))
-        print(y_pred[:5])
         quit()
 
     # Train using Kflow
@@ -1638,10 +1655,12 @@ class TaxiTripDuration():
         # models.append(self.lgbm_model(random_state=123))
         # models.append(self.lgbm_model(random_state=789))
         # models.append(self.xgb_model(learning_rate=0.03, random_state=456))
+        models.append(self.etree_model(random_state=911))
         models.append(self.catboost_model())
         models.append(self.xgb_model(
             learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
+
         return models
 
     # Kfold, train for each model, stack result
@@ -1735,7 +1754,7 @@ class TaxiTripDuration():
                     S_test_i[:, j] = model.predict(
                         T_in, ntree_limit=model.tree_count_)[:]
                 else:
-                    model.fit(X_train, y_train)
+                    model.fit(X_train, Y_train)
                     logger.debug("fold:" + str(j + 1) +
                                  " done training. Predicting for RMSLE")
                     y_pred = model.predict(X_holdout)[:]
@@ -2016,7 +2035,7 @@ class TaxiTripDuration():
 if __name__ == "__main__":
     start = time.time()
     option = 7
-    model_choice = XGB
+    model_choice = ETREE
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
