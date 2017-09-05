@@ -100,8 +100,8 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
-# N_ROUNDS = 20000
-N_ROUNDS = 100
+N_ROUNDS = 20000
+# N_ROUNDS = 100
 LOG_LEVEL = logging.DEBUG
 
 
@@ -1250,8 +1250,8 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            # iterations=20000,  # => overfit if iteration > 20k
-            iterations=100,
+            iterations=20000,  # => overfit if iteration > 20k
+            # iterations=100,
             learning_rate=0.1,
             depth=MAX_DEPTH,
             loss_function='RMSE',
