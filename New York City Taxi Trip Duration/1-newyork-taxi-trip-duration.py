@@ -863,7 +863,8 @@ class TaxiTripDuration():
         clusters = self.cal_cluster(data[col_use], N_CLUSTERS)
         data.loc[:, col_cluster] = clusters
 
-        logger.info("Cluster for pickup + drop-off location and pickup_dayofyear")
+        logger.info(
+            "Cluster for pickup + drop-off location and pickup_dayofyear")
         col_use = ['pickup_dayofyear', 'pickup_latitude',
                    'pickup_longitude', 'dropoff_latitude', 'dropoff_longitude']
         col_cluster = 'dayofyear_location_cluster'
@@ -1252,9 +1253,13 @@ class TaxiTripDuration():
         model = CatBoostRegressor(
             iterations=20000,  # => overfit if iteration > 20k
             # iterations=100,
+            od_pval=None,
+            od_type="Iter",
+            od_wait=100,
             learning_rate=0.1,
             depth=MAX_DEPTH,
             loss_function='RMSE',
+            eval_metric='RMSE',
             random_seed=random_state,
             use_best_model=True, train_dir=DATA_DIR + "/node_modules",
             verbose=True)
@@ -2035,7 +2040,7 @@ class TaxiTripDuration():
 if __name__ == "__main__":
     start = time.time()
     option = 7
-    model_choice = ETREE
+    model_choice = CATBOOST
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
