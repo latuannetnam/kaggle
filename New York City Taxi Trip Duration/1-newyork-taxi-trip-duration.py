@@ -31,7 +31,7 @@ import subprocess
 import os
 import logging
 import copy
-
+import gc
 # data processing
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -1255,7 +1255,7 @@ class TaxiTripDuration():
             # iterations=100,
             od_pval=None,
             od_type="Iter",
-            od_wait=100,
+            od_wait=300,
             learning_rate=0.1,
             depth=MAX_DEPTH,
             loss_function='RMSE',
@@ -1660,11 +1660,11 @@ class TaxiTripDuration():
         # models.append(self.lgbm_model(random_state=123))
         # models.append(self.lgbm_model(random_state=789))
         # models.append(self.xgb_model(learning_rate=0.03, random_state=456))
-        models.append(self.etree_model(random_state=911))
         models.append(self.catboost_model())
         models.append(self.xgb_model(
             learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
+        models.append(self.etree_model(random_state=911))
 
         return models
 

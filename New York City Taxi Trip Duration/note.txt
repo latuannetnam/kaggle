@@ -1839,7 +1839,7 @@
 			. time: 
 			. LB: 
 		* CatBoostRegressor:  
-			. 'learning_rate': 0.1, 'max_depth': 10, od_pval=None, od_type="Iter", od_wait=100,
+			. 'learning_rate': 0.1, 'max_depth': 10, od_pval=None, od_type="Iter", od_wait=300,
 			. RMSLE without-log: 0.333537212449 =>
 			. time: 65639.8083229065 =>
 			. LB: 
