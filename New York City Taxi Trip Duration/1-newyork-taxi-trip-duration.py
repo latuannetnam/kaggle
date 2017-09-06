@@ -1783,6 +1783,7 @@ class TaxiTripDuration():
             # cleanup memory
             del S_test_i
             del model
+            gc.collect()
             # end of for i
 
         end = time.time() - start
