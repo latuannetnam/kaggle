@@ -1704,9 +1704,9 @@ class TaxiTripDuration():
             logger.debug("Base model " + str(i + 1) + ":" + model_name)
             S_test_i = np.zeros((T_in.shape[0], n_folds))
             model_rmse = 0
+            model = models[i]
             for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
                 # model = copy.copy(models[i])
-                model = models[i]
                 logger.debug("fold:" + str(j + 1) + " begin training ...")
                 X_train = X_in[train_idx]
                 Y_train = Y_in[train_idx]
@@ -1782,6 +1782,7 @@ class TaxiTripDuration():
                          ". Trained time:" + str(end_sub))
             # cleanup memory
             del S_test_i
+            del model
             # end of for i
 
         end = time.time() - start
