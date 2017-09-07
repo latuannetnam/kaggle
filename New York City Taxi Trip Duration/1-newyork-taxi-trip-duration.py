@@ -90,6 +90,7 @@ VW = 2
 CATBOOST = 3
 LIGHTGBM = 4
 ETREE = 5
+RTREE = 6
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 1, 'max_depth': 10 => Best
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
@@ -1275,6 +1276,16 @@ class TaxiTripDuration():
             verbose=2)
         return model
 
+    def rtree_model(self, random_state=1177):
+        model = RandomForestRegressor(
+            n_estimators=100,  #
+            # n_estimators=10,  #
+            max_depth=50,  # RMSLE: 0.345792675039
+            random_state=random_state,
+            n_jobs=-1,
+            verbose=2)
+        return model
+
     @timecall
     def train_model(self):
         model_choice = self.model_choice
@@ -1323,12 +1334,7 @@ class TaxiTripDuration():
                 # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
-        elif model_choice == ETREE:
-            self.model = self.etree_model()
-            self.model.fit(
-                X_train, Y_train
-            )
-        else:
+        elif model_choice == XGB:
             self.model = self.xgb_model()
             self.model.fit(
                 X_train, Y_train, eval_set=[(X_test, Y_test)],
@@ -1336,7 +1342,16 @@ class TaxiTripDuration():
                 early_stopping_rounds=early_stopping_rounds,
                 verbose=early_stopping_rounds
             )
-
+        elif model_choice == ETREE:
+                self.model = self.etree_model()
+                self.model.fit(
+                    X_train, Y_train
+                )
+        elif model_choice == RTREE:
+                self.model = self.rtree_model()
+                self.model.fit(
+                    X_train, Y_train
+                )
         end = time.time() - start
         model_name = self.model.__class__.__name__
         logger.debug("Done training for " + model_name + ". Time:" + str(end))
@@ -2043,7 +2058,7 @@ class TaxiTripDuration():
 if __name__ == "__main__":
     start = time.time()
     option = 2
-    model_choice = CATBOOST
+    model_choice = RTREE
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
