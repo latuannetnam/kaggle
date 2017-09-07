@@ -1253,9 +1253,9 @@ class TaxiTripDuration():
         model = CatBoostRegressor(
             iterations=20000,  # => overfit if iteration > 20k
             # iterations=100,
-            od_pval=0.01,
-            od_type="IncToDec",
-            od_wait=100,
+            od_pval=None,
+            od_type="Iter",
+            od_wait=150,
             learning_rate=0.1,
             depth=MAX_DEPTH,
             loss_function='RMSE',
