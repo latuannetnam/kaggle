@@ -28,6 +28,7 @@
  - Best model: round 115: 0.37050 (Stack model + kfold (added weather_data,PCA for location, removed: cleanup invalid trip_duration))=> reduce overfit 
  - Best model: round 116: 0.36829 (Stack model + kfold (added weather_data,PCA for location, cleanup trip_duration> 22*3600))
  - Best model: round 120: 0.36780 (Stack model + kfold (added features cluster: day, dayofyear, center coordinate)) 
+ - Best model: round 121: 0.36742 (Stack model + kfold (added ExtraTreesRegressor)  
  
  
 1. 2017-07-21
@@ -1798,23 +1799,23 @@
     + Base model:based round 120
 		* ExtraTreesRegressor :  
 			. 'n_estimators': 100, 'max_depth': 50,
-			. RMSLE without-log: 
-			. time: 
+			. RMSLE without-log: 0.345729987977
+			. time: 3698.64675283432
 			. LB: 
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10,
-			. RMSLE without-log: 0.333537212449 =>
-			. time: 65639.8083229065 =>
+			. RMSLE without-log: 0.333537212449 => 0.336155161675
+			. time: 65639.8083229065 => 58679.36430954933
 			. LB: 
 		* XGBRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.324881245082 =>
-			. time: 15774.599432945251 =>
+			. RMSLE without-log: 0.324881245082 => 0.325081175639
+			. time: 15774.599432945251 => 17013.28400206566
 			. LB: 
 		* LGBMRegressor: 
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.323155644191 =>
-			* time: 19118.618359565735 =>
+			. RMSLE without-log: 0.323155644191 => 0.323267762006
+			* time: 19118.618359565735 => 18794.920040369034
 			. LB: 
 		* target_log = np.log(target)
 		* added feature: PCA for location
@@ -1822,21 +1823,21 @@
 		* use new osrm data
 		* new feature: center coordinate
 		* new features cluster: day, dayofyear, center corrdinate
-		* train time: 100533.13107514381 =>
-		* RMSLE without-log: 0.327191367241 =>
+		* train time: 100533.13107514381 => 98186.22722315788
+		* RMSLE without-log: 0.327191367241 => 0.332558521824
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
-		* train time: 
-		* RMSLE without-log: 0.321297416885 =>
-	+ Total time: 101239.12630271912 =>
-    + Submision score: 0.36780 => 
+		* train time: 753.3550684452057
+		* RMSLE without-log: 0.321297416885 => 0.320487490945
+	+ Total time: 101239.12630271912 => 99006.59552669525
+    + Submision score: 0.36780 => 0.36742 => Best
 - Round 122: Stack model + kfold (rd-ml3)
     + Base model:based round 120
 		* ExtraTreesRegressor :  
 			. 'n_estimators': 100, 'max_depth': 50,
-			. RMSLE without-log: 
-			. time: 
+			. RMSLE without-log: 0.345729987977 =>
+			. time: 3698.64675283432 =>
 			. LB: 
 		* CatBoostRegressor:  
 			. 'learning_rate': 0.1, 'max_depth': 10, od_pval=None, od_type="Iter", od_wait=300,
@@ -1867,5 +1868,5 @@
 		* train time: 
 		* RMSLE without-log: 0.321297416885 =>
 	+ Total time: 101239.12630271912 =>
-    + Submision score: 0.36780 => 	
+    + Submision score: 0.36742 => 	
 		
