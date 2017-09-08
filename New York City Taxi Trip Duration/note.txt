@@ -1875,7 +1875,7 @@
     + Submision score: 0.36742 => 		
 
 2017-09-08:	
-- Round 123: Stack model + kfold (rd-ml2)
+- Round 123: Stack model + kfold (rd-ml3)
     + Base model:based round 122
 		* RandomForestRegressor :  
 			. 'n_estimators': 100, 'max_depth': 50,

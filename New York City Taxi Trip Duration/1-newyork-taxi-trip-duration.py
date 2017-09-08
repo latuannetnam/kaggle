@@ -1687,10 +1687,10 @@ class TaxiTripDuration():
         kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
         S_train = np.zeros(X_in.shape[0])
         S_test = np.zeros(T_in.shape[0])
-        logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
-                     str(S_test.shape))
         model_name = model.__class__.__name__
         logger.debug("Base model " + model_name)
+        logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
+                     str(S_test.shape))
         early_stopping_rounds = 50
         S_test_i = np.zeros((T_in.shape[0], n_folds))
         model_rmse = 0
@@ -1793,6 +1793,9 @@ class TaxiTripDuration():
         test_file = DATA_DIR + '/test_stack-' + \
             model_name + '_' + str(model_index) + '.csv'
         d_test.to_csv(test_file, columns=['id', col], index=False)
+        # cleanup memory
+        del d_train
+        del d_test
         return train_file, test_file
 
     # Kfold, train for each model, stack result
