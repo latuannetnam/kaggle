@@ -1253,8 +1253,8 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            # iterations=20000,  # => overfit if iteration > 20k
-            iterations=10,
+            iterations=20000,  # => overfit if iteration > 20k
+            # iterations=10,
             od_pval=None,
             od_type="Iter",
             od_wait=150,
