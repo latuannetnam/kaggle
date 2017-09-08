@@ -83,6 +83,7 @@ pd.options.display.float_format = '{:,.4f}'.format
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
 N_FOLDS = 5
+# N_FOLDS = 2
 N_CLUSTERS = 200  # Kmeans number of cluster
 # Model choice
 XGB = 1
@@ -102,7 +103,7 @@ MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 20000
-# N_ROUNDS = 100
+# N_ROUNDS = 10
 LOG_LEVEL = logging.DEBUG
 
 
@@ -1252,8 +1253,8 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=20000,  # => overfit if iteration > 20k
-            # iterations=100,
+            # iterations=20000,  # => overfit if iteration > 20k
+            iterations=10,
             od_pval=None,
             od_type="Iter",
             od_wait=150,
@@ -1270,7 +1271,7 @@ class TaxiTripDuration():
         model = ExtraTreesRegressor(
             n_estimators=100,  #
             # n_estimators=10,  #
-            max_depth=50,  # RMSLE: 0.345792675039
+            max_depth=50,  # RMSLE: 0.345729987977
             random_state=random_state,
             n_jobs=-1,
             verbose=2)
@@ -1280,7 +1281,7 @@ class TaxiTripDuration():
         model = RandomForestRegressor(
             n_estimators=100,  #
             # n_estimators=10,  #
-            max_depth=50,  # RMSLE: 0.345792675039
+            max_depth=50,  # RMSLE: 0.345309800425
             random_state=random_state,
             n_jobs=-1,
             verbose=2)
@@ -1343,15 +1344,15 @@ class TaxiTripDuration():
                 verbose=early_stopping_rounds
             )
         elif model_choice == ETREE:
-                self.model = self.etree_model()
-                self.model.fit(
-                    X_train, Y_train
-                )
+            self.model = self.etree_model()
+            self.model.fit(
+                X_train, Y_train
+            )
         elif model_choice == RTREE:
-                self.model = self.rtree_model()
-                self.model.fit(
-                    X_train, Y_train
-                )
+            self.model = self.rtree_model()
+            self.model.fit(
+                X_train, Y_train
+            )
         end = time.time() - start
         model_name = self.model.__class__.__name__
         logger.debug("Done training for " + model_name + ". Time:" + str(end))
@@ -1671,21 +1672,201 @@ class TaxiTripDuration():
     def build_models_level1(self):
         logger.info('Bulding models level 1..')
         models = []
-        # model_name = model.__class__.__name__
-        # models.append(self.lgbm_model(random_state=123))
-        # models.append(self.lgbm_model(random_state=789))
-        # models.append(self.xgb_model(learning_rate=0.03, random_state=456))
+        models.append(self.rtree_model(random_state=1171))
+        models.append(self.etree_model(random_state=911))
         models.append(self.catboost_model())
         models.append(self.xgb_model(
             learning_rate=LEARNING_RATE, random_state=1000))
         models.append(self.lgbm_model(random_state=1024))
-        models.append(self.etree_model(random_state=911))
-
         return models
+
+    # Kfold, train for single model in stack
+    @timecall
+    def train_base_single_model(self, model_index, model, X_in, Y_in, T_in):
+        n_folds = N_FOLDS
+        kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
+        S_train = np.zeros(X_in.shape[0])
+        S_test = np.zeros(T_in.shape[0])
+        logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
+                     str(S_test.shape))
+        model_name = model.__class__.__name__
+        logger.debug("Base model " + model_name)
+        early_stopping_rounds = 50
+        S_test_i = np.zeros((T_in.shape[0], n_folds))
+        model_rmse = 0
+        start_sub = time.time()
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
+            logger.debug("fold:" + str(j + 1) + " begin training ...")
+            X_train = X_in[train_idx]
+            Y_train = Y_in[train_idx]
+            X_holdout = X_in[test_idx]
+            y_holdout = Y_in[test_idx]
+            if model_name == 'XGBRegressor':
+                model.fit(
+                    X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
+                    eval_metric="rmse",
+                    early_stopping_rounds=early_stopping_rounds,
+                    verbose=10
+                )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Best round:" +
+                             str(model.best_ntree_limit) + " . Predicting for RMSLE")
+                y_pred = model.predict(
+                    X_holdout, ntree_limit=model.best_ntree_limit)[:]
+                S_train[test_idx] = y_pred
+                S_test_i[:, j] = model.predict(
+                    T_in, ntree_limit=model.best_ntree_limit)[:]
+            elif model_name == 'LGBMRegressor':
+                model.fit(
+                    X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
+                    eval_metric="rmse",
+                    early_stopping_rounds=early_stopping_rounds,
+                    verbose=10,
+                    # feature_name=features,
+                    # categorical_feature=cat_features
+                    # categorical_feature=categorical_features_indices
+                )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Best round:" +
+                             str(model.best_iteration) + " . Predicting for RMSLE")
+                y_pred = model.predict(
+                    X_holdout, num_iteration=model.best_iteration)[:]
+                S_train[test_idx] = y_pred
+                S_test_i[:, j] = model.predict(
+                    T_in, num_iteration=model.best_iteration)[:]
+            elif model_name == "CatBoostRegressor":
+                model.fit(
+                    X_train, Y_train, eval_set=(X_holdout, y_holdout),
+                    use_best_model=True,
+                    verbose=True
+                )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Best round:" +
+                             str(model.tree_count_) + " . Predicting for RMSLE")
+                y_pred = model.predict(
+                    X_holdout, ntree_limit=model.tree_count_, verbose=True)
+                S_train[test_idx] = y_pred
+                S_test_i[:, j] = model.predict(
+                    T_in, ntree_limit=model.tree_count_)[:]
+            else:
+                model.fit(X_train, Y_train)
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Predicting for RMSLE")
+                y_pred = model.predict(X_holdout)[:]
+                S_train[test_idx] = y_pred
+                S_test_i[:, j] = model.predict(T_in)[:]
+
+            rmse1 = self.rmsle(y_holdout, y_pred, log=False)
+            model_rmse = model_rmse + rmse1
+            logger.debug("fold:" + str(j + 1) + " rmse:" + str(rmse1))
+            # end of for j
+
+        S_test = S_test_i.mean(1)
+        logger.debug("Saving trained model data ...")
+        train_file, test_file = self.save_trained_single_model_data(
+            model_index, model_name, S_train, S_test)
+        end_sub = time.time() - start_sub
+        logger.debug("Model rmse:" + str(model_rmse / (j + 1)))
+        logger.debug("Done training for " + model_name +
+                     ". Trained time:" + str(end_sub))
+        # cleanup memory
+        del S_train
+        del S_test
+        del S_test_i
+        del model
+        gc.collect()
+        # end of for i
+        return model_rmse, train_file, test_file
+
+    # save pretrained data from train_base_single_model
+    @timecall
+    def save_trained_single_model_data(self, model_index, model_name, X_in, T_in):
+        logger.info("Saving pretrained data .. ")
+        col = str(model_index)
+        d_train = pd.DataFrame(data=X_in, columns=[col])
+        d_train['id'] = self.train_data['id']
+        train_file = DATA_DIR + '/train_stack-' + \
+            model_name + '_' + str(model_index) + '.csv'
+        d_train.to_csv(train_file, columns=['id', col], index=False)
+        d_test = pd.DataFrame(data=T_in, columns=[col])
+        d_test['id'] = self.eval_data['id']
+        test_file = DATA_DIR + '/test_stack-' + \
+            model_name + '_' + str(model_index) + '.csv'
+        d_test.to_csv(test_file, columns=['id', col], index=False)
+        return train_file, test_file
 
     # Kfold, train for each model, stack result
     @timecall
     def train_base_models(self):
+        # Credit
+        # to:https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
+        logger.info("Prepare data to train base model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        total_rmse = 0
+        X_in = train_set.values
+        Y_in = target_log.values
+        T_in = self.eval_data.drop(
+            ['id'], axis=1).astype(float).values
+        models = self.build_models_level1()
+        logger.info("Training for model level 1 ...")
+        logger.debug("X shape:" + str(X_in.shape) + " Y shape:" +
+                     str(Y_in.shape) + " Test shape:" + str(T_in.shape))
+        all_rmse = 0
+        early_stopping_rounds = 50
+        start = time.time()
+        train_files = []
+        test_files = []
+        start = time.time()
+        for i in range(len(models)):
+            model = models[i]
+            model_rmse, train_file, test_file = self.train_base_single_model(
+                i, model, X_in, Y_in, T_in)
+            all_rmse = all_rmse + model_rmse
+            train_files.append(train_file)
+            test_files.append(test_file)
+        logger.debug("Saving all trained model datas ... ")
+        self.save_trained_models_data(train_files, test_files)
+        end = time.time() - start
+        logger.debug("All AVG rmse:" + str(all_rmse / len(models)))
+        logger.info("Done training base models:" + str(end))
+
+    # combine all trained model datas into 1 train_stack and test_stack
+    @timecall
+    def save_trained_models_data(self, train_files, test_files):
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_datas = []
+        begin = True
+        for i, train_file in enumerate(train_files):
+            train_data = pd.read_csv(train_file)
+            if begin:
+                total_train_data = train_data
+                begin = False
+            else:
+                total_train_data = total_train_data.join(
+                    train_data.set_index('id'), on='id', rsuffix=str(i))
+        total_train_data.loc[:, self.label] = target_log.values
+        total_train_data.to_csv(DATA_DIR + '/train_stack.csv', index=False)
+
+        begin = True
+        for i, test_file in enumerate(test_files):
+            test_data = pd.read_csv(test_file)
+            if begin:
+                total_test_data = test_data
+                begin = False
+            else:
+                total_test_data = total_test_data.join(
+                    test_data.set_index('id'), on='id', rsuffix=str(i))
+        total_test_data.to_csv(DATA_DIR + '/test_stack.csv', index=False)
+
+    # Kfold, train for each model, stack result
+    @timecall
+    def train_base_models_old(self):
         # Credit
         # to:https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
         logger.info("Prepare data to train base model")
@@ -1802,7 +1983,7 @@ class TaxiTripDuration():
             # end of for i
 
         end = time.time() - start
-        logger.debug("All AVG rmse:" + str(all_rmse / (j + 1) / len(models)))
+        logger.debug("All AVG rmse:" + str(all_rmse / len(models)))
         logger.info("Done training base models:" + str(end))
         # print("Detect zero value")
         # print(np.where(S_train == 0))
@@ -1837,7 +2018,7 @@ class TaxiTripDuration():
         S_train, S_test = self.load_pretrained_data()
         logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
                      str(S_test.shape))
-        target_log = S_train['label']
+        target_log = S_train[self.label]
         train_set = S_train.drop(['label', 'id'], axis=1)
         X_train, X_test, Y_train, Y_test = train_test_split(
             train_set, target_log, train_size=0.85, random_state=1234)
@@ -1911,8 +2092,8 @@ class TaxiTripDuration():
         S_train, S_test = self.load_pretrained_data()
         logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
                      str(S_test.shape))
-        target_log = S_train['label']
-        train_set = S_train.drop(['label', 'id'], axis=1)
+        target_log = S_train[self.label]
+        train_set = S_train.drop([self.label, 'id'], axis=1)
         total_rmse = 0
         early_stopping_rounds = 10
         n_folds = N_FOLDS
@@ -2046,6 +2227,8 @@ class TaxiTripDuration():
     def save_stacked_data(self, Y_eval_log):
         logger.info("Saving submission for stack model to disk")
         Y_eval = np.exp(Y_eval_log.ravel())
+        # print(Y_eval_log[:5])
+        # print(Y_eval[:5])
         eval_output = self.eval_data.copy()
         eval_output.loc[:, self.label] = Y_eval
         today = str(dtime.date.today())
@@ -2057,7 +2240,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 2
+    option = 7
     model_choice = RTREE
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
