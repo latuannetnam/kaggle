@@ -1864,7 +1864,7 @@ class TaxiTripDuration():
                     test_data.set_index('id'), on='id', rsuffix=str(i))
         total_test_data.to_csv(DATA_DIR + '/test_stack.csv', index=False)
 
-    # Kfold, train for each model, stack result
+    # Kfold, train for each model, stack result => Not use
     @timecall
     def train_base_models_old(self):
         # Credit
