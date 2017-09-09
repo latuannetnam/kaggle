@@ -32,6 +32,8 @@ import os
 import logging
 import copy
 import gc
+import psutil
+from memory_profiler import profile
 # data processing
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -105,6 +107,8 @@ COLSAMPLE_BYTREE = 0.9
 N_ROUNDS = 20000
 # N_ROUNDS = 10
 LOG_LEVEL = logging.DEBUG
+VERBOSE = False
+SILENT = True
 
 
 class TaxiTripDuration():
@@ -285,6 +289,7 @@ class TaxiTripDuration():
         # quit()
 
     @timecall
+    @profile
     def load_preprocessed_data(self):
         logger.info("Loading preprocessed data ....")
         label = self.label
@@ -1142,7 +1147,7 @@ class TaxiTripDuration():
                              #  gamma=0,
                              random_state=random_state,
                              n_jobs=-1,
-                             silent=False
+                             silent=SILENT
                              )
         return model
 
@@ -1173,18 +1178,6 @@ class TaxiTripDuration():
                             verbose_eval=10, show_stdv=True, seed=1000)
 
     def lgbm_model(self, random_state=1024):
-        # model = LGBMRegressor(objective='regression_l2',
-        #                       metric='l2_root',
-        #                       n_estimators=N_ROUNDS,
-        #                       #   n_estimators=10,
-        #                       #   max_depth=MAX_DEPTH,
-        #                       learning_rate=0.01,
-        #                       #   min_child_weight=MIN_CHILD_WEIGHT,
-        #                       num_leaves=4096,
-        #                       max_bin=1024,
-        #                       min_data_in_leaf=100,
-        #                       seed=random_state,
-        #                       nthread=-1, silent=False)
         model = LGBMRegressor(objective='regression_l2',
                               metric='l2_root',
                               n_estimators=N_ROUNDS,
@@ -1253,7 +1246,7 @@ class TaxiTripDuration():
 
     def catboost_model(self, random_state=648):
         model = CatBoostRegressor(
-            iterations=20000,  # => overfit if iteration > 20k
+            iterations=N_ROUNDS,  # => overfit if iteration > 20k
             # iterations=10,
             od_pval=None,
             od_type="Iter",
@@ -1264,7 +1257,7 @@ class TaxiTripDuration():
             eval_metric='RMSE',
             random_seed=random_state,
             use_best_model=True, train_dir=DATA_DIR + "/node_modules",
-            verbose=True)
+            verbose=VERBOSE)
         return model
 
     def etree_model(self, random_state=911):
@@ -1274,7 +1267,7 @@ class TaxiTripDuration():
             max_depth=50,  # RMSLE: 0.345729987977
             random_state=random_state,
             n_jobs=-1,
-            verbose=2)
+            verbose=VERBOSE)
         return model
 
     def rtree_model(self, random_state=1177):
@@ -1284,10 +1277,26 @@ class TaxiTripDuration():
             max_depth=50,  # RMSLE: 0.345309800425
             random_state=random_state,
             n_jobs=-1,
-            verbose=2)
+            verbose=VERBOSE)
         return model
 
+    # return model based on model_choice
+    def build_model(self=None, model_choice=XGB, random_state=1114):
+        if model_choice == XGB:
+            return self.xgb_model(random_state=random_state)
+        elif model_choice == LIGHTGBM:
+            return self.lgbm_model(random_state=random_state)
+        elif model_choice == CATBOOST:
+            return self.catboost_model(random_state=random_state)    
+        elif model_choice == ETREE:
+            return self.etree_model(random_state=random_state)
+        elif model_choice == RTREE:
+            return self.rtree_model(random_state=random_state)
+        elif model_choice == VW:
+            return self.vowpalwabbit_model()
+
     @timecall
+    @profile
     def train_model(self):
         model_choice = self.model_choice
         logger.info("Prepare data to train model")
@@ -1314,72 +1323,67 @@ class TaxiTripDuration():
             train_set, target_log, train_size=0.85, random_state=1234)
         early_stopping_rounds = 50
         start = time.time()
+        self.model = self.build_model(model_choice)
+        model_name = self.model.__class__.__name__
         if model_choice == VW:
-            self.model = self.vowpalwabbit_model()
             self.model.fit(X_train, Y_train)
         elif model_choice == CATBOOST:
-            self.model = self.catboost_model()
             self.model.fit(
                 X_train, Y_train, eval_set=(X_test, Y_test),
                 use_best_model=True,
-                verbose=True
+                verbose=VERBOSE
             )
         elif model_choice == LIGHTGBM:
-            self.model = self.lgbm_model()
             self.model.fit(
                 X_train, Y_train, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
-                verbose=10,
+                verbose=VERBOSE,
                 # feature_name=features,
                 # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
             )
         elif model_choice == XGB:
-            self.model = self.xgb_model()
             self.model.fit(
                 X_train, Y_train, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
-                verbose=early_stopping_rounds
+                # verbose=early_stopping_rounds
+                verbose=VERBOSE
             )
         elif model_choice == ETREE:
-            self.model = self.etree_model()
             self.model.fit(
                 X_train, Y_train
             )
         elif model_choice == RTREE:
-            self.model = self.rtree_model()
             self.model.fit(
                 X_train, Y_train
             )
         end = time.time() - start
-        model_name = self.model.__class__.__name__
         logger.debug("Done training for " + model_name + ". Time:" + str(end))
         if model_choice == LIGHTGBM:
-            logger.debug("Predicting for:" + str(model_choice) +
+            logger.debug("Predicting for:" + model_name +
                          ". Best round:" + str(self.model.best_iteration))
             y_pred = self.model.predict(
                 X_test, num_iteration=self.model.best_iteration)
         elif model_choice == XGB:
-            logger.debug("Predicting for:" + str(model_choice) +
+            logger.debug("Predicting for:" + model_name +
                          ". Best round:" + str(self.model.best_iteration) +
                          ". N_tree_limit:" + str(self.model.best_ntree_limit))
             y_pred = self.model.predict(
                 X_test, ntree_limit=self.model.best_ntree_limit)
         elif model_choice == CATBOOST:
-            logger.debug("Predicting for:" + str(model_choice) +
+            logger.debug("Predicting for:" + model_name +
                          ". N_tree_limit:" + str(self.model.tree_count_))
             y_pred = self.model.predict(
-                X_test, ntree_limit=self.model.tree_count_, verbose=True)
+                X_test, ntree_limit=self.model.tree_count_, verbose=VERBOSE)
         else:
-            logger.debug("Predicting for:" + str(model_choice))
+            logger.debug("Predicting for:" + model_name)
             y_pred = self.model.predict(X_test)
         score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
         logger.debug("RMSLE score:" + str(score) +
                      " RMSLE without-log:" + str(score1))
-        quit()
 
     # Train using Kflow
     @timecall
@@ -1409,7 +1413,9 @@ class TaxiTripDuration():
             self.model.fit(X_train, Y_train, eval_set=[(X_test, Y_test)],
                            eval_metric="rmse",
                            early_stopping_rounds=early_stopping_rounds,
-                           verbose=early_stopping_rounds)
+                           # verbose=early_stopping_rounds
+                           verbose=VERBOSE
+                           )
             end = time.time() - start
             total_time = total_time + end
             logger.debug("Done training for round:" + str(j + 1) +
@@ -1453,7 +1459,9 @@ class TaxiTripDuration():
             model.fit(X_train, Y_train, eval_set=[(X_test, Y_test)],
                       eval_metric="rmse",
                       early_stopping_rounds=early_stopping_rounds,
-                      verbose=early_stopping_rounds)
+                      #   verbose=early_stopping_rounds
+                      verbose=VERBOSE
+                      )
             end = time.time() - start
             total_time = total_time + end
             logger.debug("Done training for round:" + str(j + 1) +
@@ -1490,7 +1498,8 @@ class TaxiTripDuration():
         self.model.fit(
             X_train, Y_train, eval_set=[(X_train, Y_train), (X_test, Y_test)],
             eval_metric="rmse", early_stopping_rounds=early_stopping_rounds,
-            verbose=early_stopping_rounds
+            # verbose=early_stopping_rounds
+            verbose=VERBOSE
         )
         end = time.time() - start
         logger.debug("Done training:", end)
@@ -1682,17 +1691,19 @@ class TaxiTripDuration():
 
     # Kfold, train for single model in stack
     @timecall
-    def train_base_single_model(self, model_index, model, X_in, Y_in, T_in):
+    # @profile => Do not enable because of bug in CatBoost
+    def train_base_single_model(self, model_index, model_choice, X_in, Y_in, T_in):
         n_folds = N_FOLDS
         kfolds = KFold(n_splits=n_folds, shuffle=True, random_state=321)
         S_train = np.zeros(X_in.shape[0])
         S_test = np.zeros(T_in.shape[0])
+        S_test_i = np.zeros((T_in.shape[0], n_folds))
+        model = self.build_model(model_choice)
         model_name = model.__class__.__name__
         logger.debug("Base model " + model_name)
         logger.debug("S_train shape:" + str(S_train.shape) + " S_test shape:" +
                      str(S_test.shape))
         early_stopping_rounds = 50
-        S_test_i = np.zeros((T_in.shape[0], n_folds))
         model_rmse = 0
         start_sub = time.time()
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
@@ -1706,7 +1717,8 @@ class TaxiTripDuration():
                     X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
                     eval_metric="rmse",
                     early_stopping_rounds=early_stopping_rounds,
-                    verbose=10
+                    # verbose=10
+                    verbose=VERBOSE
                 )
                 logger.debug("fold:" + str(j + 1) +
                              " done training. Best round:" +
@@ -1721,7 +1733,8 @@ class TaxiTripDuration():
                     X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
                     eval_metric="rmse",
                     early_stopping_rounds=early_stopping_rounds,
-                    verbose=10,
+                    # verbose=10,
+                    verbose=VERBOSE
                     # feature_name=features,
                     # categorical_feature=cat_features
                     # categorical_feature=categorical_features_indices
@@ -1738,13 +1751,13 @@ class TaxiTripDuration():
                 model.fit(
                     X_train, Y_train, eval_set=(X_holdout, y_holdout),
                     use_best_model=True,
-                    verbose=True
+                    verbose=VERBOSE
                 )
                 logger.debug("fold:" + str(j + 1) +
                              " done training. Best round:" +
                              str(model.tree_count_) + " . Predicting for RMSLE")
                 y_pred = model.predict(
-                    X_holdout, ntree_limit=model.tree_count_, verbose=True)
+                    X_holdout, ntree_limit=model.tree_count_, verbose=VERBOSE)
                 S_train[test_idx] = y_pred
                 S_test_i[:, j] = model.predict(
                     T_in, ntree_limit=model.tree_count_)[:]
@@ -1770,11 +1783,11 @@ class TaxiTripDuration():
         logger.debug("Done training for " + model_name +
                      ". Trained time:" + str(end_sub))
         # cleanup memory
-        del S_train
-        del S_test
-        del S_test_i
-        del model
-        gc.collect()
+        # del S_train
+        # del S_test
+        # del S_test_i
+        # del model
+        # gc.collect()
         # end of for i
         return model_rmse, train_file, test_file
 
@@ -1785,21 +1798,22 @@ class TaxiTripDuration():
         col = str(model_index)
         d_train = pd.DataFrame(data=X_in, columns=[col])
         d_train['id'] = self.train_data['id']
-        train_file = DATA_DIR + '/train_stack-' + \
-            model_name + '_' + str(model_index) + '.csv'
+        train_file = DATA_DIR + '/train_base_' + \
+            model_name + '.csv'
         d_train.to_csv(train_file, columns=['id', col], index=False)
         d_test = pd.DataFrame(data=T_in, columns=[col])
         d_test['id'] = self.eval_data['id']
-        test_file = DATA_DIR + '/test_stack-' + \
-            model_name + '_' + str(model_index) + '.csv'
+        test_file = DATA_DIR + '/test_base_' + \
+            model_name + '.csv'
         d_test.to_csv(test_file, columns=['id', col], index=False)
         # cleanup memory
-        del d_train
-        del d_test
+        # del d_train
+        # del d_test
         return train_file, test_file
 
     # Kfold, train for each model, stack result
     @timecall
+    # @profile  => Do not enable because of bug in CatBoost
     def train_base_models(self):
         # Credit
         # to:https://dnc1994.com/2016/05/rank-10-percent-in-first-kaggle-competition-en/
@@ -1814,7 +1828,11 @@ class TaxiTripDuration():
         Y_in = target_log.values
         T_in = self.eval_data.drop(
             ['id'], axis=1).astype(float).values
-        models = self.build_models_level1()
+        # models = self.build_models_level1()
+        # models = [RTREE, ETREE, CATBOOST, XGB, LIGHTGBM]
+        models = [ETREE, CATBOOST, XGB, LIGHTGBM]
+        # models = [CATBOOST, XGB, LIGHTGBM]
+        # models = [LIGHTGBM, XGB]
         logger.info("Training for model level 1 ...")
         logger.debug("X shape:" + str(X_in.shape) + " Y shape:" +
                      str(Y_in.shape) + " Test shape:" + str(T_in.shape))
@@ -1824,13 +1842,20 @@ class TaxiTripDuration():
         train_files = []
         test_files = []
         start = time.time()
-        for i in range(len(models)):
-            model = models[i]
+        for i, model_choice in enumerate(models):
+            # model = models[i]
+            mem = str(psutil.virtual_memory())
+            logger.debug("Memmory before training single model:")
+            logger.debug("Before: " + mem)
             model_rmse, train_file, test_file = self.train_base_single_model(
-                i, model, X_in, Y_in, T_in)
+                i, model_choice, X_in, Y_in, T_in)
+            mem = str(psutil.virtual_memory())
+            logger.debug("Memmory after training single model:")
+            logger.debug("After: " + mem)
             all_rmse = all_rmse + model_rmse
             train_files.append(train_file)
             test_files.append(test_file)
+
         logger.debug("Saving all trained model datas ... ")
         self.save_trained_models_data(train_files, test_files)
         end = time.time() - start
@@ -1916,7 +1941,7 @@ class TaxiTripDuration():
                         X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
                         eval_metric="rmse",
                         early_stopping_rounds=early_stopping_rounds,
-                        verbose=10
+                        verbose=VERBOSE
                     )
                     logger.debug("fold:" + str(j + 1) +
                                  " done training. Best round:" +
@@ -1931,7 +1956,7 @@ class TaxiTripDuration():
                         X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
                         eval_metric="rmse",
                         early_stopping_rounds=early_stopping_rounds,
-                        verbose=10,
+                        verbose=VERBOSE,
                         # feature_name=features,
                         # categorical_feature=cat_features
                         # categorical_feature=categorical_features_indices
@@ -1948,13 +1973,13 @@ class TaxiTripDuration():
                     model.fit(
                         X_train, Y_train, eval_set=(X_holdout, y_holdout),
                         use_best_model=True,
-                        verbose=True
+                        verbose=VERBOSE
                     )
                     logger.debug("fold:" + str(j + 1) +
                                  " done training. Best round:" +
                                  str(model.tree_count_) + " . Predicting for RMSLE")
                     y_pred = model.predict(
-                        X_holdout, ntree_limit=model.tree_count_, verbose=True)
+                        X_holdout, ntree_limit=model.tree_count_, verbose=VERBOSE)
                     S_train[test_idx, i] = y_pred
                     S_test_i[:, j] = model.predict(
                         T_in, ntree_limit=model.tree_count_)[:]
@@ -2038,13 +2063,14 @@ class TaxiTripDuration():
                                   #  max_bin=1024,
                                   #  min_data_in_leaf=100,
                                   seed=1111,
-                                  nthread=-1, silent=False)
+                                  nthread=-1, silent=SILENT)
 
             model.fit(
                 train_set, target_log, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
-                verbose=10,
+                # verbose=10,
+                verbose=VERBOSE
                 # feature_name=features,
                             # categorical_feature=cat_features
                             # categorical_feature=categorical_features_indices
@@ -2059,13 +2085,14 @@ class TaxiTripDuration():
                 #  gamma=0,
                 random_state=567,
                 n_jobs=-1,
-                silent=False
+                silent=SILENT
             )
             model.fit(
                 train_set, target_log, eval_set=[(X_test, Y_test)],
                 eval_metric="rmse",
                 early_stopping_rounds=early_stopping_rounds,
-                verbose=10,
+                # verbose=10,
+                verbose=VERBOSE
                 # feature_name=features,
                 # categorical_feature=cat_features
                 # categorical_feature=categorical_features_indices
@@ -2090,6 +2117,7 @@ class TaxiTripDuration():
 
     # Train stack using Kflow and arrgregate predicted datas
     @timecall
+    @profile
     def train_stack_model_kfold(self, model_choice=XGB):
         logger.info("Prepare data to train stack model using kfold")
         S_train, S_test = self.load_pretrained_data()
@@ -2119,7 +2147,7 @@ class TaxiTripDuration():
                                   #  max_bin=1024,
                                   #  min_data_in_leaf=100,
                                   seed=1111,
-                                  nthread=-1, silent=False)
+                                  nthread=-1, silent=SILENT)
 
         elif model_choice == XGB:
             model = XGBRegressor(
@@ -2131,7 +2159,7 @@ class TaxiTripDuration():
                 #  gamma=0,
                 random_state=567,
                 n_jobs=-1,
-                silent=False
+                silent=SILENT
             )
         model_name = model_name = model.__class__.__name__
         start = time.time()
@@ -2146,7 +2174,8 @@ class TaxiTripDuration():
                     X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
                     eval_metric="rmse",
                     early_stopping_rounds=early_stopping_rounds,
-                    verbose=10
+                    # verbose=10
+                    verbose=VERBOSE
                 )
                 logger.debug("fold:" + str(j + 1) +
                              " done training. Best round:" +
@@ -2160,7 +2189,8 @@ class TaxiTripDuration():
                     X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
                     eval_metric="rmse",
                     early_stopping_rounds=early_stopping_rounds,
-                    verbose=10,
+                    # verbose=10,
+                    verbose=VERBOSE
                     # feature_name=features,
                     # categorical_feature=cat_features
                     # categorical_feature=categorical_features_indices
@@ -2176,13 +2206,13 @@ class TaxiTripDuration():
                 model.fit(
                     X_train, Y_train, eval_set=(X_holdout, y_holdout),
                     use_best_model=True,
-                    verbose=True
+                    verbose=VERBOSE
                 )
                 logger.debug("fold:" + str(j + 1) +
                              " done training. Best round:" +
                              str(model.tree_count_) + " . Predicting for RMSLE")
                 y_pred = model.predict(
-                    X_holdout, ntree_limit=model.tree_count_, verbose=True)
+                    X_holdout, ntree_limit=model.tree_count_, verbose=VERBOSE)
                 S_test_kfold[:, j] = model.predict(
                     T_in, ntree_limit=model.tree_count_)[:]
 
@@ -2215,7 +2245,7 @@ class TaxiTripDuration():
                 # 'max_bin': 1024,
                 # 'min_data_in_leaf': 100,
                 # 'nthread': -1,
-                'verbose': 1
+                'verbose': VERBOSE
             }
             early_stopping_rounds = 10
             logger.debug("Cross validating for stack model ...")
@@ -2244,13 +2274,13 @@ class TaxiTripDuration():
 if __name__ == "__main__":
     start = time.time()
     option = 7
-    model_choice = RTREE
+    model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '%(asctime)s - %(levelname)s - %(message)s')
     ch = logging.StreamHandler(sys.stdout)
-    ch.setLevel(LOG_LEVEL)
+    ch.setLevel(logging.INFO)
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     # create file handler which logs even debug messages
