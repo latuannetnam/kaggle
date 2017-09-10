@@ -33,7 +33,7 @@ import logging
 import copy
 import gc
 import psutil
-from memory_profiler import profile
+# from memory_profiler import profile
 import glob
 # data processing
 import pandas as pd
@@ -1291,7 +1291,7 @@ class TaxiTripDuration():
         return model
 
     @timecall
-    @profile
+    # @profile
     def train_model(self):
         model_choice = self.model_choice
         logger.info("Prepare data to train model")
@@ -1834,8 +1834,8 @@ class TaxiTripDuration():
         # models = [RTREE, ETREE, CATBOOST, XGB, LIGHTGBM]
         # models = [ETREE, CATBOOST, XGB, LIGHTGBM]
         # models = [CATBOOST, XGB, LIGHTGBM]
-        # models = [LIGHTGBM, XGB]
-        models = [RTREE, ETREE, CATBOOST]
+        models = [XGB, LIGHTGBM]
+        # models = [RTREE, ETREE, CATBOOST]
         all_rmse = 0
         start = time.time()
         train_files = []

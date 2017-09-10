@@ -1966,4 +1966,47 @@
 		* RMSLE without-log: 0.320176084482 => 0.320210037502
 	+ Total time: 72866.76863646507 =>
     + Submision score: 0.36722 => 0.37457
-		
+
+2017-09-011:	
+- Round 125: Stack model + kfold 
+    + Base model:based round 123
+		* RandomForestRegressor: (rd-ml2)  
+			. 'n_estimators': 100, 'max_depth': 50,
+			. RMSLE without-log: 0.345737223095 =>
+			. time: 6888.296187400818 =>
+			. LB: 
+		* ExtraTreesRegressor: (rd-ml2) 
+			. 'n_estimators': 100, 'max_depth': 50,
+			. RMSLE without-log: 0.346124392632 =>
+			. time: 5032.312521696091 =>
+			. LB: 
+		* CatBoostRegressor: (rd-ml2) 
+			. 'learning_rate': 0.1, 'max_depth': 10, od_pval=None, od_type="Iter", od_wait=150,
+			. RMSLE without-log: 0.354281544608 =>
+			. time: 20158.723431110382 =>
+			. LB: 
+		* XGBRegressor:  (rd-ml3)
+			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
+			. RMSLE without-log: 0.324881245082 =>
+			. time: 19232.697187423706 =>
+			. LB: 
+		* LGBMRegressor: (rd-ml3)
+			. 'learning_rate': 0.01, num_leaves=1024
+			. RMSLE without-log: 0.323447126852 =>
+			* time: 20465.299612283707 =>
+			. LB: 
+		* target_log = np.log(target)
+		* added feature: PCA for location
+		* cleanup trip_duration> 24*3600
+		* use new osrm data
+		* new feature: center coordinate
+		* new features cluster: day, dayofyear, center corrdinate
+		* train time: 71824.80218720436 =>
+		* RMSLE without-log: 0.338894306454 =>
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 
+		* RMSLE without-log: 0.320176084482 =>
+	+ Total time: 72866.76863646507 =>
+    + Submision score: 0.36722 => 
