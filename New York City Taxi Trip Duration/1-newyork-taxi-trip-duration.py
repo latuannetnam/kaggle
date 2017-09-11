@@ -67,6 +67,10 @@ from xgboost import plot_importance
 # LightGBM
 from lightgbm import LGBMRegressor
 import lightgbm as lgb
+# Keras
+from keras.models import Sequential
+from keras.layers import Dense
+from keras.wrappers.scikit_learn import KerasRegressor
 
 if os.name != 'nt':
     # CatBoost
@@ -88,6 +92,7 @@ LIGHTGBM = 4
 ETREE = 5  # ExtraTreesRegressor
 RTREE = 6  # RandomForestRegressor
 DTREE = 7  # DecisionTreeRegressor
+KERAS = 8  # Keras
 # Learning param
 # 'learning_rate': 0.1, 'min_child_weight': 1, 'max_depth': 10 => Best
 # 'learning_rate': 0.1, 'min_child_weight': 5, 'max_depth': 10
@@ -103,9 +108,13 @@ N_FOLDS = 5
 # N_FOLDS = 2  # Use for testing
 N_ROUNDS = 20000
 # N_ROUNDS = 10  # Use for testing
+
+KERAS_N_ROUNDS = 10
+KERAS_BATCH_SIZE = 50
+
 LOG_LEVEL = logging.DEBUG
-VERBOSE = False
-SILENT = True
+VERBOSE = True
+SILENT = False
 
 
 class TaxiTripDuration():
@@ -1137,7 +1146,7 @@ class TaxiTripDuration():
                              silent=SILENT
                              )
         return model
-    
+
     def lgbm_model(self, random_state=1024):
         model = LGBMRegressor(objective='regression_l2',
                               metric='l2_root',
@@ -1209,12 +1218,51 @@ class TaxiTripDuration():
             verbose=VERBOSE)
         return model
 
-    def dtree_model(self, random_state=7734):
+    def dtree_model(self, random_state=7734):  # Bad score
         model = DecisionTreeRegressor(
             # max_depth=50,  # RMSLE: 0.345309800425
             random_state=random_state,
         )
         return model
+
+    def keras_model(self, random_state=9999):
+        # load train_data
+        data = self.train_data
+        n_features = len(data.columns) - 2
+        n_nodes = 10
+        logger.debug("n_features:" + str(n_features))
+        # create model
+        model = Sequential()
+        model.add(Dense(n_nodes, input_dim=n_features,
+                        kernel_initializer='normal', activation='relu'))
+        model.add(Dense(1, kernel_initializer='normal'))
+        # Compile model
+        model.compile(loss='mean_squared_error', optimizer='adam')
+        # model = KerasRegressor(build_fn=nn,
+        #                        nb_epoch=100, batch_size=5, verbose=VERBOSE)
+        return model
+
+    # return model based on model_choice
+    def build_model(self=None, model_choice=XGB, random_state=1114):
+        if model_choice == XGB:
+            return self.xgb_model(random_state=random_state)
+        elif model_choice == LIGHTGBM:
+            return self.lgbm_model(random_state=random_state)
+        elif model_choice == CATBOOST:
+            return self.catboost_model(random_state=random_state)
+        elif model_choice == ETREE:
+            return self.etree_model(random_state=random_state)
+        elif model_choice == RTREE:
+            return self.rtree_model(random_state=random_state)
+        elif model_choice == DTREE:
+            return self.dtree_model(random_state=random_state)
+        elif model_choice == VW:
+            return self.vowpalwabbit_model()
+        elif model_choice == KERAS:
+            return self.keras_model(random_state=random_state)
+        else:
+            logger.error("Undefined model choice:" + str(model_choice))
+            raise ValueError
 
     @timecall
     # @profile
@@ -1272,14 +1320,17 @@ class TaxiTripDuration():
                 # verbose=early_stopping_rounds
                 verbose=VERBOSE
             )
-        elif model_choice == ETREE:
-            self.model.fit(
-                X_train, Y_train
-            )
-        elif model_choice == RTREE:
-            self.model.fit(
-                X_train, Y_train
-            )
+        elif model_choice == KERAS:
+            self.model.fit(X_train.values, Y_train.values,
+                           validation_data=(X_test.values, Y_test.values),
+                           batch_size=KERAS_BATCH_SIZE,
+                           epochs=KERAS_N_ROUNDS,
+                           verbose=VERBOSE
+                           )
+        else:
+            # model_choice == ETREE or model_choice == DTREE or
+            self.model.fit(X_train, Y_train)
+
         end = time.time() - start
         logger.debug("Done training for " + model_name + ". Time:" + str(end))
         if model_choice == LIGHTGBM:
@@ -1300,11 +1351,10 @@ class TaxiTripDuration():
                 X_test, ntree_limit=self.model.tree_count_, verbose=VERBOSE)
         else:
             logger.debug("Predicting for:" + model_name)
-            y_pred = self.model.predict(X_test)
-        score = self.rmsle(Y_test.values, y_pred, log=True)
+            y_pred = self.model.predict(X_test.values)
+        # score = self.rmsle(Y_test.values, y_pred, log=True)
         score1 = self.rmsle(Y_test.values, y_pred, log=False)
-        logger.debug("RMSLE score:" + str(score) +
-                     " RMSLE without-log:" + str(score1))
+        logger.debug("RMSLE:" + str(score1))
 
     # Train using Kflow
     @timecall
@@ -1445,7 +1495,7 @@ class TaxiTripDuration():
     def predict_save(self):
         model_choice = self.model_choice
         logger.info("Predicting for eval data ..")
-        data = self.eval_data.drop('id', axis=1).astype(float)
+        data = self.eval_data.drop('id', axis=1).astype(float).values
         if model_choice == LIGHTGBM:
             logger.debug("Predicting for:" + str(model_choice) +
                          ". Best round:" + str(self.model.best_iteration))
@@ -1598,23 +1648,6 @@ class TaxiTripDuration():
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
             compression='gzip')
 
-    # return model based on model_choice
-    def build_model(self=None, model_choice=XGB, random_state=1114):
-        if model_choice == XGB:
-            return self.xgb_model(random_state=random_state)
-        elif model_choice == LIGHTGBM:
-            return self.lgbm_model(random_state=random_state)
-        elif model_choice == CATBOOST:
-            return self.catboost_model(random_state=random_state)
-        elif model_choice == ETREE:
-            return self.etree_model(random_state=random_state)
-        elif model_choice == RTREE:
-            return self.rtree_model(random_state=random_state)
-        elif model_choice == DTREE:
-            return self.dtree_model(random_state=random_state)
-        elif model_choice == VW:
-            return self.vowpalwabbit_model()
-
     # Kfold, train for single model in stack
     @timecall
     # @profile => Do not enable because of bug in CatBoost
@@ -1700,6 +1733,19 @@ class TaxiTripDuration():
                 S_train[test_idx] = y_pred
                 S_test_i[:, j] = model.predict(
                     T_in, ntree_limit=model.tree_count_)[:]
+            elif model_choice == KERAS:
+                self.model.fit(X_train, Y_train,
+                               validation_data=(
+                                   X_holdout, y_holdout),
+                               batch_size=KERAS_BATCH_SIZE,
+                               epochs=KERAS_N_ROUNDS,
+                               verbose=VERBOSE
+                               )
+                logger.debug("fold:" + str(j + 1) +
+                             " done training. Predicting for RMSLE")
+                y_pred = model.predict(X_holdout)[:]
+                S_train[test_idx] = y_pred
+                S_test_i[:, j] = model.predict(T_in)[:]
             else:
                 model.fit(X_train, Y_train)
                 logger.debug("fold:" + str(j + 1) +
@@ -2000,7 +2046,7 @@ class TaxiTripDuration():
                             metrics="rmse", shuffle=True,
                             early_stopping_rounds=early_stopping_rounds,
                             verbose_eval=10, show_stdv=True, seed=1000)
-    
+
     # Cross validation for lightgbm model
     @timecall
     def lgbm_cv(self):
@@ -2033,11 +2079,12 @@ class TaxiTripDuration():
         # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
         # logger.debug('Best CV score:', cv_results['l1-mean'][-1])
 
+
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 6
-    model_choice = LIGHTGBM
+    option = 2
+    model_choice = KERAS
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
@@ -2061,7 +2108,7 @@ if __name__ == "__main__":
         base_class.check_null_data()
         base_class.feature_correlation()
 
-    # ------------------------ single model -----------------------    
+    # ------------------------ single model -----------------------
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
@@ -2082,8 +2129,8 @@ if __name__ == "__main__":
     elif option == 4:
         base_class.load_preprocessed_data()
         base_class.train_predict_kfold_aggregate()
-    
-    # ------------------------ stacking model -----------------------    
+
+    # ------------------------ stacking model -----------------------
     # Load process data and train all base models.
     # After that combine all single model datas in one set
     elif option == 5:
@@ -2093,7 +2140,7 @@ if __name__ == "__main__":
     # Load pretrained data and stacking model using kfold
     elif option == 6:
         base_class.load_preprocessed_data()
-        base_class.train_stack_model_kfold(model_choice=XGB)        
+        base_class.train_stack_model_kfold(model_choice=XGB)
 
     # Load process data and train all base models. Alter that stacking model
     # using kfold
