@@ -75,18 +75,10 @@ if os.name != 'nt':
     from vowpalwabbit.sklearn_vw import VWRegressor
     from vowpalwabbit.sklearn_vw import tovw
 
-
-# Other
-# from geographiclib.geodesic import Geodesic
-# import osmnx as ox
-# import networkx as nx
-
 pd.options.display.float_format = '{:,.4f}'.format
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
 LABEL = 'trip_duration'
-N_FOLDS = 5
-# N_FOLDS = 2
 N_CLUSTERS = 200  # Kmeans number of cluster
 # Model choice
 XGB = 1
@@ -106,8 +98,11 @@ LEARNING_RATE = 0.1
 MIN_CHILD_WEIGHT = 1
 MAX_DEPTH = 10
 COLSAMPLE_BYTREE = 0.9
+
+N_FOLDS = 5
+# N_FOLDS = 2  # Use for testing
 N_ROUNDS = 20000
-# N_ROUNDS = 10
+# N_ROUNDS = 10  # Use for testing
 LOG_LEVEL = logging.DEBUG
 VERBOSE = False
 SILENT = True
@@ -185,7 +180,7 @@ class TaxiTripDuration():
         return train_osm, eval_osm
 
     @timecall
-    def load_and_combine_weather_data(self):
+    def load_and_combine_weather_data_old(self):
         logger.debug("Loading weather data ..")
         weather_data = pd.read_csv(
             DATA_DIR + "/weather_data_nyc_centralpark_2016.csv")
@@ -1132,17 +1127,6 @@ class TaxiTripDuration():
         logger.debug(str(correlation))
 
     def xgb_model(self, learning_rate=LEARNING_RATE, random_state=1000):
-        # self.model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-        #                           learning_rate=LEARNING_RATE,
-        #                           min_child_weight=MIN_CHILD_WEIGHT,
-        #                           colsample_bytree=COLSAMPLE_BYTREE,
-        #                           n_jobs=-1)
-        # model = XGBRegressor(n_estimators=N_ROUNDS, max_depth=MAX_DEPTH,
-        #                      learning_rate=LEARNING_RATE,
-        #                      min_child_weight=MIN_CHILD_WEIGHT,
-        #                      gamma=0,
-        #                      random_state=1000,
-        #                      n_jobs=-1)
         model = XGBRegressor(n_estimators=N_ROUNDS,
                              max_depth=10,
                              learning_rate=learning_rate,
@@ -1153,33 +1137,7 @@ class TaxiTripDuration():
                              silent=SILENT
                              )
         return model
-
-    # Cross validation for xgboost model
-    @timecall
-    def xgb_cv(self):
-        logger.info("Prepare data to CV XGBoost model")
-        data = self.train_data
-        target = data[self.label]
-        target_log = np.log(target)
-        train_set = data.drop(
-            ['id', self.label], axis=1).astype(float)
-        # X_train, X_test, Y_train, Y_test = train_test_split(
-        #     train_set, target_log, train_size=0.85, random_state=1234)
-        # lgb_train = lgb.Dataset(X_test, Y_test)
-        lgb_train = xgb.DMatrix(train_set, target_log)
-        params = {
-            'learning_rate': 0.1,
-            'max_depth': 10,
-            'min_child_weight': 1,
-            # 'gamma': 1,
-            # 'silent': 1
-        }
-        early_stopping_rounds = 10
-        cv_results = xgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
-                            metrics="rmse", shuffle=True,
-                            early_stopping_rounds=early_stopping_rounds,
-                            verbose_eval=10, show_stdv=True, seed=1000)
-
+    
     def lgbm_model(self, random_state=1024):
         model = LGBMRegressor(objective='regression_l2',
                               metric='l2_root',
@@ -1190,38 +1148,6 @@ class TaxiTripDuration():
                               seed=random_state,
                               nthread=-1, silent=False)
         return model
-
-    # Cross validation for lightgbm model
-    @timecall
-    def lgbm_cv(self):
-        logger.info("Prepare data to CV LightGBM model")
-        data = self.train_data
-        target = data[self.label]
-        target_log = np.log(target)
-        train_set = data.drop(
-            ['id', self.label], axis=1).astype(float)
-        # X_train, X_test, Y_train, Y_test = train_test_split(
-        #     train_set, target_log, train_size=0.85, random_state=1234)
-        # lgb_train = lgb.Dataset(X_test, Y_test)
-        lgb_train = lgb.Dataset(train_set, target_log)
-        params = {
-            'objective': 'regression_l2',
-            'metric': 'l2_root',
-            'learning_rate': 0.1,
-            'num_leaves': 1024,
-            # 'max_bin': 1024,
-            # 'min_data_in_leaf': 100,
-            # 'nthread': -1,
-            'verbose': 1
-        }
-        early_stopping_rounds = 10
-        cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
-                            metrics="rmse", shuffle=True,
-                            early_stopping_rounds=early_stopping_rounds,
-                            verbose_eval=10, show_stdv=True, seed=1000)
-        # logger.debug(cv_results)
-        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
-        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])
 
     # calculate index of features
     def convert_to_categrorical_features(self, data):
@@ -1878,7 +1804,12 @@ class TaxiTripDuration():
             else:
                 total_train_data = total_train_data.join(
                     train_data.set_index('id'), on='id', rsuffix=str(i))
-        total_train_data.loc[:, self.label] = target_log.values
+        logger.debug("Join base data with pre data")
+        pre_data = pd.DataFrame(
+            {'id': data['id'], self.label: target_log}, columns=['id', self.label])
+        # total_train_data.loc[:, self.label] = target_log[:len(total_train_data)]
+        total_train_data = total_train_data.join(
+            pre_data.set_index('id'), on='id')
         # Drop NaN row incase of each data set has different rows
         total_train_data = total_train_data.dropna()
         total_train_data.to_csv(DATA_DIR + '/train_stack.csv', index=False)
@@ -2044,11 +1975,68 @@ class TaxiTripDuration():
             DATA_DIR + '/' + today + '-submission.csv.gz', index=False,
             compression='gzip')
 
+    # Cross validation for xgboost model
+    @timecall
+    def xgb_cv(self):
+        logger.info("Prepare data to CV XGBoost model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        # X_train, X_test, Y_train, Y_test = train_test_split(
+        #     train_set, target_log, train_size=0.85, random_state=1234)
+        # lgb_train = lgb.Dataset(X_test, Y_test)
+        lgb_train = xgb.DMatrix(train_set, target_log)
+        params = {
+            'learning_rate': 0.1,
+            'max_depth': 10,
+            'min_child_weight': 1,
+            # 'gamma': 1,
+            # 'silent': 1
+        }
+        early_stopping_rounds = 10
+        cv_results = xgb.cv(params, lgb_train, num_boost_round=200, nfold=5,
+                            metrics="rmse", shuffle=True,
+                            early_stopping_rounds=early_stopping_rounds,
+                            verbose_eval=10, show_stdv=True, seed=1000)
+    
+    # Cross validation for lightgbm model
+    @timecall
+    def lgbm_cv(self):
+        logger.info("Prepare data to CV LightGBM model")
+        data = self.train_data
+        target = data[self.label]
+        target_log = np.log(target)
+        train_set = data.drop(
+            ['id', self.label], axis=1).astype(float)
+        # X_train, X_test, Y_train, Y_test = train_test_split(
+        #     train_set, target_log, train_size=0.85, random_state=1234)
+        # lgb_train = lgb.Dataset(X_test, Y_test)
+        lgb_train = lgb.Dataset(train_set, target_log)
+        params = {
+            'objective': 'regression_l2',
+            'metric': 'l2_root',
+            'learning_rate': 0.1,
+            'num_leaves': 1024,
+            # 'max_bin': 1024,
+            # 'min_data_in_leaf': 100,
+            # 'nthread': -1,
+            'verbose': 1
+        }
+        early_stopping_rounds = 10
+        cv_results = lgb.cv(params, lgb_train, num_boost_round=300, nfold=5,
+                            metrics="rmse", shuffle=True,
+                            early_stopping_rounds=early_stopping_rounds,
+                            verbose_eval=10, show_stdv=True, seed=1000)
+        # logger.debug(cv_results)
+        # logger.debug('Best num_boost_round:', len(cv_results['l1-mean']))
+        # logger.debug('Best CV score:', cv_results['l1-mean'][-1])
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 7
+    option = 6
     model_choice = LIGHTGBM
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
@@ -2072,6 +2060,8 @@ if __name__ == "__main__":
         base_class.preprocess_data()
         base_class.check_null_data()
         base_class.feature_correlation()
+
+    # ------------------------ single model -----------------------    
     # Load process data and train model
     elif option == 2:
         base_class.load_preprocessed_data()
@@ -2092,44 +2082,41 @@ if __name__ == "__main__":
     elif option == 4:
         base_class.load_preprocessed_data()
         base_class.train_predict_kfold_aggregate()
-
-    # Load process data and train model with stacking model:
+    
+    # ------------------------ stacking model -----------------------    
+    # Load process data and train all base models.
+    # After that combine all single model datas in one set
     elif option == 5:
         base_class.load_preprocessed_data()
         base_class.train_base_models()
-        base_class.train_stack_model(model_choice=XGB)
 
-    # load pretrain-data from train_base_model and train with stacking model
+    # Load pretrained data and stacking model using kfold
     elif option == 6:
         base_class.load_preprocessed_data()
-        base_class.train_stack_model(model_choice=XGB)
-
-    # Load process data and train all base models
-    elif option == 7:
-        base_class.load_preprocessed_data()
-        base_class.train_base_models()
+        base_class.train_stack_model_kfold(model_choice=XGB)        
 
     # Load process data and train all base models. Alter that stacking model
     # using kfold
-    elif option == 8:
+    elif option == 7:
         base_class.load_preprocessed_data()
         base_class.train_base_models()
         base_class.train_stack_model_kfold(model_choice=XGB)
 
     # Combine all previous pretrained datas and stacking model using kfold
-    elif option == 9:
+    elif option == 8:
         base_class.load_preprocessed_data()
         base_class.combine_pretrained_data()
         base_class.train_stack_model_kfold(model_choice=XGB)
 
     # Train for single base model, combine with previous pretrained data and
     # stacking model using kfold
-    elif option == 10:
+    elif option == 9:
         base_class.load_preprocessed_data()
         base_class.train_base_single_model(model_index=6, model_choice=DTREE)
         base_class.combine_pretrained_data()
         base_class.train_stack_model_kfold(model_choice=XGB)
 
+    # ------------------- Other ------------------------------
     # Load process data and search for best model parameters
     elif option == 19:
         base_class.load_preprocessed_data()
@@ -2163,10 +2150,6 @@ if __name__ == "__main__":
         base_class.load_preprocessed_data()
         base_class.xgb_cv()
 
-    # ------------- Stack model
-    elif option == 53:
-        base_class.stack_cv()
-
     # ------------------------------ default -------------------------
     # combine preprocess and training model
     else:
@@ -2177,7 +2160,7 @@ if __name__ == "__main__":
         base_class.feature_correlation()
         base_class.train_model()
         base_class.predict_save()
-        base_class.importance_features()
+        # base_class.importance_features()
         # base_class.plot_ft_importance()
     end = time.time() - start
     logger.info("Done. Total time:" + str(end))

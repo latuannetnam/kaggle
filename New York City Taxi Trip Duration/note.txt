@@ -1972,28 +1972,28 @@
     + Base model:based round 123
 		* RandomForestRegressor: (rd-ml2)  
 			. 'n_estimators': 100, 'max_depth': 50,
-			. RMSLE without-log: 0.345737223095 =>
-			. time: 6888.296187400818 =>
+			. RMSLE without-log: 0.345737223095 => 0.389630617109
+			. time: 6888.296187400818 => 6354.747791290283
 			. LB: 
 		* ExtraTreesRegressor: (rd-ml2) 
 			. 'n_estimators': 100, 'max_depth': 50,
-			. RMSLE without-log: 0.346124392632 =>
-			. time: 5032.312521696091 =>
+			. RMSLE without-log: 0.346124392632 => 0.389038923604
+			. time: 5032.312521696091 => 4244.1009793281555
 			. LB: 
 		* CatBoostRegressor: (rd-ml2) 
 			. 'learning_rate': 0.1, 'max_depth': 10, od_pval=None, od_type="Iter", od_wait=150,
-			. RMSLE without-log: 0.354281544608 =>
-			. time: 20158.723431110382 =>
+			. RMSLE without-log: 0.354281544608 => 0.397384182909
+			. time: 20158.723431110382 => 21633.807067632675
 			. LB: 
 		* XGBRegressor:  (rd-ml3)
 			. 'learning_rate': 0.1, 'max_depth': 10, 'min_child_weight': 1
-			. RMSLE without-log: 0.324881245082 =>
-			. time: 19232.697187423706 =>
+			. RMSLE without-log: 0.324881245082 => 0.371740682756
+			. time: 19232.697187423706 => 17221.031004428864
 			. LB: 
 		* LGBMRegressor: (rd-ml3)
 			. 'learning_rate': 0.01, num_leaves=1024
-			. RMSLE without-log: 0.323447126852 =>
-			* time: 20465.299612283707 =>
+			. RMSLE without-log: 0.323447126852 => 0.369804445217
+			* time: 20465.299612283707 =>15883.223562717438
 			. LB: 
 		* target_log = np.log(target)
 		* added feature: PCA for location
@@ -2001,12 +2001,22 @@
 		* use new osrm data
 		* new feature: center coordinate
 		* new features cluster: day, dayofyear, center corrdinate
-		* train time: 71824.80218720436 =>
+		* train time: 71824.80218720436 => 33127.111401081085 (2 parralel machines)
 		* RMSLE without-log: 0.338894306454 =>
 	+ Stack model: XGBRegressor
 		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
 		* Kfold: 5
-		* train time: 
-		* RMSLE without-log: 0.320176084482 =>
+		* train time: 918.6070668697357
+		* RMSLE without-log: 0.320176084482 => 0.367364469074
 	+ Total time: 72866.76863646507 =>
-    + Submision score: 0.36722 => 
+    + Submision score: 0.36722 => 0.39098
+2017-09-11:	
+- Round 126: Stack model + kfold 	
+	+ Base model: combine base models of  (123 + 125)
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 918.6070668697357 => 1467.045486688614
+		* RMSLE without-log: 0.320176084482 => 0.318491915209
+	+ Total time: 72866.76863646507 =>
+    + Submision score: 0.36722 => 0.37713
