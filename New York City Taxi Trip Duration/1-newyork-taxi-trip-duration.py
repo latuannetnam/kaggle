@@ -337,8 +337,8 @@ class TaxiTripDuration():
         # data = data[(data[label] < 1000000)] # => stack: 0.3687232896
         # data = data[(data[label] > 0)]
         # data = data[(data[label] <= 86000)]
-        # data = data[(data[label] < 22 * 3600)]  # => Best
-        data = data[(data[label] < 24 * 3600)]  # => Best
+        # data = data[(data[label] < 24 * 3600)]
+        data = data[(data[label] < 22 * 3600)]  # => Best
         size2 = len(data)
         logger.info("Finish cleanup. Size after:" + str(size2) +
                     " .Total removed:" + str(size1 - size2))
