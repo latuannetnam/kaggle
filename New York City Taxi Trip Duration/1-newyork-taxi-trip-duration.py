@@ -1879,6 +1879,8 @@ class TaxiTripDuration():
                 total_train_data = total_train_data.join(
                     train_data.set_index('id'), on='id', rsuffix=str(i))
         total_train_data.loc[:, self.label] = target_log.values
+        # Drop NaN row incase of each data set has different rows
+        total_train_data = total_train_data.dropna()
         total_train_data.to_csv(DATA_DIR + '/train_stack.csv', index=False)
         logger.debug("Train stack size:" + str(total_train_data.shape))
         begin = True
