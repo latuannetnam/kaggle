@@ -49,7 +49,6 @@ from numpy import sort
 
 # ML
 # # Scikit-learn
-from sklearn.preprocessing import StandardScaler
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, AdaBoostRegressor, GradientBoostingRegressor, ExtraTreesRegressor
@@ -110,8 +109,9 @@ N_ROUNDS = 20000
 # N_ROUNDS = 10  # Use for testing
 
 KERAS_N_ROUNDS = 10
-KERAS_BATCH_SIZE = 50
-
+KERAS_BATCH_SIZE = 10
+KERAS_NODES = 10
+KERAS_LAYERS = 20
 LOG_LEVEL = logging.DEBUG
 VERBOSE = True
 SILENT = False
@@ -1229,13 +1229,16 @@ class TaxiTripDuration():
         # load train_data
         data = self.train_data
         n_features = len(data.columns) - 2
-        n_nodes = 10
         logger.debug("n_features:" + str(n_features))
         # create model
         model = Sequential()
-        model.add(Dense(n_nodes, input_dim=n_features,
+        model.add(Dense(KERAS_NODES, input_dim=n_features,
                         kernel_initializer='normal', activation='relu'))
+        for i in range(KERAS_LAYERS):
+            model.add(Dense(KERAS_NODES,
+                            kernel_initializer='normal', activation='relu'))
         model.add(Dense(1, kernel_initializer='normal'))
+
         # Compile model
         model.compile(loss='mean_squared_error', optimizer='adam')
         # model = KerasRegressor(build_fn=nn,
@@ -1270,7 +1273,7 @@ class TaxiTripDuration():
         model_choice = self.model_choice
         logger.info("Prepare data to train model")
         data = self.train_data
-        target = data[self.label]
+        target = data[self.label].values
         target_log = np.log(target)
         train_set = data.drop(
             ['id', self.label], axis=1).astype(float)
@@ -1289,11 +1292,12 @@ class TaxiTripDuration():
         logger.debug("Training ...")
         # logger.debug(train_set[cat_features].describe())
         X_train, X_test, Y_train, Y_test = train_test_split(
-            train_set, target_log, train_size=0.85, random_state=1234)
+            train_set.values, target_log, train_size=0.85, random_state=1234)
         early_stopping_rounds = 50
         start = time.time()
         self.model = self.build_model(model_choice)
         model_name = self.model.__class__.__name__
+        self.scaler = StandardScaler()
         if model_choice == VW:
             self.model.fit(X_train, Y_train)
         elif model_choice == CATBOOST:
@@ -1321,8 +1325,11 @@ class TaxiTripDuration():
                 verbose=VERBOSE
             )
         elif model_choice == KERAS:
-            self.model.fit(X_train.values, Y_train.values,
-                           validation_data=(X_test.values, Y_test.values),
+            self.scaler.fit(X_train)
+            X_train = self.scaler.transform(X_train)
+            X_test = self.scaler.transform(X_test)
+            self.model.fit(X_train, Y_train,
+                           validation_data=(X_test, Y_test),
                            batch_size=KERAS_BATCH_SIZE,
                            epochs=KERAS_N_ROUNDS,
                            verbose=VERBOSE
@@ -1351,9 +1358,9 @@ class TaxiTripDuration():
                 X_test, ntree_limit=self.model.tree_count_, verbose=VERBOSE)
         else:
             logger.debug("Predicting for:" + model_name)
-            y_pred = self.model.predict(X_test.values)
+            y_pred = self.model.predict(X_test)
         # score = self.rmsle(Y_test.values, y_pred, log=True)
-        score1 = self.rmsle(Y_test.values, y_pred, log=False)
+        score1 = self.rmsle(Y_test, y_pred, log=False)
         logger.debug("RMSLE:" + str(score1))
 
     # Train using Kflow
@@ -1507,6 +1514,9 @@ class TaxiTripDuration():
                          ". N_tree_limit:" + str(self.model.best_ntree_limit))
             Y_eval_log = self.model.predict(
                 data, ntree_limit=self.model.best_ntree_limit)
+        elif model_choice == KERAS:
+            data = self.scaler.transform(data)
+            Y_eval_log = self.model.predict(data)
         else:
             Y_eval_log = self.model.predict(data)
         Y_eval = np.exp(Y_eval_log.ravel())
@@ -1680,10 +1690,10 @@ class TaxiTripDuration():
         start_sub = time.time()
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X_in)):
             logger.debug("fold:" + str(j + 1) + " begin training ...")
-            X_train = X_in[train_idx]
-            Y_train = Y_in[train_idx]
-            X_holdout = X_in[test_idx]
-            y_holdout = Y_in[test_idx]
+            X_train = np.copy(X_in[train_idx])
+            Y_train = np.copy(Y_in[train_idx])
+            X_holdout = np.copy(X_in[test_idx])
+            y_holdout = np.copy(Y_in[test_idx])
             if model_name == 'XGBRegressor':
                 model.fit(
                     X_train, Y_train, eval_set=[(X_holdout, y_holdout)],
@@ -1734,18 +1744,24 @@ class TaxiTripDuration():
                 S_test_i[:, j] = model.predict(
                     T_in, ntree_limit=model.tree_count_)[:]
             elif model_choice == KERAS:
-                self.model.fit(X_train, Y_train,
-                               validation_data=(
-                                   X_holdout, y_holdout),
-                               batch_size=KERAS_BATCH_SIZE,
-                               epochs=KERAS_N_ROUNDS,
-                               verbose=VERBOSE
-                               )
+                self.scaler = StandardScaler()
+                self.scaler.fit(X_train)
+                X_train = self.scaler.transform(X_train)
+                X_holdout = self.scaler.transform(X_holdout)
+                model.fit(X_train, Y_train,
+                          validation_data=(
+                              X_holdout, y_holdout),
+                          batch_size=KERAS_BATCH_SIZE,
+                          epochs=KERAS_N_ROUNDS,
+                          verbose=VERBOSE
+                          )
                 logger.debug("fold:" + str(j + 1) +
                              " done training. Predicting for RMSLE")
-                y_pred = model.predict(X_holdout)[:]
+                y_pred = np.ravel(model.predict(X_holdout)[:])
+                print(S_train.shape, y_pred.shape)
                 S_train[test_idx] = y_pred
-                S_test_i[:, j] = model.predict(T_in)[:]
+                T_in_temp = self.scaler.transform(T_in)
+                S_test_i[:, j] = np.ravel(model.predict(T_in_temp)[:])
             else:
                 model.fit(X_train, Y_train)
                 logger.debug("fold:" + str(j + 1) +
@@ -2083,7 +2099,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 2
+    option = 9
     model_choice = KERAS
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
@@ -2159,7 +2175,7 @@ if __name__ == "__main__":
     # stacking model using kfold
     elif option == 9:
         base_class.load_preprocessed_data()
-        base_class.train_base_single_model(model_index=6, model_choice=DTREE)
+        base_class.train_base_single_model(model_index=6, model_choice=KERAS)
         base_class.combine_pretrained_data()
         base_class.train_stack_model_kfold(model_choice=XGB)
 
