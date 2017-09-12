@@ -2065,7 +2065,7 @@ Round 127: Stack model + kfold, model 123 + Keras (layers=10, nodes=10, batch=10
     + Submision score: 0.36722 => 0.38220
 - Round 130: Stack model + kfold 	
 	+ Base model: 123
-		* Keras: (rd-ml2)  
+		* Keras: (rd-ml3)  
 			. layers=20, nodes=100, batch=10, epochs=10
 			. RMSLE without-log: 0.36277859353 => 0.357355892085
 			. time: 11309.463426351547 => 20570.600616455078
@@ -2077,3 +2077,31 @@ Round 127: Stack model + kfold, model 123 + Keras (layers=10, nodes=10, batch=10
 		* RMSLE without-log: 0.320038352309 => 0.320098703885
 	+ Total time: 
     + Submision score: 0.38220 => 0.38135	
+- Round 131: Stack model + kfold 	
+	+ Base model: 123
+		* Keras: (rd-ml2)  
+			. layers=20, nodes=500, batch=10, epochs=10
+			. RMSLE without-log: 0.357355892085 =>
+			. time: 20570.600616455078 =>
+			. LB: 
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 
+		* RMSLE without-log: 0.320098703885 =>
+	+ Total time: 
+    + Submision score: 0.38135 =>		 
+- Round 132: Stack model + kfold 	
+	+ Base model: 123
+		* Keras: (rd-ml3)  
+			. layers=50, nodes=500, batch=10, epochs=10
+			. RMSLE without-log: 0.357355892085 =>
+			. time: 20570.600616455078 =>
+			. LB: 
+	+ Stack model: XGBRegressor
+		* 'learning_rate': 0.03, 'max_depth': 10, 'min_child_weight': 1, random_state=567
+		* Kfold: 5
+		* train time: 
+		* RMSLE without-log: 0.320098703885 =>
+	+ Total time: 
+    + Submision score: 0.38135 =>			
