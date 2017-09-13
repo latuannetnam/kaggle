@@ -11,3 +11,15 @@ layer=3, node=10, batch=10, epochs=10 (ml3): 0.394849425013, time: 1514.30084109
 layer=4, node=10, batch=10, epochs=10 (ml2): 0.388430869506
 layer=20, node=50, batch=10, epochs=10 (ml2): 0.373011033681, time: 2698.5988280773163
 layer=20, node=100, batch=10, epochs=10 (ml3): 0.375872410306, Time:4159.063251256943
+layer=20, node=100, batch=10, epochs=10, dropout=0.1 (ml2): 0.663751933153
+layer=20, node=100, batch=10, epochs=10, dropout=0.05 (ml3): 0.464125785928
+#-----------------------------------------------------------------
+layer=10, node=10, batch=10, epochs=10, learning_rate=0.1, decay=0 (ml2): 0.781204359097
+layer=10, node=10, batch=10, epochs=10, learning_rate=0.1, decay=learning_rate/epochs (ml3): 0.780886701335
+#--------------------------------------------------------------------------
+layer=5, node=n_features//2, batch=10, epochs=10, learning_rate=0.1, decay=learning_rate/epochs (ml2): 0.427385782828, time: 1617.5721077919006
+layer=5, node=n_features//2, batch=10, epochs=20, learning_rate=0.1, decay=learning_rate/epochs (ml3): 0.399609834644, Time:3397.3223752975464
+layer=5, node=n_features//2, batch=10, epochs=50, learning_rate=0.1, decay=learning_rate/epochs (ml2): 0.394121845525, Time:8201.044773340225
+layer=5, node=n_features//2, batch=10, epochs=100, learning_rate=0.1, decay=learning_rate/epochs (ml3): 0.40028867169, Time:16600.32400870323
+#----------------------------------------------------------------------------------
+layer=10, node=n_features//2, batch=10, epochs=50, learning_rate=0.1, decay=learning_rate/epochs (ml2): 0.780889881265, Time:9546.499979257584

@@ -68,9 +68,9 @@ from lightgbm import LGBMRegressor
 import lightgbm as lgb
 # Keras
 from keras.models import Sequential
-from keras.layers import Dense
+from keras.layers import Dense, Dropout
 from keras.wrappers.scikit_learn import KerasRegressor
-
+from keras.optimizers import SGD, Adam
 if os.name != 'nt':
     # CatBoost
     from catboost import Pool, CatBoostRegressor
@@ -108,10 +108,12 @@ N_FOLDS = 5
 N_ROUNDS = 20000
 # N_ROUNDS = 10  # Use for testing
 
-KERAS_N_ROUNDS = 10
+KERAS_LEARNING_RATE = 0.1
+KERAS_N_ROUNDS = 50
 KERAS_BATCH_SIZE = 10
-KERAS_NODES = 500
-KERAS_LAYERS = 50
+KERAS_NODES = 10
+KERAS_LAYERS = 10
+KERAS_DROPOUT_RATE = 0.2
 LOG_LEVEL = logging.DEBUG
 VERBOSE = True
 SILENT = False
@@ -1229,18 +1231,23 @@ class TaxiTripDuration():
         # load train_data
         data = self.train_data
         n_features = len(data.columns) - 2
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
         logger.debug("n_features:" + str(n_features))
+
         # create model
         model = Sequential()
-        model.add(Dense(KERAS_NODES, input_dim=n_features,
+        nodes = n_features // 2
+        model.add(Dense(n_features, input_dim=n_features,
                         kernel_initializer='normal', activation='relu'))
         for i in range(KERAS_LAYERS):
-            model.add(Dense(KERAS_NODES,
+            model.add(Dense(nodes,
                             kernel_initializer='normal', activation='relu'))
+            # model.add(Dropout(KERAS_DROPOUT_RATE, seed=random_state))
         model.add(Dense(1, kernel_initializer='normal'))
 
         # Compile model
-        model.compile(loss='mean_squared_error', optimizer='adam')
+        optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)
+        model.compile(loss='mean_squared_error', optimizer=optimizer)
         # model = KerasRegressor(build_fn=nn,
         #                        nb_epoch=100, batch_size=5, verbose=VERBOSE)
         return model
@@ -2099,7 +2106,7 @@ class TaxiTripDuration():
 # ---------------- Main -------------------------
 if __name__ == "__main__":
     start = time.time()
-    option = 9
+    option = 2
     model_choice = KERAS
     logger = logging.getLogger('newyork-taxi-duration')
     logger.setLevel(logging.DEBUG)
