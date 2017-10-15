@@ -122,7 +122,7 @@ y_pred = model.predict(x_test)
 print("Pred eval:", y_pred[:5])
 pred_gini = gini_normalized(y_test_pre, y_pred[:,1] )
 print("Gini of validation:", pred_gini)
-
+quit()
 # Test data preprocessing
 df_test = pd.read_csv('data-temp/test.csv')
 print('Test shape:', df_test.shape)

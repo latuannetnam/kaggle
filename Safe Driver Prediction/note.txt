@@ -155,4 +155,64 @@ R14: GPU:
    -result: acc=0.962276830716, score=0.604711477759, gini=-0.000273142279992, time= 8m 13s 
    -LB: 
 
+R15: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 2
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 0
+	KERAS_DROPOUT_RATE = 0.2
+   -result: acc=0.600311372953, score=0.674153166281, gini=0.239368193298, time= 8m 13s 
+   -LB:  0.244  
+
+R16: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 5
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 2
+	KERAS_DROPOUT_RATE = 0.2
+   -result: acc=0.611063820255, score=0.67320477771, gini=0.240489117349, time= 8m 13s 
+   -LB:  
+
+R17: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 10
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 2
+	KERAS_DROPOUT_RATE = 0.2
+   - best round: 8     
+   -result: acc=0.781949329092, score=0.616813585649, gini=0.239042803605, time= 367.1669201850891s 
+   -LB:  
+
+R18: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 10
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 2
+	KERAS_DROPOUT_RATE = 0.2
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round:     
+   -result: acc= 0.573743867745, score=0.659788358599, gini=0.249588247436, time= 405.4384717941284s 
+   -LB:  
+
+R19: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 20
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 5
+	KERAS_DROPOUT_RATE = 0.2
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 2
+   - best round: 5    
+   -result: acc= 0.619217759459, score=0.648379281583, gini=0.251827037689, time= 337.2250258922577s 
+   -LB: 0.252     
 
