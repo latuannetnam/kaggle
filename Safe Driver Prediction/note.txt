@@ -1,0 +1,158 @@
+1. LGBM benmatch:
+R1: CPU:
+   - parameters:
+         learning_rate=0.1,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=100
+   - result: auc=0.641353, gini=0.13602, time=2m 8s
+
+R2: GPU:
+ - parameters:
+         learning_rate=0.1,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=100
+   -result: auc=0.641352681605, gini=0.28270536321, time=1m 52.3s
+   -LB: -0.006
+
+R3: GPU:
+ - parameters:
+         learning_rate=0.1,
+         max_depth=10,
+	 num_leaves=512,
+         random_state=12345,
+         max_bin=63,
+         round=100
+   -result: auc=0.634624830183, gini=0.129546354924, time=4m 24s
+
+
+R4: GPU:
+ - parameters:
+         learning_rate=0.03,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=100
+   -result: auc=0.63200471573, gini=0.264008076739, time= 2m 31s
+   -LB: 
+
+R5: GPU:
+ - parameters: Regressor
+         learning_rate=0.1,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=100
+   -result: auc=0.642761894428, gini=0.285523792311, time= 1m 46.5s
+   -LB: 
+
+R6: GPU:
+ - parameters: 
+         learning_rate=0.1,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=500
+   -result: auc=0.641806603184, gini=0.283613206368, time= 3m 14s, 
+   -LB: 
+
+R7: GPU:
+ - parameters: 
+         learning_rate=0.03,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=500
+   -result: auc=0.641507755753, gini=0.283015511507, time= 3m 14s, 
+   -LB: -0.006
+
+R8: GPU:
+ - parameters: Regressor
+         learning_rate=0.03,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=500
+   -result: auc=0.642742719242, gini=0.285485438485, time= 3m 12s, 
+   -LB: 0.272
+
+
+R9: GPU:
+ - parameters: Regressor
+         learning_rate=0.01,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=1000
+   -result: auc=0.642053829502, gini=0.284107659004, time= 6m 25s, 
+   -LB: 
+
+R10: GPU:
+ - parameters: Regressor
+         learning_rate=0.01,
+         max_depth=10,
+	 num_leaves=31,
+         random_state=12345,
+         max_bin=63,
+         round=4000
+   - best round=1023 
+   -result: auc=0.642110503173, gini=0.284221006346, time= 8m 5s, 
+   -LB: 0.272
+
+2. Keras
+R11: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.1
+	KERAS_N_ROUNDS = 5
+	KERAS_BATCH_SIZE = 10
+	KERAS_NODES = 10
+	KERAS_LAYERS = 2
+	KERAS_DROPOUT_RATE = 0.2
+   -result: acc=0.962276830716, score=0.248809280548, gini=, time= 8m 13s 
+   -LB: 
+
+R12: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.1
+	KERAS_N_ROUNDS = 2
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 0
+	KERAS_DROPOUT_RATE = 0.2
+   -result: acc=0.846240003584, score=0.805251241646, gini=0.0367097819247, time= 8m 13s 
+   -LB: 0.020
+
+R13: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.1
+	KERAS_N_ROUNDS = 2
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 2
+	KERAS_DROPOUT_RATE = 0.2
+   -result: acc=0.962276830716, score=0.604711477759, gini=-0.000273142279992, time= 8m 13s 
+   -LB: 
+
+R14: GPU:
+ - parameters: Regressor
+        KERAS_LEARNING_RATE = 0.1
+	KERAS_N_ROUNDS = 2
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 2 + dropout
+	KERAS_DROPOUT_RATE = 0.2
+   -result: acc=0.962276830716, score=0.604711477759, gini=-0.000273142279992, time= 8m 13s 
+   -LB: 
+
+
