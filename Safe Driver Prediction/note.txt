@@ -76,7 +76,7 @@ R7: GPU:
    -LB: -0.006
 
 R8: GPU:
- - parameters: Regressor
+ - parameters: LGBMRegressor
          learning_rate=0.03,
          max_depth=10,
 	 num_leaves=31,
@@ -111,7 +111,7 @@ R10: GPU:
    -LB: 0.272
 
 2. Keras
-R11: GPU:
+R1: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.1
 	KERAS_N_ROUNDS = 5
@@ -122,7 +122,7 @@ R11: GPU:
    -result: acc=0.962276830716, score=0.248809280548, gini=, time= 8m 13s 
    -LB: 
 
-R12: GPU:
+R2: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.1
 	KERAS_N_ROUNDS = 2
@@ -133,7 +133,7 @@ R12: GPU:
    -result: acc=0.846240003584, score=0.805251241646, gini=0.0367097819247, time= 8m 13s 
    -LB: 0.020
 
-R13: GPU:
+R3: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.1
 	KERAS_N_ROUNDS = 2
@@ -144,7 +144,7 @@ R13: GPU:
    -result: acc=0.962276830716, score=0.604711477759, gini=-0.000273142279992, time= 8m 13s 
    -LB: 
 
-R14: GPU:
+R4: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.1
 	KERAS_N_ROUNDS = 2
@@ -155,7 +155,7 @@ R14: GPU:
    -result: acc=0.962276830716, score=0.604711477759, gini=-0.000273142279992, time= 8m 13s 
    -LB: 
 
-R15: GPU:
+R5: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.001
 	KERAS_N_ROUNDS = 2
@@ -166,7 +166,7 @@ R15: GPU:
    -result: acc=0.600311372953, score=0.674153166281, gini=0.239368193298, time= 8m 13s 
    -LB:  0.244  
 
-R16: GPU:
+R6: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.001
 	KERAS_N_ROUNDS = 5
@@ -177,7 +177,7 @@ R16: GPU:
    -result: acc=0.611063820255, score=0.67320477771, gini=0.240489117349, time= 8m 13s 
    -LB:  
 
-R17: GPU:
+R7: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.001
 	KERAS_N_ROUNDS = 10
@@ -189,7 +189,7 @@ R17: GPU:
    -result: acc=0.781949329092, score=0.616813585649, gini=0.239042803605, time= 367.1669201850891s 
    -LB:  
 
-R18: GPU:
+R8: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.001
 	KERAS_N_ROUNDS = 10
@@ -202,7 +202,7 @@ R18: GPU:
    -result: acc= 0.573743867745, score=0.659788358599, gini=0.249588247436, time= 405.4384717941284s 
    -LB:  
 
-R19: GPU:
+R9: GPU:
  - parameters: Regressor
         KERAS_LEARNING_RATE = 0.001
 	KERAS_N_ROUNDS = 20
@@ -211,8 +211,68 @@ R19: GPU:
 	KERAS_LAYERS = 5
 	KERAS_DROPOUT_RATE = 0.2
         decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
-        early_stoping = 2
+        early_stoping = 5
    - best round: 5    
-   -result: acc= 0.619217759459, score=0.648379281583, gini=0.251827037689, time= 337.2250258922577s 
-   -LB: 0.252     
+   -result: acc= 0.596503214534, score=0.673358819887, gini=0.267490879268, time= 545.8683972358704s 
+   -LB: 0.247     
+
+R10: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 20
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 5
+	KERAS_DROPOUT_RATE = 0.2
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 17    
+   -result: acc= 0.651564705092, score=0.634000390908, gini=0.271686693875, time= 1098.264077425003s 
+   -LB: 0.247         
+
+R11: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 20
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 5
+	KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT= 0.2
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 
+   -result: acc= 0.564314899566, score=0.681611048883, gini=0.305970281664, time= 1098.264077425003s 
+   -LB: 0.248
+
+R12: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 20
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 5
+	KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT= 0.2
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 9
+   -result: acc= 0.632433485885, score=0.664216157667, gini=0.252737846026, time= 1075.7173609733582s 
+   -LB: 0.248   
+R13: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 20
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 64
+	KERAS_LAYERS = 10
+	KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT= 0.2
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 7
+   -result: acc= 0.719985425918, loss=0.494299510091, gini=0.275428684358, time= 1461.8797743320465s 
+   -LB: 
 
