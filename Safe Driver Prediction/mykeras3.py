@@ -61,7 +61,7 @@ from lightgbm import LGBMClassifier, LGBMRegressor
 # Keras
 import keras
 from keras.models import Sequential
-from keras.layers import Dense, Dropout
+from keras.layers import Dense, Dropout, BatchNormalization
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import SGD, Adam
 from keras.utils import np_utils
@@ -294,15 +294,15 @@ if __name__ == "__main__":
     # Model definition
     logger.info("Model definition")
     KERAS_LEARNING_RATE = 0.001
-    KERAS_N_ROUNDS = 2
-    KERAS_BATCH_SIZE = 16
-    KERAS_NODES = 2
-    KERAS_LAYERS = 2
-    KERAS_DROPOUT_RATE = 0.4
+    KERAS_N_ROUNDS = 10000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 512
+    KERAS_LAYERS = 5
+    KERAS_DROPOUT_RATE = 0.5
     # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
     KERAS_REGULARIZER = 0
     KERAS_VALIDATION_SPLIT = 0.2
-    KERAS_EARLY_STOPPING = 15
+    KERAS_EARLY_STOPPING = 10
     KERAS_MAXNORM = 3
     KERAS_PREDICT_BATCH_SIZE = 1024
     VERBOSE = True
@@ -312,15 +312,26 @@ if __name__ == "__main__":
     n_features = X_train.shape[1]
     decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
     nodes = KERAS_NODES
+    dropout = KERAS_DROPOUT_RATE
     # , kernel_regularizer=keras.regularizers.l2(KERAS_REGULARIZER)
     # create model
     model = Sequential()
     model.add(Dropout(KERAS_DROPOUT_RATE,  input_shape=(
         n_features, ), seed=random_state))
+    # model.add(Dense(KERAS_NODES, input_shape=(n_features, ),
+    #                 activation='relu', kernel_constraint=keras.constraints.maxnorm(KERAS_MAXNORM)))
+    # model.add(Dropout(KERAS_DROPOUT_RATE, seed=random_state))
+    # nodes = int(nodes // 1.2)
+    # if nodes < 32:
+    #     nodes = 32
     for i in range(KERAS_LAYERS):
         model.add(Dense(nodes,
                         activation='relu', kernel_constraint=keras.constraints.maxnorm(KERAS_MAXNORM)))
-        model.add(Dropout(KERAS_DROPOUT_RATE, seed=random_state))
+        model.add(BatchNormalization())
+        model.add(Dropout(dropout, seed=random_state))
+        dropout = dropout - 0.1
+        if dropout < 0.1:
+            dropout = 0.1
         nodes = int(nodes // 2)
         if nodes < 32:
             nodes = 32
@@ -331,9 +342,9 @@ if __name__ == "__main__":
     # Use Early-Stopping
     callback_early_stopping = keras.callbacks.EarlyStopping(
         monitor='val_keras_auc', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='max')
-    # callback_tensorboard = keras.callbacks.TensorBoard(
-    # log_dir=DATA_DIR + '/tensorboard', histogram_freq=1, batch_size=32,
-    # write_graph=True, write_grads=True, write_images=True)
+    callback_tensorboard = keras.callbacks.TensorBoard(
+        log_dir=DATA_DIR + '/tensorboard', histogram_freq=1, batch_size=KERAS_BATCH_SIZE,
+        write_graph=True, write_grads=True, write_images=False)
     callback_checkpoint = keras.callbacks.ModelCheckpoint(
         model_weight_path, monitor='val_keras_auc', verbose=VERBOSE, save_best_only=True, mode='max')
     callback_gini_metric = keras_gini(
@@ -343,37 +354,63 @@ if __name__ == "__main__":
     # model.compile(loss='binary_crossentropy',
     #              optimizer=optimizer, metrics=['accuracy'])
     model.compile(loss='categorical_crossentropy',
-                  optimizer=optimizer, metrics=['accuracy'])
+                  optimizer=optimizer, metrics=[keras_auc])
+
     model.summary()
 
     logger.info("Training ...")
     start = time.time()
+    # Training model
+    # model.fit(X_train, Y_train,
+    #           validation_data=(X_test, Y_test),
+    #           batch_size=KERAS_BATCH_SIZE,
+    #           epochs=KERAS_N_ROUNDS,
+    #           callbacks=[callback_early_stopping,
+    #                      # callback_tensorboard,
+    #                      callback_gini_metric
+    #                      ],
+    #           class_weight=class_weight_dict,
+    #           verbose=True
+    #           )
     history = model.fit(X_train, Y_train,
                         validation_split=KERAS_VALIDATION_SPLIT,
                         batch_size=KERAS_BATCH_SIZE,
                         epochs=KERAS_N_ROUNDS,
                         callbacks=[
-                            # callback_early_stopping,
-                            # callback_checkpoint,
-                            callback_gini_metric
+                            callback_tensorboard,
+                            callback_early_stopping,
+                            callback_checkpoint,
+                            # callback_gini_metric
                         ],
                         class_weight=class_weight_dict,
                         verbose=VERBOSE
                         )
     end = time.time() - start
-    logger.debug("Best score:" + str(callback_gini_metric.best) +
-                 ". Epoch: " + str(callback_gini_metric.best_epoch))
+    # logger.debug("Best score:" + str(callback_gini_metric.best) +
+    #              ". Epoch: " + str(callback_gini_metric.best_epoch))
     logger.debug("Train time:" + str(end))
-
     # load best model
     logger.info("Loading best model ...")
-    if callback_gini_metric.save_best & callback_gini_metric.best_epoch > 0:
-        model.load_weights(model_weight_path)
+    # if callback_gini_metric.save_best & callback_gini_metric.best_epoch > 0:
+    #     model.load_weights(model_weight_path)
+    model.load_weights(model_weight_path)
 
     # serialize model to JSON
     model_json = model.to_json()
     with open(model_path, "w") as json_file:
         json_file.write(model_json)
+
+    logger.debug("Evaluating model ...")
+    y_pred = model.predict(X_train, batch_size=KERAS_PREDICT_BATCH_SIZE)
+    score = gini_normalized(Y_train[:, 1], y_pred[:, 1])
+    logger.debug('Gini:' + str(score))
+    logger.debug('Best metric:' + str(callback_early_stopping.best))
+    # if callback_early_stopping.stopped_epoch == KERAS_N_ROUNDS-1:
+    #     best_round = KERAS_N_ROUNDS
+    # else:
+    #     best_round = KERAS_N_ROUNDS
+    logger.debug(
+        'Best round:' + str(callback_early_stopping.stopped_epoch - KERAS_EARLY_STOPPING))
 
     # Predict and save submission
     logger.info("Predicting and saving result ...")
@@ -395,26 +432,35 @@ if __name__ == "__main__":
     # https://machinelearningmastery.com/display-deep-learning-model-training-history-in-keras/
     # logger.debug("metric:" + str(history.history))
     plt.figure(figsize=(20, 15))
-    plt.subplot(3, 1, 1)
-    plt.plot(history.history['acc'])
-    plt.plot(history.history['val_acc'])
-    plt.title('model accuracy')
-    plt.ylabel('accuracy')
-    plt.xlabel('epoch')
-    plt.legend(['train', 'test'], loc='upper left')
+    # plt.subplot(3, 1, 1)
+    # plt.plot(history.history['acc'])
+    # plt.plot(history.history['val_acc'])
+    # plt.title('model accuracy')
+    # plt.ylabel('accuracy')
+    # plt.xlabel('epoch')
+    # plt.legend(['train', 'test'], loc='upper left')
     # summarize history for loss
-    plt.subplot(3, 1, 2)
+    plt.subplot(2, 1, 1)
     plt.plot(history.history['loss'])
     plt.plot(history.history['val_loss'])
     plt.title('model loss')
     plt.ylabel('loss')
     plt.xlabel('epoch')
     plt.legend(['train', 'test'], loc='upper left')
-    # Summmary gini score
-    plt.subplot(3, 1, 3)
-    plt.plot(callback_gini_metric.history['gini'])
-    plt.title('gini score')
-    plt.ylabel('score')
+    # Summmary auc score
+    plt.subplot(2, 1, 2)
+    plt.plot(history.history['keras_auc'])
+    plt.plot(history.history['val_keras_auc'])
+    plt.title('model auc')
+    plt.ylabel('auc')
     plt.xlabel('epoch')
+    plt.legend(['train', 'test'], loc='upper left')
+    # Summmary gini score
+    # plt.subplot(4, 1, 4)
+    # plt.plot(callback_gini_metric.history['gini'])
+    # plt.title('gini score')
+    # plt.ylabel('score')
+    # plt.xlabel('epoch')
+    # plt.legend(['gini', loc='upper left')
     plt.savefig(DATA_DIR + "/history.png")
     logger.info("Done!")

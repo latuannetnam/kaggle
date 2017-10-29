@@ -274,5 +274,997 @@ R13: GPU:
         early_stoping = 20
    - best round: 7
    -result: acc= 0.719985425918, loss=0.494299510091, gini=0.275428684358, time= 1461.8797743320465s 
+   -LB: 0.248
+
+R14: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+	KERAS_N_ROUNDS = 50
+	KERAS_BATCH_SIZE = 32
+	KERAS_NODES = 128
+	KERAS_LAYERS = 10
+	KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT= 0.2
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 24
+   -result: acc= 0.654261368112, loss=0.542250492262, gini=0.356149891007, time= 3204.286782979965s 
+   -LB: 0.243 
+
+R15: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 10
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 2
+        KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT = 0.2
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 10
+   - result: acc= 0.679038722856, loss=0.551428734637, gini=0.291497514373, time/round=70 (CPU=58), time= 707.8425951004028 (CPU=579.4370360374451) 
+   -LB: 0.247   
+
+R16: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 2
+        KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT = 0.2
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 5
+   - result: acc= 0.677958252282, loss=0.59990053964, gini=0.2808037625, time/round=70 (CPU=58), time= 1432.5405094623566 (CPU=1086.9706840515137) 
    -LB: 
 
+R17: GPU:
+ - parameters: Keras
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT = 0.2
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        early_stoping = 20
+   - best round: 2
+   - result: acc= 0.690865689004, loss=0.554036208947, gini=0.292660326371, time/round=95 (CPU=71), time= 1920.9963274002075 (CPU=) 
+   -LB:    
+R18: GPU:
+ - Fill NaN values
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        VALIDATION_SPLIT = 0.2
+        EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 9
+   - result: acc= 0.664644981746, loss=0.647488625902, gini=0.275322184061, time/round=95 (CPU=71), time= 1361.2959034442902 (CPU=) 
+   -LB:       
+
+R19: GPU:
+ - Fill NaN values
+ - parameters: 
+       KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0.01
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 1
+   - result: acc= 0.677422494219, loss=0.963552482141, gini=0.000580870791043, time/round=108 (CPU=71), time= 650.2245786190033 (CPU=) 
+   -LB:          
+
+R20: GPU:
+ - Fill NaN values
+ - parameters: 
+       KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 9
+   - result: acc= 0.650024353535, loss=0.600708655068, gini=0.300742926786, time/round=108 (CPU=71), time= 1197.0988838672638 (CPU=) 
+   -LB: 0.214            
+
+R21: GPU:
+ - Fill NaN values
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0003
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 7
+   - result: gini=0.245890398186, time/round=108 (CPU=71), time= 1288.7068996429443 (CPU=) 
+   -LB: 0.215           
+
+R22: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0003
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 2
+   - result: gini=0.236188178896, time/round=99 (CPU=41s), time= 701.5757372379303 (CPU=) 
+   -LB: 
+
+R23: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 64
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 7
+   - result: gini=0.231280265541, time/round=99 (CPU=41s), time=  (CPU=489.9565191268921) 
+   -LB:    
+
+R24: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 128
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 3
+   - result: gini=0.234953756325, time/round=99 (CPU=60s), time=  (CPU=484.5523340702057) 
+   -LB:       
+
+R25: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 8
+   - result: gini=0.236198246086, time/round=120 (CPU=371s), time=1564.7524938583374  (CPU=) 
+   -LB:          
+
+R26: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 10
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 1
+   - result: gini=0.236900433588, time/round=185 (CPU=825s), time=1116.2261354923248  (CPU=) 
+   -LB:             
+
+R27: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 10
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        nodes = nodes // 2
+   - best round: 
+   - result: gini=0.226382375311, time/round=145 (CPU=274s), time=1900.525490283966  (CPU=) 
+   -LB:                
+
+R28: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 10
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        nodes = nodes // 1.2
+   - best round: 3
+   - result: gini=0.238028623869, time/round=170 (CPU=440), time=1234.199949502945  (CPU=) 
+   -LB:                   
+
+R29: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 0
+        KERAS_DROPOUT_RATE = 0.2
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 10
+   - result: gini=0.245432238888, time/round=(TF=51, CNTK=62, CPU=), time=1265.0346398353577  (CPU=) 
+   -LB:  0.223                    
+
+R30: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 0
+        KERAS_DROPOUT_RATE = 0.3
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 14
+   - result: gini=0.245255812686, time/round=(TF=52, CNTK=, CPU=103), time=1045.6023302078247  (CPU=) 
+   -LB:  
+
+R31: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.3
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3 => new
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 9
+   - result: gini=0.239944094046, time/round=(TF=54, CNTK=, CPU=103), time=1034.4171459674835  (CPU=) 
+   -LB:     
+
+R32: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 20
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.4 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 11
+   - result: gini=0.236288037568, time/round=(TF=54, CNTK=, CPU=103), time=1090.4668946266174  (CPU=) 
+   -LB:        
+
+R32: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.0001
+        KERAS_N_ROUNDS = 50 => new
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15 => new
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 13
+   - result: gini=0.235727291481, time/round=(TF=54, CNTK=, CPU=103), time=1528.6789057254791  (CPU=) 
+   -LB:           
+
+R34: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001 => new
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 37
+   - result: gini=0.227648517742, time/round=(TF=54, CNTK=, CPU=103), time=2723.7595455646515  (CPU=) 
+   -LB:              
+
+R34: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = 0 => new
+   - best round: 3
+   - result: gini=0.141688275772, time/round=(TF=54, CNTK=, CPU=103), time=  (CPU=) 
+   -LB:                 
+
+R35: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 1024 => new
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 29
+   - result: gini=0.218915729187, time/round=(TF=58, CNTK=, CPU=103), time=2550.3990840911865  (CPU=) 
+   -LB:                    
+
+R36: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 1024
+        KERAS_LAYERS = 2 => new
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round: 2
+   - result: gini=-0.00119364504326 , time/round=(TF=58, CNTK=, CPU=103), time=2550.3990840911865  (CPU=) 
+   -LB:                       
+
+R37: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512 => new
+        KERAS_LAYERS = 2 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15
+        KERAS_MAXNORM = 3
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+   - best round:19 
+   - result: gini=0.225895821169 , time/round=(TF=58, CNTK=, CPU=103), time=2177.750633239746  (CPU=) 
+   -LB:                          
+
+R38: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 2 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 15
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024 => new
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=['accuracy', keras_auc] => new
+   - best round:49 
+   - result: gini=0.224654380008 , time/round=76(TF=58, CNTK=, CPU=103), time=3714.3236424922943  (CPU=) 
+   -LB:                             
+
+R39: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 50
+        KERAS_BATCH_SIZE = 16
+        KERAS_NODES = 512
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5 => new
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc] => new
+   - best round: 33
+   - result: auc=0.68736, gini=0.23290811856 , time/round=70(TF=58, CNTK=, CPU=103), time=3714.3236424922943  (CPU=) 
+   -LB: 0.223                            
+
+R40: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100 => new
+        KERAS_BATCH_SIZE = 32 => new
+        KERAS_NODES = 64 => new
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.2 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 40
+   - result: auc= 0.67364, gini=0.285432566811 , time/round=35(TF=58, CNTK=, CPU=103), time=1591.0928921699524  (CPU=) 
+   -LB: 0.198
+
+R41: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 32
+        KERAS_NODES = 64
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 20
+   - result: auc=0.686961271683 , gini=0.241029997062 , time/round=35(TF=58, CNTK=, CPU=103), time=910.2820210456848  (CPU=) 
+   -LB: 0.208
+
+R42: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 32
+        KERAS_NODES = 128 => new
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 21
+   - result: auc=0.687403492388 , gini=0.244823897023 , time/round(TF=34, CNTK=, CPU=), time=973.3573093414307  (CPU=) 
+   -LB: 
+
+R43: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 32
+        KERAS_NODES = 256 => new
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 33 
+   - result: auc=0.686160975921 , gini=0.251165345132 , time/round(TF=34, CNTK=, CPU=), time=  (CPU=) 
+   -LB:    
+
+R44: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 32
+        KERAS_NODES = 512 => new => begin to overfit
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 41
+   - result: auc=0.68358838845 , gini=0.25188357212 , time/round(TF=34, CNTK=, CPU=), time=  (CPU=) 
+   -LB:    
+
+R45: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 16 => new
+        KERAS_NODES = 512=> begin to overfit
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 33
+   - result: auc=0.669211255165 , gini=0.216355512736 , time/round(TF=34, CNTK=, CPU=), time=  (CPU=) 
+   -LB:       
+
+R46: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 64 => new => overfit
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 1 
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 83
+   - result: auc=0.698175976768 , gini=0.279218048517 , time/round(TF=17, CNTK=, CPU=), time=1554.3246703147888  (CPU=) 
+   -LB:  0.206       
+
+R47: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 64 => overfit
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 2 => new => overfit
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 13
+   - result: auc=0.628646645193 , gini=0.247792855905 , time/round(TF=20, CNTK=, CPU=), time=  (CPU=) 
+   -LB: 
+
+R48: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 64 => overfit
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 2 => overfit
+        KERAS_DROPOUT_RATE = 0.5 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 13
+   - result: auc=0.628646645193 , gini=0.247792855905 , time/round(TF=20, CNTK=, CPU=), time=  (CPU=) 
+   -LB:    
+   
+R49: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 8 => new
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.4
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 18
+   - result: auc=0.645710274651 , gini=0.187897398424 , time/round(TF=20, CNTK=, CPU=), time=  (CPU=) 
+   -LB:    
+
+R50: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 64 => new
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.5 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 85
+   - result: auc=0.693183519444 , gini=0.24795139279 , time/round(TF=20, CNTK=, CPU=), time=1584.3150777816772  (CPU=) 
+   -LB: 0.204      
+
+R51: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 100
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.6 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 441
+   - result: auc=0.693864544029 , gini=0.210683278681 , time/round(TF=26, CNTK=, CPU=22), time=11394.382743120193  (CPU=) 
+   -LB:  0.198
+   
+R52: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.002 => new, no good
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.6
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: > 500
+   - result: auc= , gini= , time/round(TF=26, CNTK=, CPU=22), time=  (CPU=) 
+   -LB: 
+
+R53: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - BatchNormalization => new
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001 => new
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 1
+        KERAS_DROPOUT_RATE = 0.5 => new
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 29
+   - result: auc=0.652475726007 , gini=0.254394924829 , time/round(TF=38, CNTK=, CPU=22), time=  (CPU=) 
+   -LB: 0.219    
+
+R54: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 3 => new
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 5
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 10
+   - result: auc=0.640341445282 , gini=0.254764314728 , time/round(TF=74, CNTK=, CPU=22), time=  (CPU=) 
+   -LB: 
+
+R55: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 5 => new
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10 => new
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        metrics=[ keras_auc]
+   - best round: 31
+   - result: auc=0.635051123773 , gini=0.254017037514 , time/round(TF=127, CNTK=, CPU=22), time=  (CPU=) 
+   -LB:    
+
+R56: GPU:
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        dropout = KERAS_DROPOUT_RATE - 0.1 => new
+        metrics=[ keras_auc]
+   - best round: 32
+   - result: auc=0.639458871631 , gini=0.253593229557 , time/round(TF=, CNTK=, CPU=22), time=  (CPU=) 
+   -LB:       
+
+R57: GPU:
+ - Drop unused cols: None => new
+ - Fill NaN values
+ - one-hot-encode for categorical columns
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        dropout = KERAS_DROPOUT_RATE - 0.1
+        metrics=[ keras_auc]
+   - best round: 32
+   - result: auc=0.638738884576 , gini=0.257875113688 , time/round(TF=132, CNTK=, CPU=22), time=  (CPU=) 
+   -LB:  0.229           
+
+R58: GPU:
+ - Drop unused cols: None
+ - Fill NaN values
+ - one-hot-encode for categorical columns: None => new
+ - features: 57
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 512 => begin to overfit
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        dropout = KERAS_DROPOUT_RATE - 0.1
+        metrics=[ keras_auc]
+   - best round: 61
+   - result: auc=0.619995994456 , gini=0.265498045546 , time/round(TF=46, CNTK=, CPU=22), time=  (CPU=) 
+   -LB:  0.229 => 0.207
+
+R59: GPU:
+ - Drop unused cols: None
+ - Fill NaN values
+ - one-hot-encode for categorical columns: => new
+ - features: 221 => new
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 1024 => new
+        KERAS_LAYERS = 5
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        dropout = KERAS_DROPOUT_RATE - 0.1
+        metrics=[ keras_auc]
+   - best round: 32
+   - result: auc=0.639433455128 , gini=0.254179036572 , time/round(TF=55, CNTK=, CPU=22), time=  (CPU=) 
+   -LB:  0.207 =>   
+
+R60: GPU:
+ - Drop unused cols: None
+ - Fill NaN values
+ - one-hot-encode for categorical columns:
+ - features: 221
+ - BatchNormalization
+ - parameters: 
+        KERAS_LEARNING_RATE = 0.001
+        KERAS_N_ROUNDS = 500
+        KERAS_BATCH_SIZE = 64
+        KERAS_NODES = 1024
+        KERAS_LAYERS = 6 => new
+        KERAS_DROPOUT_RATE = 0.5
+        KERAS_REGULARIZER = 0
+        KERAS_VALIDATION_SPLIT = 0.2
+        KERAS_EARLY_STOPPING = 10
+        KERAS_MAXNORM = 3
+        KERAS_PREDICT_BATCH_SIZE = 1024
+        loss = categorical_crossentropy
+        decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+        dropout = KERAS_DROPOUT_RATE - 0.1
+        metrics=[ keras_auc]
+   - best round: 45
+   - result: auc=0.642548807835 , gini=0.258826456529 , time/round(TF=55, CNTK=, CPU=22), time=  (CPU=) 
+   -LB:  0.207 => 0.222     
