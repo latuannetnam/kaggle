@@ -6,6 +6,9 @@
 # https://machinelearningmastery.com/use-word-embedding-layers-deep-learning-keras/
 # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
 # https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/
+# https://martinbel.github.io/fast-text.html
+# http://debajyotidatta.github.io/nlp/deep/learning/word-embeddings/2016/09/28/fast-text-and-skip-gram/
+
 # System
 import datetime as dtime
 import time
@@ -60,9 +63,9 @@ from sklearn.preprocessing import LabelBinarizer, StandardScaler
 # Keras
 import keras
 from keras.models import Sequential
-from keras.layers import Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM
+from keras.layers import Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D
 from keras.wrappers.scikit_learn import KerasRegressor
-from keras.optimizers import SGD, Adam
+from keras.optimizers import SGD, Adam, RMSprop
 from keras.utils import np_utils
 from keras.models import model_from_json
 from keras.preprocessing.text import Tokenizer
@@ -83,16 +86,16 @@ KERAS_LEARNING_RATE = 0.001
 KERAS_N_ROUNDS = 1000
 KERAS_BATCH_SIZE = 64
 KERAS_NODES = 1024
-KERAS_LAYERS = 6
-KERAS_DROPOUT_RATE = 0.5
+KERAS_LAYERS = 1
+KERAS_DROPOUT_RATE = 0.6
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0
 KERAS_VALIDATION_SPLIT = 0.2
-KERAS_EARLY_STOPPING = 10
+KERAS_EARLY_STOPPING = 5
 KERAS_MAXNORM = 3
 KERAS_PREDICT_BATCH_SIZE = 1024
 # ConvNet
-KERAS_FILTERS = 256
+KERAS_FILTERS = OUTPUT_DIM
 KERAS_KERNEL_SIZE = 2
 KERAS_POOL_SIZE = 2
 
@@ -148,15 +151,13 @@ def set_gpu_memory(gpu_fraction=0.3):
 def load_pretrained_word_embedding(create=True):
     file = DATA_DIR + "/embeding.pickle"
     if create:
-        logger.debug("Loading pre-trained word embbeding ...")    
+        logger.debug("Loading pre-trained word embbeding ...")
         # load the whole embedding into memory
         embeddings_index = dict()
         f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
         for line in f:
             values = line.split()
             word = values[0]
-            # print("Word:", word)
-            # print(values[1:10])
             coefs = np.asarray(values[1:], dtype='float32')
             embeddings_index[word] = coefs
         f.close()
@@ -202,17 +203,25 @@ if __name__ == "__main__":
     target_vars = ["EAP", "HPL", "MWS"]
     Y_train = train_data[target_vars].values
 
+    # STEMMING WORDS
+    logger.debug("Sterm text ..")
+    stemmer = stm.SnowballStemmer("english")
+    stem_text = train_data.text.apply(lambda x: (" ").join(
+        [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
+    eval_stem_text = eval_data.text.apply(lambda x: (" ").join(
+        [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
+    all_sterm_text = pd.concat([stem_text, eval_stem_text])
 
     logger.debug("Tokenizing text ..")
     # prepare tokenizer
     tokenizer = Tokenizer()
-    tokenizer.fit_on_texts(train_data.text)
+    tokenizer.fit_on_texts(all_sterm_text)
     vocab_size = len(tokenizer.word_index) + 1
     logger.debug("vocab size:" + str(vocab_size))
     # integer encode the documents
-    encoded_text = tokenizer.texts_to_sequences(train_data.text)
+    encoded_text = tokenizer.texts_to_sequences(stem_text)
     # print(encoded_text[:3])
-    eval_encoded_text = tokenizer.texts_to_sequences(eval_data.text)
+    eval_encoded_text = tokenizer.texts_to_sequences(eval_stem_text)
     # pad documents to a max length
     X_train = pad_sequences(
         encoded_text, maxlen=SEQUENCE_LENGTH, padding='post')
@@ -220,25 +229,34 @@ if __name__ == "__main__":
         eval_encoded_text, maxlen=SEQUENCE_LENGTH, padding='post')
     # print(X_train[:3])
 
+    # load pre-trained word embedding
+    embedding_matrix = load_pretrained_word_embedding(False)
+
     # define the model
     logger.debug("Model definition")
     model = Sequential()
-    embedding_matrix = load_pretrained_word_embedding(False)
     embedding_layer = Embedding(vocab_size, OUTPUT_DIM, weights=[
         embedding_matrix], input_length=SEQUENCE_LENGTH, trainable=False)
     model.add(embedding_layer)
     for i in range(KERAS_LAYERS):
-        model.add(Conv1D(KERAS_FILTERS, KERAS_KERNEL_SIZE, activation='relu'))
+        model.add(Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE, activation='relu'))
         model.add(MaxPooling1D(pool_size=KERAS_POOL_SIZE))
+        # model.add(BatchNormalization())
         model.add(Dropout(dropout, seed=random_state))
-    # model.add(LSTM(KERAS_FILTERS, activation='relu', dropout=dropout, recurrent_dropout=dropout))
-    model.add(CuDNNLSTM(KERAS_FILTERS))
+    # LSTM    
+    # model.add(CuDNNLSTM(OUTPUT_DIM))
+    # lstm = LSTM(OUTPUT_DIM, activation='relu', dropout=dropout, recurrent_dropout=dropout)
+    # model.add(Bidirectional(lstm))
+    # model.add(Dropout(dropout, seed=random_state))
+    # model.add(Dense(OUTPUT_DIM, activation='relu'))
+    # model.add(Dropout(dropout, seed=random_state))
+    model.add(GlobalAveragePooling1D())
     model.add(Dropout(dropout, seed=random_state))
-    model.add(Dense(KERAS_FILTERS, activation='relu'))
-    model.add(Dropout(dropout, seed=random_state))
+    model.add(BatchNormalization())
     model.add(Dense(3, activation='softmax'))
     # compile the model
     optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)
+    # optimizer = RMSprop(lr=KERAS_LEARNING_RATE, decay=decay)
     model.compile(optimizer=optimizer,
                   loss='binary_crossentropy', metrics=['acc'])
     # summarize the model

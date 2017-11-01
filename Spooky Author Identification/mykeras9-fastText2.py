@@ -6,6 +6,9 @@
 # https://machinelearningmastery.com/use-word-embedding-layers-deep-learning-keras/
 # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
 # https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/
+# https://martinbel.github.io/fast-text.html
+# http://debajyotidatta.github.io/nlp/deep/learning/word-embeddings/2016/09/28/fast-text-and-skip-gram/
+
 # System
 import datetime as dtime
 import time
@@ -77,18 +80,18 @@ DATA_DIR = "data-temp"
 GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 
 # VOCAB_SIZE = 100
-SEQUENCE_LENGTH = 300
+SEQUENCE_LENGTH = 1000
 OUTPUT_DIM = 300
 KERAS_LEARNING_RATE = 0.001
 KERAS_N_ROUNDS = 1000
 KERAS_BATCH_SIZE = 64
 KERAS_NODES = 1024
-KERAS_LAYERS = 3
-KERAS_DROPOUT_RATE = 0.5
+KERAS_LAYERS = 1
+KERAS_DROPOUT_RATE = 0.2
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0
 KERAS_VALIDATION_SPLIT = 0.2
-KERAS_EARLY_STOPPING = 10
+KERAS_EARLY_STOPPING = 5
 KERAS_MAXNORM = 3
 KERAS_PREDICT_BATCH_SIZE = 1024
 # ConvNet
@@ -235,19 +238,14 @@ if __name__ == "__main__":
     embedding_layer = Embedding(vocab_size, OUTPUT_DIM, weights=[
         embedding_matrix], input_length=SEQUENCE_LENGTH, trainable=False)
     model.add(embedding_layer)
+    model.add(Dropout(dropout, seed=random_state))
     for i in range(KERAS_LAYERS):
         model.add(Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE, activation='relu'))
         model.add(MaxPooling1D(pool_size=KERAS_POOL_SIZE))
-        # model.add(BatchNormalization())
         model.add(Dropout(dropout, seed=random_state))
-    # LSTM    
-    # model.add(CuDNNLSTM(OUTPUT_DIM))
-    # lstm = LSTM(OUTPUT_DIM, activation='relu', dropout=dropout, recurrent_dropout=dropout)
-    # model.add(Bidirectional(lstm))
-    # model.add(Dropout(dropout, seed=random_state))
-    # model.add(Dense(OUTPUT_DIM, activation='relu'))
-    # model.add(Dropout(dropout, seed=random_state))
     model.add(GlobalAveragePooling1D())
+    model.add(Dropout(dropout, seed=random_state))
+    model.add(BatchNormalization())
     model.add(Dense(3, activation='softmax'))
     # compile the model
     optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)

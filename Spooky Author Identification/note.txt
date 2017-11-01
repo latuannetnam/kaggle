@@ -768,6 +768,103 @@ R3.14:
  - time/round: GPU: 8, CPU: 124
  - LB:       
 
+ R3.16: 
+- params:
+    SEQUENCE_LENGTH = 1000
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 5 => new
+    KERAS_DROPOUT_RATE = 0.2 => new
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = RMSprop 
+ - LSTM: cuDNNLSTM  => new
+   pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.631248601671 => 0.362492487626
+ - best round: 13
+ - time/round: GPU: 8, CPU: 124
+ - LB:       
+
+R3.17: 
+- params:
+    SEQUENCE_LENGTH = 1000
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 5
+    KERAS_DROPOUT_RATE = 0.4 => new
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = RMSprop 
+ - LSTM: cuDNNLSTM  => new
+   pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.362492487626 => 0.4445614907
+ - best round: 9
+ - time/round: GPU: 8, CPU: 124
+ - LB:       
+
+R3.18: 
+- params:
+    SEQUENCE_LENGTH = 1000
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 8 => new
+    KERAS_DROPOUT_RATE = 0.4
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = RMSprop 
+ - LSTM: cuDNNLSTM 
+   pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.362492487626 => 0.421547583893
+ - best round: 6
+ - time/round: GPU: 8, CPU: 124
+ - LB:        
+
+#------------------------------------------------------------------------------------------------
 4. FastText
  R4.1: 
 - params:
@@ -930,4 +1027,304 @@ R3.14:
  - time/round: GPU: 8, CPU: 124
  - LB: 
 
+ R4.5: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+ - GlobalAveragePooling1D 
+ - BatchNormalization => new
+ -  pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.338085559951
+ - best round: 11
+ - time/round: GPU: 8, CPU: 124
+ - LB: 0.55539 
+
+R4.6: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3 
+    KERAS_DROPOUT_RATE = 0.6 => new
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+ - GlobalAveragePooling1D 
+ - BatchNormalization
+ -  pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.338085559951 => 0.35389522817
+ - best round: 11
+ - time/round: GPU: 8, CPU: 124
+ - LB: 
+
+R4.7: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 5 => new 
+    KERAS_DROPOUT_RATE = 0.6
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+ - GlobalAveragePooling1D 
+ - BatchNormalization
+ -  pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.392434343285
+ - best round: 15
+ - time/round: GPU: 8, CPU: 124
+ - LB: 
+
+R4.8: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1 => new 
+    KERAS_DROPOUT_RATE = 0.6
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+ - GlobalAveragePooling1D 
+ - BatchNormalization
+ -  pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.392434343285 => 0.33216654125
+ - best round: 26
+ - time/round: GPU: 8, CPU: 124
+ - LB: 0.53728
+
+ R4.9: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 => new
+    KERAS_DROPOUT_RATE = 0.6
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    # FastText
+    GlobalAveragePooling1D 
+    BatchNormalization
+ - pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.33216654125 => 0.531762149349
+ - best round: 12
+ - time/round: GPU: 8, CPU: 124
+ - LB: 
+
+R4.10: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.6
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 5 => new
+    KERAS_POOL_SIZE = 5 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    # FastText
+    GlobalAveragePooling1D 
+    BatchNormalization
+ - pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.33216654125 => 0.442304251599
+ - best round: 56
+ - time/round: GPU: 8, CPU: 124
+ - LB: 
+
+R4.11: 
+- params:
+    SEQUENCE_LENGTH = 300
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.6
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 1 => new
+    KERAS_POOL_SIZE = 1 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    # FastText
+    GlobalAveragePooling1D 
+    BatchNormalization
+ - pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.33216654125 => 0.427536922042
+ - best round: 39
+ - time/round: GPU: 8, CPU: 124
+ - LB:  
+
+R4.12: 
+- params:
+    SEQUENCE_LENGTH = 1000 => new
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.6
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2 => new
+    KERAS_POOL_SIZE = 2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    # FastText
+    GlobalAveragePooling1D 
+    BatchNormalization
+ - pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.33216654125 => 0.417364623074
+ - best round: 55
+ - time/round: GPU: 8, CPU: 124
+
+R4.13: 
+- params:
+    SEQUENCE_LENGTH = 1000
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2 => new
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    # FastText
+    GlobalAveragePooling1D 
+    BatchNormalization
+ - pre-train word Embeding: glove.6B.300d.txt
+ - sterm text: train + eval
+ - metric: 0.33216654125 => 0.318572466339
+ - best round: 21
+ - time/round: GPU: 8, CPU: 124 
+ - LB: 0.51538
  
