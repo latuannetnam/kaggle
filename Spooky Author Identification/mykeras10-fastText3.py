@@ -81,14 +81,14 @@ DATA_DIR = "data-temp"
 GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 
 # VOCAB_SIZE = 100
-SEQUENCE_LENGTH = 1000
-OUTPUT_DIM = 300
+SEQUENCE_LENGTH = 500
+OUTPUT_DIM = 100
 KERAS_LEARNING_RATE = 0.001
 KERAS_N_ROUNDS = 1000
 KERAS_BATCH_SIZE = 64
 KERAS_NODES = 1024
-KERAS_LAYERS = 0
-KERAS_DROPOUT_RATE = 0.2
+KERAS_LAYERS = 1
+KERAS_DROPOUT_RATE = 0.5
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0
 KERAS_VALIDATION_SPLIT = 0.2
@@ -108,6 +108,9 @@ VERBOSE = True
 model_weight_path = DATA_DIR + "/model_weight.h5"
 model_path = DATA_DIR + "/model.json"
 random_state = 12343
+# Set parameters:
+# ngram_range = 2 will add bi-grams features
+ngram_range = 2
 
 # disable GPU: export CUDA_VISIBLE_DEVICES=
 
@@ -182,6 +185,47 @@ def load_pretrained_word_embedding(create=True):
 
     return embedding_matrix
 
+# Credit:
+# https://github.com/fchollet/keras/blob/master/examples/imdb_fasttext.py
+
+
+def create_ngram_set(input_list, ngram_value=2):
+    """
+    Extract a set of n-grams from a list of integers.
+    >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=2)
+    {(4, 9), (4, 1), (1, 4), (9, 4)}
+    >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=3)
+    [(1, 4, 9), (4, 9, 4), (9, 4, 1), (4, 1, 4)]
+    """
+    return set(zip(*[input_list[i:] for i in range(ngram_value)]))
+
+
+def add_ngram(sequences, token_indice, ngram_range=2):
+    """
+    Augment the input list of list (sequences) by appending n-grams values.
+    Example: adding bi-gram
+    >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
+    >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017}
+    >>> add_ngram(sequences, token_indice, ngram_range=2)
+    [[1, 3, 4, 5, 1337, 2017], [1, 3, 7, 9, 2, 1337, 42]]
+    Example: adding tri-gram
+    >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
+    >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017, (7, 9, 2): 2018}
+    >>> add_ngram(sequences, token_indice, ngram_range=3)
+    [[1, 3, 4, 5, 1337], [1, 3, 7, 9, 2, 1337, 2018]]
+    """
+    new_sequences = []
+    for input_list in sequences:
+        new_list = input_list[:]
+        for i in range(len(new_list) - ngram_range + 1):
+            for ngram_value in range(2, ngram_range + 1):
+                ngram = tuple(new_list[i:i + ngram_value])
+                if ngram in token_indice:
+                    new_list.append(token_indice[ngram])
+        new_sequences.append(new_list)
+
+    return new_sequences
+
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
@@ -224,11 +268,44 @@ if __name__ == "__main__":
     encoded_text = tokenizer.texts_to_sequences(stem_text)
     # print(encoded_text[:3])
     eval_encoded_text = tokenizer.texts_to_sequences(eval_stem_text)
+    x_train = encoded_text
+    x_test = eval_encoded_text
+    logger.debug("X train shape:" + str(len(x_train)))
+
+    # Create n-gram
+    logger.debug("Creating n-gram ...")
+    if ngram_range > 1:
+        print('Adding {}-gram features'.format(ngram_range))
+        # Create set of unique n-gram from the training set.
+        ngram_set = set()
+        for input_list in x_train:
+            for i in range(2, ngram_range + 1):
+                set_of_ngram = create_ngram_set(input_list, ngram_value=i)
+                ngram_set.update(set_of_ngram)
+
+        # Dictionary mapping n-gram token to a unique integer.
+        # Integer values are greater than max_features in order
+        # to avoid collision with existing features.
+        start_index = vocab_size + 1
+        token_indice = {v: k + start_index for k, v in enumerate(ngram_set)}
+        indice_token = {token_indice[k]: k for k in token_indice}
+
+        # max_features is the highest integer that could be found in the dataset.
+        vocab_size = np.max(list(indice_token.keys())) + 1
+        logger.debug("New vocab size:" + str(vocab_size))
+
+        # Augmenting x_train and x_test with n-grams features
+        x_train = add_ngram(x_train, token_indice, ngram_range)
+        x_test = add_ngram(x_test, token_indice, ngram_range)
+        print('Average train sequence length: {}'.format(np.mean(list(map(len, x_train)), dtype=int)))
+        print('Average test sequence length: {}'.format(np.mean(list(map(len, x_test)), dtype=int)))
+
     # pad documents to a max length
     X_train = pad_sequences(
-        encoded_text, maxlen=SEQUENCE_LENGTH, padding='post')
+        x_train, maxlen=SEQUENCE_LENGTH, padding='post')
     X_eval = pad_sequences(
-        eval_encoded_text, maxlen=SEQUENCE_LENGTH, padding='post')
+        x_test, maxlen=SEQUENCE_LENGTH, padding='post')
+
     # print(X_train[:3])
 
     # load pre-trained word embedding
