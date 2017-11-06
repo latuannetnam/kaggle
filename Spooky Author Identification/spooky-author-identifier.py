@@ -11,6 +11,8 @@
 # http://ben.bolte.cc/blog/2016/gensim.html
 # https://www.bonaccorso.eu/2017/08/07/twitter-sentiment-analysis-with-gensim-word2vec-and-keras-convolutional-networks/
 # https://www.kaggle.com/enerrio/scary-nlp-with-spacy-and-keras
+# https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
+# https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
 
 # System
 import datetime as dtime
@@ -76,7 +78,7 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS as stopword
 # Keras
 import keras
 from keras.models import Sequential, Model
-from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape
+from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape, Dot, Average
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import SGD, Adam, RMSprop
 from keras.utils import np_utils
@@ -86,6 +88,7 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import one_hot
 from keras.layers.embeddings import Embedding
 import keras.backend.tensorflow_backend as KTF
+from keras.utils import plot_model
 
 
 # Constants
@@ -97,10 +100,10 @@ GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 SEQUENCE_LENGTH = 500
 OUTPUT_DIM = 500
 KERAS_LEARNING_RATE = 0.001
-KERAS_N_ROUNDS = 100
+KERAS_N_ROUNDS = 200
 KERAS_BATCH_SIZE = 64
 KERAS_NODES = 1024
-KERAS_LAYERS = 0
+KERAS_LAYERS = 1
 KERAS_DROPOUT_RATE = 0.5
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0
@@ -126,14 +129,14 @@ w2v_weight_path = DATA_DIR + "/w2v_weight.pickle"
 random_state = 12343
 
 # ngram_range = 2 will add bi-grams features
-ngram_range = 1
+ngram_range = 2
 
 # Model choice
 MODEL_FASTEXT = 1
 MODEL_CUDNNLSTM = 2
 MODEL_LSTM = 3
 MODEL_CNN = 4
-
+MODEL_INPUT2_DENSE = 5
 # Text processing choice
 USE_SEQUENCE = True
 USE_SPACY = False
@@ -184,11 +187,11 @@ class SpacyPreprocess():
 
 
 class SpookyAuthorIdentifer():
-    def __init__(self, label, word2vec=0, use_input2=False, model_choice=MODEL_FASTEXT):
+    def __init__(self, label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=None):
         self.label = label
         self.word2vec = word2vec
-        self.use_input2 = use_input2
         self.model_choice = model_choice
+        self.model_choice2 = model_choice2
 
     def load_data(self):
         logger.info("Loading data ...")
@@ -476,7 +479,7 @@ class SpookyAuthorIdentifer():
                      ". test_df size:" + str(self.eval_df.shape))
 
     def prepare_data(self):
-        if self.use_input2:
+        if self.model_choice2 == MODEL_INPUT2_DENSE:
             self.collect_additional_features()
         # CREATE TARGET VARIABLE
         self.eval_id = self.eval_data['id']
@@ -513,135 +516,131 @@ class SpookyAuthorIdentifer():
 
         return embedding_layer
 
-    def model_fasttext_old(self):
-        model = Sequential()
-        embedding_layer = self.buil_embbeding_layer()
-        model.add(embedding_layer)
-        model.add(Dropout(dropout, seed=random_state))
-        for i in range(KERAS_LAYERS):
-            model.add(Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE, activation='relu'))
-            model.add(MaxPooling1D(pool_size=KERAS_POOL_SIZE))
-            model.add(Dropout(dropout, seed=random_state))
-        model.add(GlobalAveragePooling1D())
-        model.add(Dropout(dropout, seed=random_state))
-        # model.add(BatchNormalization())
-        # model.add(Dense(OUTPUT_DIM, activation='relu'))
-        # model.add(Dropout(dropout, seed=random_state))
-        # model.add(BatchNormalization())
-        # model.add(Dense(3, activation='softmax'))
-        return model
-
     def model_fasttext(self):
         embbeding_input = Input(shape=(None,), name="embbeding_input")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
-
         model = Dropout(dropout, seed=random_state)(embedding_layer)
-        for i in range(KERAS_LAYERS):
-            model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
-                           activation='relu')(model)
-            model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
-            model = Dropout(dropout, seed=random_state)(model)
+        # for i in range(KERAS_LAYERS):
+        #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
+        #                    activation='relu')(model)
+        #     model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
+        #     model = Dropout(dropout, seed=random_state)(model)
         model = GlobalAveragePooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
+        # model.add(BatchNormalization())
+        # model.add(Dense(OUTPUT_DIM, activation='relu'))
+        # model.add(Dropout(dropout, seed=random_state))
+        # model.add(BatchNormalization())(model)
         return embbeding_input, model
 
     def model_cnn(self):
         model = Sequential()
         if KERAS_EMBEDDING:
-            embedding_layer = self.buil_embbeding_layer()
-            model.add(embedding_layer)
-            model.add(Dropout(dropout, seed=random_state))
+            input1 = Input(shape=(None,), name="embbeding_input_cnn")
+            embedding_layer = self.buil_embbeding_layer()(input1)
+            model = Dropout(dropout, seed=random_state)(embedding_layer)
         else:
-            model.add(Reshape((1, self.input_length),
-                              input_shape=(self.input_length,)))
+            input1 = Reshape((1, self.input_length),
+                             input_shape=(self.input_length,))
+            model = input1
         for i in range(KERAS_LAYERS):
-            model.add(Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE, activation='relu'))
-            model.add(MaxPooling1D(pool_size=KERAS_POOL_SIZE))
-            model.add(Dropout(dropout, seed=random_state))
-        model.add(GlobalMaxPooling1D())
-        model.add(Dropout(dropout, seed=random_state))
+            model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
+                           activation='relu')(model)
+            model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
+            model = Dropout(dropout, seed=random_state)(model)
+        model = GlobalMaxPooling1D()(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        model = BatchNormalization()(model)
+        # model.add(Dense(OUTPUT_DIM, activation='relu'))
+        # model.add(Dropout(dropout, seed=random_state))
         # model.add(BatchNormalization())
-        model.add(Dense(OUTPUT_DIM, activation='relu'))
-        model.add(Dropout(dropout, seed=random_state))
-        model.add(BatchNormalization())
         # model.add(Dense(3, activation='softmax'))
-        return model
+        return input1, model
 
     def model_cudnnlstm(self):
-        model = Sequential()
-        embedding_layer = self.buil_embbeding_layer()
-        model.add(embedding_layer)
-        model.add(Dropout(dropout, seed=random_state))
-        for i in range(KERAS_LAYERS):
-            model.add(Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE, activation='relu'))
-            model.add(MaxPooling1D(pool_size=KERAS_POOL_SIZE))
-            model.add(Dropout(dropout, seed=random_state))
+        embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
+        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        # for i in range(KERAS_LAYERS):
+        #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
+        #                    activation='relu')(model)
+        #     model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
+        #     model = Dropout(dropout, seed=random_state)(model)
         # LSTM
-        model.add(CuDNNLSTM(OUTPUT_DIM))
-        # lstm = LSTM(OUTPUT_DIM, activation='relu', dropout=dropout, recurrent_dropout=dropout)
-        # model.add(Bidirectional(lstm))
-        model.add(Dropout(dropout, seed=random_state))
-        model.add(BatchNormalization())
-        # model.add(Dense(3, activation='softmax'))
-        return model
+        model = CuDNNLSTM(OUTPUT_DIM)(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        model = BatchNormalization()(model)
+        return embbeding_input, model
 
     def model_lstm(self):
-        model = Sequential()
-        embedding_layer = self.buil_embbeding_layer()
-        model.add(embedding_layer)
-        model.add(Dropout(dropout, seed=random_state))
-        for i in range(KERAS_LAYERS):
-            model.add(Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE, activation='relu'))
-            model.add(MaxPooling1D(pool_size=KERAS_POOL_SIZE))
-            model.add(Dropout(dropout, seed=random_state))
+        embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
+        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        # for i in range(KERAS_LAYERS):
+        #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
+        #                    activation='relu')(model)
+        #     model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
+        #     model = Dropout(dropout, seed=random_state)(model)
         # LSTM
-        # model.add(CuDNNLSTM(OUTPUT_DIM))
-        lstm = LSTM(OUTPUT_DIM, activation='relu',
-                    dropout=dropout, recurrent_dropout=dropout)
-        # model.add(Bidirectional(lstm))
-        model.add(lstm)
-        # model.add(Dropout(dropout, seed=random_state))
-        model.add(BatchNormalization())
-        # model.add(Dense(3, activation='softmax'))
-        return model
+        model = LSTM(OUTPUT_DIM, activation='relu',
+                     dropout=dropout, recurrent_dropout=dropout)(model)
+        model = BatchNormalization()(model)
+        return embbeding_input, model
 
     def model_input2_dense(self):
         n_features = self.train_df.shape[1]
         logger.debug("Num features of input2:" + str(n_features))
         feature_input = Input(shape=(n_features,), name="features_input")
-        model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(feature_input)
+        # model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(feature_input)
+        model = feature_input
         nodes = OUTPUT_DIM
         layers = max(KERAS_LAYERS, 1)
         for i in range(layers):
             model = (Dense(nodes,
                            activation='relu', kernel_constraint=keras.constraints.maxnorm(KERAS_MAXNORM)))(model)
             model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
-            model = BatchNormalization()(model)
+            # model = BatchNormalization()(model)
             nodes = int(nodes // 2)
             if nodes < 32:
                 nodes = 32
         return feature_input, model
 
-    def train_single_model(self):
+    def build_model(self):
         logger.debug("Model definition")
-        # Use additional input2
-        if self.use_input2:
-            input1, model1 = self.model_fasttext_combined()
-            input2, model2 = self.model_input2_dense()
+        if self.model_choice == MODEL_FASTEXT:
+            input1, model1 = self.model_fasttext()
+        elif self.model_choice == MODEL_CUDNNLSTM:
+            input1, model1 = self.model_cudnnlstm()
+        elif self.model_choice == MODEL_LSTM:
+            input1, model1 = self.model_lstm()
+        elif self.model_choice == MODEL_CNN:
+            input1, model1 = self.model_cnn()
+
+        if self.model_choice2 is not None:  # Use additional input2
+            logger.debug("Adding more model...")
+            if self.model_choice2 == MODEL_INPUT2_DENSE:
+                input2, model2 = self.model_input2_dense()
+            elif self.model_choice2 == MODEL_FASTEXT:
+                input2, model2 = self.model_fasttext()
+            elif self.model_choice2 == MODEL_CUDNNLSTM:
+                input2, model2 = self.model_cudnnlstm()
+            elif self.model_choice2 == MODEL_LSTM:
+                input2, model2 = self.model_lstm()
+            elif self.model_choice2 == MODEL_CNN:
+                input2, model2 = self.model_cnn()
+
             model3 = concatenate([model1, model2])
-            out_model = Dense(3, activation='softmax')(model3)
+            # model3 = Dot(1, normalize=True)([model1, model2])
+            # model3 = Average()([model1, model2])
+            out_model = Reshape((2, OUTPUT_DIM))(model3)
+            out_model = GlobalAveragePooling1D()(out_model)
+            out_model = Dropout(KERAS_DROPOUT_RATE,
+                                seed=random_state)(out_model)
+            out_model = Dense(3, activation='softmax')(out_model)
             self.model = Model(inputs=[input1, input2], outputs=out_model)
         else:
-            if self.model_choice == MODEL_FASTEXT:
-                self.model = self.model_fasttext()
-            elif self.model_choice == MODEL_CUDNNLSTM:
-                self.model = self.model_cudnnlstm()
-            elif self.model_choice == MODEL_LSTM:
-                self.model = self.model_lstm()
-            elif self.model_choice == MODEL_CNN:
-                self.model = self.model_cnn()
-            self.model.add(Dense(3, activation='softmax'))
-
+            out_model = Dense(3, activation='softmax')(model1)
+            self.model = Model(inputs=[input1], outputs=out_model)
         # compile the model
         optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)
         # optimizer = RMSprop(lr=KERAS_LEARNING_RATE, decay=decay)
@@ -649,6 +648,12 @@ class SpookyAuthorIdentifer():
                            loss='binary_crossentropy', metrics=['acc'])
         # summarize the model
         print(self.model.summary())
+        # Plot the model
+        plot_model(self.model, show_shapes=True,
+                   to_file=DATA_DIR + '/model.png')
+
+    def train_single_model(self):
+        self.build_model()
         # Use Early-Stopping
         callback_early_stopping = keras.callbacks.EarlyStopping(
             monitor='val_loss', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='auto')
@@ -659,7 +664,7 @@ class SpookyAuthorIdentifer():
             model_weight_path, monitor='val_loss', verbose=VERBOSE, save_best_only=True, mode='auto')
         logger.debug(" Spliting train and test set...")
 
-        if self.use_input2:
+        if self.model_choice2 == MODEL_INPUT2_DENSE:
             X_train, X_test, X_train2, X_test2, Y_train, Y_test = train_test_split(
                 self.train, self.train_df, self.target, test_size=KERAS_VALIDATION_SPLIT, random_state=1234)
             logger.debug("X_train:" + str(X_train.shape) +
@@ -675,19 +680,23 @@ class SpookyAuthorIdentifer():
         logger.debug("Training ...")
         start = time.time()
         # Training model
-        if self.use_input2:
+        if self.model_choice2 is not None:
+            if self.model_choice2 != MODEL_INPUT2_DENSE:
+                X_train2 = X_train
+                X_test2 = X_test
             self.history = self.model.fit([X_train, X_train2], Y_train,
                                           validation_data=(
-                                              [X_test, X_test2], Y_test),
-                                          batch_size=KERAS_BATCH_SIZE,
-                                          epochs=KERAS_N_ROUNDS,
-                                          callbacks=[
-                                          # callback_tensorboard,
-                                          callback_early_stopping,
-                                          callback_checkpoint,
-                                          ],
-                                          verbose=VERBOSE
-                                          )
+                [X_test, X_test2], Y_test),
+                batch_size=KERAS_BATCH_SIZE,
+                epochs=KERAS_N_ROUNDS,
+                callbacks=[
+                # callback_tensorboard,
+                callback_early_stopping,
+                callback_checkpoint,
+            ],
+                verbose=VERBOSE
+            )
+
         else:
             self.history = self.model.fit(X_train, Y_train,
                                           validation_data=(X_test, Y_test),
@@ -711,38 +720,30 @@ class SpookyAuthorIdentifer():
 
     def train_kfold_single(self):
         logger.info("Train Kfold for single model")
-        kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
-        # compile the model
-        optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)
+        self.build_model()
+        # Save initilize model weigth for reseting weigth after each loop
+        model_init_weights = self.model.get_weights()
 
+        logger.debug("Prepare training data ...")
         X = self.train
         Y = self.target
         T = self.X_eval
+
+        if self.model_choice2 is not None:
+            if self.model_choice2 == MODEL_INPUT2_DENSE:
+                X2 = self.train_df
+                T2 = self.eval_df
+            else:
+                X2 = X
+                T2 = T
+
         S_train = np.zeros((X.shape[0], N_FOLDS))
         Y_eval = np.zeros((T.shape[0], Y.shape[1], N_FOLDS))
         total_time = 0
         total_metric = 0
         self.history_total = []
-        logger.debug("Model definition")
-        # keras.backend.clear_session()
-        # tf.reset_default_graph()
-        if self.model_choice == MODEL_FASTEXT:
-            self.model = self.model_fasttext()
-        elif self.model_choice == MODEL_CUDNNLSTM:
-            self.model = self.model_cudnnlstm()
-        elif self.model_choice == MODEL_LSTM:
-            self.model = self.model_lstm()
-        elif self.model_choice == MODEL_CNN:
-            self.model = self.model_cnn()
-        self.model.add(Dense(3, activation='softmax'))
 
-        self.model.compile(optimizer=optimizer,
-                           loss='binary_crossentropy', metrics=['acc'])
-        # summarize the model
-        print(self.model.summary())
-        # Save initilize model weigth for reseting weigth after each loop
-        model_init_weights = self.model.get_weights()
-
+        kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
             logger.debug("Round:" + str(j + 1))
             start = time.time()
@@ -750,6 +751,11 @@ class SpookyAuthorIdentifer():
             Y_train = Y[train_idx]
             X_test = X[test_idx]
             Y_test = Y[test_idx]
+
+            if self.model_choice2 is not None:
+                X_train2 = X2[train_idx]
+                X_test2 = X2[test_idx]
+
             # Use Early-Stopping
             callback_early_stopping = keras.callbacks.EarlyStopping(
                 monitor='val_loss', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='auto')
@@ -760,17 +766,32 @@ class SpookyAuthorIdentifer():
                 model_weight_path, monitor='val_loss', verbose=VERBOSE, save_best_only=True, mode='auto')
 
             # Training model
-            history = self.model.fit(X_train, Y_train,
-                                     validation_data=(X_test, Y_test),
-                                     batch_size=KERAS_BATCH_SIZE,
-                                     epochs=KERAS_N_ROUNDS,
-                                     callbacks=[
-                                         # callback_tensorboard,
-                                         callback_early_stopping,
-                                         callback_checkpoint,
-                                     ],
-                                     verbose=VERBOSE
-                                     )
+            if self.model_choice2 is not None:
+                history = self.model.fit([X_train, X_train2], Y_train,
+                                         validation_data=(
+                                             [X_test, X_test2], Y_test),
+                                         batch_size=KERAS_BATCH_SIZE,
+                                         epochs=KERAS_N_ROUNDS,
+                                         callbacks=[
+                    # callback_tensorboard,
+                    callback_early_stopping,
+                    callback_checkpoint,
+                ],
+                    verbose=VERBOSE
+                )
+            else:
+                history = self.model.fit(X_train, Y_train,
+                                         validation_data=(X_test, Y_test),
+                                         batch_size=KERAS_BATCH_SIZE,
+                                         epochs=KERAS_N_ROUNDS,
+                                         callbacks=[
+                                             # callback_tensorboard,
+                                             callback_early_stopping,
+                                             callback_checkpoint,
+                                         ],
+                                         verbose=VERBOSE
+                                         )
+
             end = time.time() - start
             total_time = total_time + end
             self.history_total.append(history)
@@ -783,7 +804,10 @@ class SpookyAuthorIdentifer():
             logger.debug(
                 'Best round:' + str(callback_early_stopping.stopped_epoch - KERAS_EARLY_STOPPING))
             logger.debug("Saving Y_eval for round:" + str(j + 1))
-            Y_eval[:, :, j] = self.model.predict(T)
+            if self.model_choice2 is not None:
+                Y_eval[:, :, j] = self.model.predict([T, T2])
+            else:
+                Y_eval[:, :, j] = self.model.predict(T)
             # Reset weigth
             logger.debug("Reset model weights")
             self.model.set_weights(model_init_weights)
@@ -800,8 +824,11 @@ class SpookyAuthorIdentifer():
         # PREDICTION
         logger.debug("Prediction")
         if Y_pred is None:
-            if self.use_input2:
-                Y_pred = self.model.predict([self.X_eval, self.eval_df])
+            if self.model_choice2 is not None:
+                if self.model_choice2 == MODEL_INPUT2_DENSE:
+                    Y_pred = self.model.predict([self.X_eval, self.eval_df])
+                else:
+                    Y_pred = self.model.predict([self.X_eval, self.X_eval])
             else:
                 Y_pred = self.model.predict(self.X_eval)
         preds = pd.DataFrame(Y_pred, columns=self.target_vars)
@@ -880,10 +907,10 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     label = 'author'
     object = SpookyAuthorIdentifer(
-        label, word2vec=0, use_input2=True, model_choice=MODEL_FASTEXT)
+        label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=MODEL_INPUT2_DENSE)
     object.load_data()
     object.prepare_data()
-    option = 1
+    option = 2
     if option == 1:
         object.train_single_model()
         object.predict_data()
