@@ -4089,6 +4089,342 @@ R7.6: FastText + model_input2_dense
  - time/round: GPU: 40, CPU: 
  - total time: 1100
  - LB: 0.38605 => 0.38693
+
+ R7.9: FastText + model_input2_dense
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # model_input2_dense
+    feature_input + dense + dropout => new
+    nodes = train_df.shape[1] * 2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense)
+    out_model = GlobalAveragePooling1D + dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df
+ - metric: 0.224523078692 => 0.23345371717
+ - best round: 76
+ - time/round: GPU: 40, CPU: 
+ - total time: 829
+ - LB: 0.38693 =>
+
+ R7.10: FastText + model_input2_dense
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # model_input2_dense
+    feature_input + dense + dropout => new
+    nodes = train_df.shape[1] * 2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense)
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df
+ - metric: 0.224523078692 => 0.233607849165
+ - best round: 67
+ - time/round: GPU: 40, CPU: 
+ - total time: 829
+ - LB: 0.38693 =>
+
+ R7.11: MODEL_LSTM_ATTRNN + model_input2_dense
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # MODEL_LSTM_ATTRNN
+    model = Bidirectional(GRU) + AttentionLayer + dropout => new
+    # Merge => Concatenate
+    model3 = Concatenate(MODEL_LSTM_ATTRNN + model_input2_dense)
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df
+ - metric: 0.247854546337 => 0.247604691093
+ - best round: 3
+ - time/round: GPU: 360, CPU: 
+ - total time: 829
+ - LB: 0.38693 => 0.43196
+
+ R7.12: FastText + MODEL_LSTM_ATTRNN
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # MODEL_LSTM_ATTRNN
+    model = Bidirectional(GRU) + AttentionLayer + dropout => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + MODEL_LSTM_ATTRNN) => new
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df
+ - metric: 0.233607849165 => 0.261458906983
+ - best round: 3
+ - time/round: GPU: 360, CPU: 
+ - total time: 2320
+ - LB: 0.38693 =>
+
+ R7.13: FastText + MODEL_LSTM_ATTRNN
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # MODEL_LSTM_ATTRNN
+    model = Bidirectional(GRU) + AttentionLayer + dropout => new
+    # Merge => Average
+    model3 = Average(model_fasttext + MODEL_LSTM_ATTRNN) => new
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df
+ - metric: 0.233607849165 => 0.258402486302
+ - best round: 2
+ - time/round: GPU: 360, CPU: 
+ - total time: 2368
+ - LB: 0.38693 =>
+
+ R7.14: FastText + model_input2_dense
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # model_input2_dense
+    nodes = min(n_features * 2, OUTPUT_DIM) => new
+    feature_input + dense + dropout
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense)
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - metric: 0.233607849165 => 0.30722242061
+ - best round: 2
+ - time/round: GPU: 40, CPU: 
+ - total time: 79
+ - LB: 0.38693 => 
+
+ R7.15: FastText + model_input2_dense
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # model_input2_dense
+    nodes = min(n_features * 2, OUTPUT_DIM)
+    feature_input + dense + dropout
+    # Merge => Average => new
+    model3 = Average(model_fasttext + model_input2_dense)
+    out_model = dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - metric: 0.233607849165 => 0.318385487055
+ - best round: 4
+ - time/round: GPU: 10, CPU: 
+ - total time: 79
+ - LB: 0.38693 => 
+
+ R7.16: FastText + model_input2_cnn
+ - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText
+    GlobalAveragePooling1D 
+    # model_input2_cnn => new
+    nodes = min(n_features*2, OUTPUT_DIM)
+    Conv1D(nodes) + GlobalMaxPooling1D + dropout + BatchNormalization => new
+    KERAS_KERNEL_SIZE = 2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense)
+    out_model = dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - metric: 0.233607849165 => 0.304725236255
+ - best round: 25
+ - time/round: GPU: 40, CPU: 
+ - total time: 350
+ - LB: 0.38693 => 
  #------------------------------------------------------------------------------------
   R8.1: Kfold + FastText + model_input2_dense
   - params:
@@ -4125,6 +4461,7 @@ R7.6: FastText + model_input2_dense
     n-gram = 1
  - pre-train word Embeding: None
  - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
  - metric: 0.243456385118 => 0.235364179136 
  - time/round: GPU: 860, CPU: 
  - total time:  3542
@@ -4165,6 +4502,7 @@ R7.6: FastText + model_input2_dense
     n-gram = 2 => new
  - pre-train word Embeding: None
  - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
  - metric: 0.225453577797 => 0.22625076306
  - time/round: GPU: 4007, CPU: 
  - total time:  16347
@@ -4205,6 +4543,7 @@ R7.6: FastText + model_input2_dense
     n-gram = 1
  - pre-train word Embeding: None
  - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
  - metric: 0.235364179136 => 0.244762213326
  - time/round: GPU: 941, CPU: 
  - total time:  4510
@@ -4248,6 +4587,7 @@ R8.4: Kfold + FastText + model_input2_dense
     n-gram = 1
  - pre-train word Embeding: None
  - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
  - metric: 0.235364179136 => 0.235244993635
  - time/round: GPU: 1258, CPU: 
  - total time:  5721
@@ -4291,7 +4631,634 @@ R8.5: Kfold + FastText + model_input2_dense
     n-gram = 2 => new
  - pre-train word Embeding: None
  - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
  - metric: 0.244762213326 => 0.228545237713
  - time/round: GPU:4907 , CPU: 
  - total time:  23206
  - LB: 0.34809 => 0.36316 
+
+ R8.6: Kfold + FastText + model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText => new
+    GlobalAveragePooling1D 
+    removed => BatchNormalization
+    removed => Dense(OUTPUT_DIM)
+    # model_input2_dense
+    feature_input + dense + dropout => new
+    nodes = train_df.shape[1] * 2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense) => new
+    out_model = GlobalAveragePooling1D + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
+ - metric: 0.235244993635 => 0.234896860061
+ - time/round: GPU: 1117, CPU: 
+ - total time:  5721 => 4933
+ - LB: 0.36900 => 0.37040
+
+ R8.7: Kfold + FastText + model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText => new
+    GlobalAveragePooling1D 
+    removed => BatchNormalization
+    removed => Dense(OUTPUT_DIM)
+    # model_input2_dense
+    feature_input + dense + dropout => new
+    nodes = train_df.shape[1] * 2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense) => new
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
+ - metric: 0.234896860061 => 0.234719080041
+ - time/round: GPU: 1117, CPU: 
+ - total time:  5721 => 4195
+ - LB: 0.36900 => 0.36884
+
+ R8.8: Kfold + FastText + model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 0 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = OUTPUT_DIM
+    KERAS_KERNEL_SIZE = 2
+    KERAS_POOL_SIZE = 2
+    # FastText => new
+    GlobalAveragePooling1D 
+    removed => BatchNormalization
+    removed => Dense(OUTPUT_DIM)
+    # model_input2_dense
+    feature_input + dense + dropout => new
+    nodes = train_df.shape[1] * 2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense) => new
+    out_model = dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 2 => new
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
+ - metric: 0.22625076306 => 0.223104115334
+ - time/round: GPU: 4080, CPU: 
+ - total time:  16347 => 20012
+ - LB: 0.34809 => 0.34542
+
+ #--------------------------------------------------------
+ R9.1: model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_dense
+    nodes = OUTPUT_DIM
+    feature_input + dense + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
+ - best round: 36
+ - metric: 0.584740362201
+ - time/round: GPU:4907 , CPU: 
+ - total time:  
+ - LB: 
+
+ R9.2: model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1 
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_dense
+    nodes = train_df.shape[1] * 2 => new
+    feature_input + dense + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
+ - best round: 94
+ - metric: 0.584740362201 => 0.600371912137 => 0.592250554749 (model-R-9-3-2)
+ - time/round: GPU:4907 , CPU: 
+ - total time:  
+ - LB: 
+
+R9.3: model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 2
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_dense
+    nodes = train_df.shape[1] * 2 => new
+    feature_input + dense + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df => new
+ - best round: 94
+ - metric: 0.592250554749 => 0.594534111948
+ - time/round: GPU:4907 , CPU: 
+ - total time:  
+ - LB:  
+
+ R9.4: model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_dense
+    nodes = min(n_features * 2, OUTPUT_DIM) => new
+    feature_input + dense + dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 2
+ - metric: 0.592250554749 => 0.31720
+ - time/round: GPU:4907 , CPU: 
+ - total time:  
+ - LB:  
+
+ R9.5: model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 2 => new
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_dense
+    nodes = min(n_features * 2, OUTPUT_DIM) => new
+    feature_input + dense + dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 2
+ - metric: 0.31720 => 0.320337775414
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:  
+
+ R9.6: model_input2_dense
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_dense
+    nodes = min(n_features * 2, OUTPUT_DIM* 2) => new
+    feature_input + dense + dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 1
+ - metric: 0.31720 => 0.319189828433
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:  
+
+ R9.7: model_input2_cnn
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_cnn
+    Conv1D + GlobalMaxPooling1D + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 3
+ - metric: 0.31720 => 0.318681809553
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:  
+
+R9.8: model_input2_cnn
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_cnn
+    Conv1D + GlobalMaxPooling1D + dropout => new
+    KERAS_KERNEL_SIZE = 2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 4
+ - metric: 0.31720 => 0.308727309823
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:   
+
+ R9.9: model_input2_cnn
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_cnn
+    Conv1D + GlobalMaxPooling1D + dropout + BatchNormalization => new
+    KERAS_KERNEL_SIZE = 2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 4
+ - metric: 0.308727309823 => 0.317062879729
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:   
+
+ R9.10: model_input2_cnn
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_cnn
+    Conv1D + GlobalMaxPooling1D + dropout + Dense + BatchNormalization => new
+    KERAS_KERNEL_SIZE = 2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 4
+ - metric: 0.308727309823 => 0.330456400916 => 0.325591651424
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:   
+
+ R9.11: model_input2_cnn
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # model_input2_cnn
+    nodes = max(n_features//KERAS_KERNEL_SIZE, OUTPUT_DIM)
+    Conv1D(nodes) + GlobalMaxPooling1D + dropout + Dense + BatchNormalization => new
+    KERAS_KERNEL_SIZE = 2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2 => new
+ - best round: 3
+ - metric: 0.308727309823 => 0.330276714434
+ - time/round: GPU:5 , CPU: 
+ - total time:  
+ - LB:   
+
+ #--------------------------------------------------------
+ R10.1: MODEL_LSTM_ATTRNN
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 200 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 2
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # MODEL_LSTM_ATTRNN
+    model = Bidirectional(GRU) + AttentionLayer + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - best round: 2
+ - metric: 0.362492487626 => 0.271734277884
+ - time/round: GPU:300 , CPU: 
+ - total time:  
+ - LB:  
+
+ R10.2: MODEL_LSTM_ATTRNN
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 2
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # MODEL_LSTM_ATTRNN
+    model = model_lstm_attrnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - best round: 2
+ - metric: 0.271734277884 => 0.250843730688
+ - time/round: GPU:300 , CPU: 
+ - total time:  
+ - LB:  
+
+ R10.3: MODEL_LSTM_ATTRNN
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 500 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 2
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # MODEL_LSTM_ATTRNN
+    model = model_lstm_attrnn2 + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - best round: 2
+ - metric: 0.250843730688 => 0.247854546337
+ - time/round: GPU:300 , CPU: 
+ - total time:  
+ - LB:  
+
+
+#-----------------------------------------------------------------------------
+
+ 

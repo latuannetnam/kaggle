@@ -13,6 +13,8 @@
 # https://www.kaggle.com/enerrio/scary-nlp-with-spacy-and-keras
 # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
 # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
+# https://github.com/synthesio/hierarchical-attention-networks/blob/master/model.py
+# https://gist.github.com/cbaziotis/7ef97ccf71cbc14366835198c09809d2
 
 # System
 import datetime as dtime
@@ -46,6 +48,7 @@ from nltk.corpus import stopwords
 from gensim.models import Word2Vec
 import spacy
 import string
+from tqdm import tqdm
 
 # https://keras.io/getting-started/faq/#how-can-i-obtain-reproducible-results-using-keras-during-development
 # The below is necessary for starting Numpy generated random numbers
@@ -78,7 +81,7 @@ from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS as stopword
 # Keras
 import keras
 from keras.models import Sequential, Model
-from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape, Dot, Average
+from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape, Dot, Average, TimeDistributed, GRU, Activation
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import SGD, Adam, RMSprop
 from keras.utils import np_utils
@@ -88,7 +91,10 @@ from keras.preprocessing.sequence import pad_sequences
 from keras.preprocessing.text import one_hot
 from keras.layers.embeddings import Embedding
 import keras.backend.tensorflow_backend as KTF
+from keras import backend as K
 from keras.utils import plot_model
+from keras.engine.topology import Layer
+from keras import initializers, regularizers, constraints
 
 
 # Constants
@@ -98,6 +104,7 @@ GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 
 # VOCAB_SIZE = 100
 SEQUENCE_LENGTH = 500
+# OUTPUT_DIM = 500
 OUTPUT_DIM = 500
 KERAS_LEARNING_RATE = 0.001
 KERAS_N_ROUNDS = 200
@@ -129,14 +136,16 @@ w2v_weight_path = DATA_DIR + "/w2v_weight.pickle"
 random_state = 12343
 
 # ngram_range = 2 will add bi-grams features
-ngram_range = 2
+ngram_range = 1
 
 # Model choice
 MODEL_FASTEXT = 1
 MODEL_CUDNNLSTM = 2
 MODEL_LSTM = 3
 MODEL_CNN = 4
-MODEL_INPUT2_DENSE = 5
+MODEL_LSTM_ATTRNN = 5
+MODEL_LSTM_HE_ATTRNN = 6
+MODEL_INPUT2_DENSE = 10
 # Text processing choice
 USE_SEQUENCE = True
 USE_SPACY = False
@@ -156,6 +165,201 @@ def set_gpu_memory(gpu_fraction=0.3):
             gpu_options=gpu_options, intra_op_parallelism_threads=num_threads))
     else:
         return tf.Session(config=tf.ConfigProto(gpu_options=gpu_options))
+
+
+def dot_product(x, kernel):
+    """
+    Wrapper for dot product operation, in order to be compatible with both
+    Theano and Tensorflow
+    Args:
+        x (): input
+        kernel (): weights
+    Returns:
+    """
+    if K.backend() == 'tensorflow':
+        return K.squeeze(K.dot(x, K.expand_dims(kernel)), axis=-1)
+    else:
+        return K.dot(x, kernel)
+
+
+# https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
+# https://github.com/huajianjiu/textClassifier/blob/master/textClassifierHATT.py
+class AttLayer(Layer):
+    def __init__(self,
+                 W_regularizer=None, u_regularizer=None, b_regularizer=None,
+                 W_constraint=None, u_constraint=None, b_constraint=None,
+                 bias=True, **kwargs):
+
+        self.supports_masking = True
+        self.init = initializers.get('glorot_uniform')
+
+        self.W_regularizer = regularizers.get(W_regularizer)
+        self.u_regularizer = regularizers.get(u_regularizer)
+        self.b_regularizer = regularizers.get(b_regularizer)
+
+        self.W_constraint = constraints.get(W_constraint)
+        self.u_constraint = constraints.get(u_constraint)
+        self.b_constraint = constraints.get(b_constraint)
+
+        self.bias = bias
+        super(AttLayer, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert len(input_shape) == 3
+
+        self.W = self.add_weight((input_shape[-1], input_shape[-1],),
+                                 initializer=self.init,
+                                 name='{}_W'.format(self.name),
+                                 regularizer=self.W_regularizer,
+                                 constraint=self.W_constraint)
+        if self.bias:
+            self.b = self.add_weight((input_shape[-1],),
+                                     initializer='zero',
+                                     name='{}_b'.format(self.name),
+                                     regularizer=self.b_regularizer,
+                                     constraint=self.b_constraint)
+
+        self.u = self.add_weight((input_shape[-1],),
+                                 initializer=self.init,
+                                 name='{}_u'.format(self.name),
+                                 regularizer=self.u_regularizer,
+                                 constraint=self.u_constraint)
+
+        super(AttLayer, self).build(input_shape)
+
+    def compute_mask(self, input, input_mask=None):
+        # do not pass the mask to the next layers
+        return None
+
+    def call(self, x, mask=None):
+        uit = K.dot(x, self.W)
+
+        if self.bias:
+            uit += self.b
+
+        uit = K.tanh(uit)
+        # ait = K.dot(uit, self.u)  # replace this
+        mul_a = uit * self.u  # with this
+        ait = K.sum(mul_a, axis=2)  # and this
+
+        a = K.exp(ait)
+
+        # apply mask after the exp. will be re-normalized next
+        if mask is not None:
+            # Cast the mask to floatX to avoid float64 upcasting in theano
+            a *= K.cast(mask, K.floatx())
+
+        # in some cases especially in the early stages of training the sum may be almost zero
+        # and this results in NaN's. A workaround is to add a very small positive number ε to the sum.
+        # a /= K.cast(K.sum(a, axis=1, keepdims=True), K.floatx())
+        a /= K.cast(K.sum(a, axis=1, keepdims=True) + K.epsilon(), K.floatx())
+
+        a = K.expand_dims(a)
+        weighted_input = x * a
+        return K.sum(weighted_input, axis=1)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape[0], input_shape[-1]
+
+
+# https://gist.github.com/cbaziotis/7ef97ccf71cbc14366835198c09809d2
+class AttentionWithContext(Layer):
+    """
+    Attention operation, with a context/query vector, for temporal data.
+    Supports Masking.
+    Follows the work of Yang et al. [https://www.cs.cmu.edu/~diyiy/docs/naacl16.pdf]
+    "Hierarchical Attention Networks for Document Classification"
+    by using a context vector to assist the attention
+    # Input shape
+        3D tensor with shape: `(samples, steps, features)`.
+    # Output shape
+        2D tensor with shape: `(samples, features)`.
+
+    How to use:
+    Just put it on top of an RNN Layer (GRU/LSTM/SimpleRNN) with return_sequences=True.
+    The dimensions are inferred based on the output shape of the RNN.
+
+    Note: The layer has been tested with Keras 2.0.6
+
+    Example:
+        model.add(LSTM(64, return_sequences=True))
+        model.add(AttentionWithContext())
+        # next add a Dense layer (for classification/regression) or whatever...
+    """
+
+    def __init__(self,
+                 W_regularizer=None, u_regularizer=None, b_regularizer=None,
+                 W_constraint=None, u_constraint=None, b_constraint=None,
+                 bias=True, **kwargs):
+
+        self.supports_masking = True
+        self.init = initializers.get('glorot_uniform')
+
+        self.W_regularizer = regularizers.get(W_regularizer)
+        self.u_regularizer = regularizers.get(u_regularizer)
+        self.b_regularizer = regularizers.get(b_regularizer)
+
+        self.W_constraint = constraints.get(W_constraint)
+        self.u_constraint = constraints.get(u_constraint)
+        self.b_constraint = constraints.get(b_constraint)
+
+        self.bias = bias
+        super(AttentionWithContext, self).__init__(**kwargs)
+
+    def build(self, input_shape):
+        assert len(input_shape) == 3
+
+        self.W = self.add_weight((input_shape[-1], input_shape[-1],),
+                                 initializer=self.init,
+                                 name='{}_W'.format(self.name),
+                                 regularizer=self.W_regularizer,
+                                 constraint=self.W_constraint)
+        if self.bias:
+            self.b = self.add_weight((input_shape[-1],),
+                                     initializer='zero',
+                                     name='{}_b'.format(self.name),
+                                     regularizer=self.b_regularizer,
+                                     constraint=self.b_constraint)
+
+        self.u = self.add_weight((input_shape[-1],),
+                                 initializer=self.init,
+                                 name='{}_u'.format(self.name),
+                                 regularizer=self.u_regularizer,
+                                 constraint=self.u_constraint)
+
+        super(AttentionWithContext, self).build(input_shape)
+
+    def compute_mask(self, input, input_mask=None):
+        # do not pass the mask to the next layers
+        return None
+
+    def call(self, x, mask=None):
+        uit = dot_product(x, self.W)
+
+        if self.bias:
+            uit += self.b
+
+        uit = K.tanh(uit)
+        # ait = K.dot(uit, self.u)
+        ait = dot_product(uit, self.u)
+        a = K.exp(ait)
+
+        # apply mask after the exp. will be re-normalized next
+        if mask is not None:
+            # Cast the mask to floatX to avoid float64 upcasting in theano
+            a *= K.cast(mask, K.floatx())
+
+        # in some cases especially in the early stages of training the sum may be almost zero
+        # and this results in NaN's. A workaround is to add a very small positive number ε to the sum.
+        # a /= K.cast(K.sum(a, axis=1, keepdims=True), K.floatx())
+        a /= K.cast(K.sum(a, axis=1, keepdims=True) + K.epsilon(), K.floatx())
+
+        a = K.expand_dims(a)
+        weighted_input = x * a
+        return K.sum(weighted_input, axis=1)
+
+    def compute_output_shape(self, input_shape):
+        return input_shape[0], input_shape[-1]
 
 
 class SpacyPreprocess():
@@ -184,6 +388,235 @@ class SpacyPreprocess():
         vec = np.array(vec)
         logger.debug("Vector shape:" + str(vec.shape))
         return vec
+
+
+# https://www.kaggle.com/opanichev/handcrafted-features/code
+class FeatureEnginering():
+    def __init__(self, create=True):
+        self.create = create
+
+    def clean_text(self, x):
+        punctuation = ['.', '..', '...', ',',
+                       ':', ';', '-', '*', '"', '!', '?']
+        x.lower()
+        for p in punctuation:
+            x.replace(p, '')
+        return x
+
+    def extract_features(self, df):
+        alphabet = 'abcdefghijklmnopqrstuvwxyz'
+        # alphabet = 'abcd'
+        # df['len'] = df['text'].apply(lambda x: len(x))
+        # df['n_words'] = df['text'].apply(lambda x: len(x.split(' ')))
+        df['n_.'] = df['text'].str.count('\.')
+        df['n_...'] = df['text'].str.count('\...')
+        df['n_,'] = df['text'].str.count('\,')
+        df['n_:'] = df['text'].str.count('\:')
+        df['n_;'] = df['text'].str.count('\;')
+        df['n_-'] = df['text'].str.count('\-')
+        df['n_?'] = df['text'].str.count('\?')
+        df['n_!'] = df['text'].str.count('\!')
+        df['n_\''] = df['text'].str.count('\'')
+        df['n_"'] = df['text'].str.count('\"')
+
+        # First words in a sentence
+        df['n_The '] = df['text'].str.count('The ')
+        df['n_I '] = df['text'].str.count('I ')
+        df['n_It '] = df['text'].str.count('It ')
+        df['n_He '] = df['text'].str.count('He ')
+        df['n_Me '] = df['text'].str.count('Me ')
+        df['n_She '] = df['text'].str.count('She ')
+        df['n_We '] = df['text'].str.count('We ')
+        df['n_They '] = df['text'].str.count('They ')
+        df['n_You '] = df['text'].str.count('You ')
+
+        # Find numbers of different combinations
+        for c in tqdm(alphabet.upper()):
+            df['n_' + c] = df['text'].str.count(c)
+            df['n_' + c + '.'] = df['text'].str.count(c + '\.')
+            df['n_' + c + ','] = df['text'].str.count(c + '\,')
+
+            for c2 in alphabet:
+                df['n_' + c + c2] = df['text'].str.count(c + c2)
+                df['n_' + c + c2 + '.'] = df['text'].str.count(c + c2 + '\.')
+                df['n_' + c + c2 + ','] = df['text'].str.count(c + c2 + '\,')
+
+        for c in tqdm(alphabet):
+            df['n_' + c + '.'] = df['text'].str.count(c + '\.')
+            df['n_' + c + ','] = df['text'].str.count(c + '\,')
+            df['n_' + c + '?'] = df['text'].str.count(c + '\?')
+            df['n_' + c + ';'] = df['text'].str.count(c + '\;')
+            df['n_' + c + ':'] = df['text'].str.count(c + '\:')
+
+            for c2 in alphabet:
+                df['n_' + c + c2 + '.'] = df['text'].str.count(c + c2 + '\.')
+                df['n_' + c + c2 + ','] = df['text'].str.count(c + c2 + '\,')
+                df['n_' + c + c2 + '?'] = df['text'].str.count(c + c2 + '\?')
+                df['n_' + c + c2 + ';'] = df['text'].str.count(c + c2 + '\;')
+                df['n_' + c + c2 + ':'] = df['text'].str.count(c + c2 + '\:')
+                df['n_' + c + ', ' + c2] = df['text'].str.count(c + '\, ' + c2)
+
+        # And now starting processing of cleaned text
+        for c in tqdm(alphabet):
+            df['n_' + c] = df['text_cleaned'].str.count(c)
+            df['n_' + c + ' '] = df['text_cleaned'].str.count(c + ' ')
+            df['n_' + ' ' + c] = df['text_cleaned'].str.count(' ' + c)
+
+            for c2 in alphabet:
+                df['n_' + c + c2] = df['text_cleaned'].str.count(c + c2)
+                df['n_' + c + c2 +
+                    ' '] = df['text_cleaned'].str.count(c + c2 + ' ')
+                df['n_' + ' ' + c +
+                    c2] = df['text_cleaned'].str.count(' ' + c + c2)
+                df['n_' + c + ' ' +
+                    c2] = df['text_cleaned'].str.count(c + ' ' + c2)
+
+                for c3 in alphabet:
+                    df['n_' + c + c2 +
+                        c3] = df['text_cleaned'].str.count(c + c2 + c3)
+                    # df['n_' + c + ' ' + c2 + c3] = df['text_cleaned'].str.count(c + ' ' + c2 + c3)
+                    # df['n_' + c + c2 + ' ' + c3] = df['text_cleaned'].str.count(c + c2 + ' ' + c3)
+
+        df['n_the'] = df['text_cleaned'].str.count('the ')
+        df['n_ a '] = df['text_cleaned'].str.count(' a ')
+        df['n_appear'] = df['text_cleaned'].str.count('appear')
+        df['n_little'] = df['text_cleaned'].str.count('little')
+        df['n_was '] = df['text_cleaned'].str.count('was ')
+        df['n_one '] = df['text_cleaned'].str.count('one ')
+        df['n_two '] = df['text_cleaned'].str.count('two ')
+        df['n_three '] = df['text_cleaned'].str.count('three ')
+        df['n_ten '] = df['text_cleaned'].str.count('ten ')
+        df['n_is '] = df['text_cleaned'].str.count('is ')
+        df['n_are '] = df['text_cleaned'].str.count('are ')
+        df['n_ed'] = df['text_cleaned'].str.count('ed ')
+        df['n_however'] = df['text_cleaned'].str.count('however')
+        df['n_ to '] = df['text_cleaned'].str.count(' to ')
+        df['n_into'] = df['text_cleaned'].str.count('into')
+        df['n_about '] = df['text_cleaned'].str.count('about ')
+        df['n_th'] = df['text_cleaned'].str.count('th')
+        df['n_er'] = df['text_cleaned'].str.count('er')
+        df['n_ex'] = df['text_cleaned'].str.count('ex')
+        df['n_an '] = df['text_cleaned'].str.count('an ')
+        df['n_ground'] = df['text_cleaned'].str.count('ground')
+        df['n_any'] = df['text_cleaned'].str.count('any')
+        df['n_silence'] = df['text_cleaned'].str.count('silence')
+        df['n_wall'] = df['text_cleaned'].str.count('wall')
+        if "author" in df.columns:
+            df.drop(["author"], axis=1, inplace=True)
+        logger.debug("Total feature extracted:" + str(len(df)))
+        return df.drop(['id', 'text', 'text_cleaned'], axis=1)
+
+    # https://www.kaggle.com/phoenix120/lstm-sentence-embeddings-with-additional-features
+    def collect_additional_features(self, train, test):
+        logger.debug("Collecting additional features")
+        train_df = train.copy()
+        test_df = test.copy()
+
+        eng_stopwords = set(nltk.corpus.stopwords.words("english"))
+
+        train_df["words"] = train_df["text"].apply(lambda text: text.split())
+        test_df["words"] = test_df["text"].apply(lambda text: text.split())
+
+        train_df["num_words"] = train_df["words"].apply(
+            lambda words: len(words))
+        test_df["num_words"] = test_df["words"].apply(lambda words: len(words))
+
+        train_df["num_unique_words"] = train_df["words"].apply(
+            lambda words: len(set(words)))
+        test_df["num_unique_words"] = test_df["words"].apply(
+            lambda words: len(set(words)))
+
+        train_df["num_chars"] = train_df["text"].apply(lambda text: len(text))
+        test_df["num_chars"] = test_df["text"].apply(lambda text: len(text))
+
+        train_df["num_stopwords"] = train_df["words"].apply(
+            lambda words: len([w for w in words if w in eng_stopwords]))
+        test_df["num_stopwords"] = test_df["words"].apply(
+            lambda words: len([w for w in words if w in eng_stopwords]))
+
+        train_df["num_punctuations"] = train_df['text'].apply(
+            lambda text: len([c for c in text if c in string.punctuation]))
+        test_df["num_punctuations"] = test_df['text'].apply(
+            lambda text: len([c for c in text if c in string.punctuation]))
+
+        train_df["num_words_upper"] = train_df["words"].apply(
+            lambda words: len([w for w in words if w.isupper()]))
+        test_df["num_words_upper"] = test_df["words"].apply(
+            lambda words: len([w for w in words if w.isupper()]))
+
+        train_df["num_words_title"] = train_df["words"].apply(
+            lambda words: len([w for w in words if w.istitle()]))
+        test_df["num_words_title"] = test_df["words"].apply(
+            lambda words: len([w for w in words if w.istitle()]))
+
+        train_df["mean_word_len"] = train_df["words"].apply(
+            lambda words: np.mean([len(w) for w in words]))
+        test_df["mean_word_len"] = test_df["words"].apply(
+            lambda words: np.mean([len(w) for w in words]))
+
+        train_df.drop(["text", "id", "words"], axis=1, inplace=True)
+        test_df.drop(["text", "id", "words"], axis=1, inplace=True)
+        if "author" in train_df.columns:
+            train_df.drop(["author"], axis=1, inplace=True)
+        if "author" in test_df.columns:
+            test_df.drop(["author"], axis=1, inplace=True)
+        logger.debug("train_df size:" + str(train_df.shape) +
+                     ". test_df size:" + str(test_df.shape))
+        return train_df, test_df
+
+    def process_data(self, train, test):
+        train_file = DATA_DIR + "/train_fe.csv"
+        test_file = DATA_DIR + "/test_fe.csv"
+
+        if self.create:
+            train_df, test_df = self.collect_additional_features(train, test)
+            train = train.copy()
+            test = test.copy()
+            train['text_cleaned'] = train['text'].apply(
+                lambda x: self.clean_text(x))
+            test['text_cleaned'] = test['text'].apply(
+                lambda x: self.clean_text(x))
+            logger.debug("Extracting feature for train")
+            train_df2 = self.extract_features(train)
+            logger.debug("Extracting feature for test")
+            test_df2 = self.extract_features(test)
+
+            # Drop non-relevant columns
+            logger.debug('Searching for columns with non-changing values...')
+            counts = train_df2.sum(axis=0)
+            cols_to_drop = counts[counts == 0].index.values
+            train_df2.drop(cols_to_drop, axis=1, inplace=True)
+            test_df2.drop(cols_to_drop, axis=1, inplace=True)
+            logger.debug('Dropped ' + str(len(cols_to_drop)) + ' columns.')
+
+            logger.debug('Searching for columns with low STD...')
+            counts = train_df2.std(axis=0)
+            cols_to_drop = counts[counts < 0.01].index.values
+            train_df2.drop(cols_to_drop, axis=1, inplace=True)
+            test_df2.drop(cols_to_drop, axis=1, inplace=True)
+            logger.debug('Dropped ' + str(len(cols_to_drop)) + ' columns.')
+
+            logger.debug("Saving extraced features ...")
+            # Combined 2 features set
+            train_all = pd.concat([train_df, train_df2], axis=1)
+            test_all = pd.concat([test_df, test_df2], axis=1)
+            # save to file
+            train_all.to_csv(train_file, index=False, )
+            test_all.to_csv(test_file, index=False)
+        else:
+            logger.debug("Loading extracted features ...")
+            train_all = pd.read_csv(train_file)
+            test_all = pd.read_csv(test_file)
+
+        logger.debug('train.shape = ' + str(train_all.shape) +
+                     ', test.shape = ' + str(test_all.shape))
+        logger.debug("Train columns:" + str(train_all.columns))
+        logger.debug("Test columns:" + str(test_all.columns))
+        logger.debug("Scaled transform train and test data")
+        scaler = MinMaxScaler()
+        train_all = scaler.fit_transform(train_all)
+        test_all = scaler.transform(test_all)
+        return train_all, test_all
 
 
 class SpookyAuthorIdentifer():
@@ -408,7 +841,7 @@ class SpookyAuthorIdentifer():
                 x_train, maxlen=self.input_length)
             self.X_eval = pad_sequences(
                 x_test, maxlen=self.input_length)
-            logger.debug("Train shape:" + str(self.train.shape))
+            logger.debug("Train shape after padding:" + str(self.train.shape))
             # print(self.train[0])
         else:
             self.train = x_train_matrix
@@ -418,69 +851,12 @@ class SpookyAuthorIdentifer():
         if (self.word2vec == 1):
             self.build_word2vec(x_all, True)
 
-    # https://www.kaggle.com/phoenix120/lstm-sentence-embeddings-with-additional-features
-    def collect_additional_features(self):
-        logger.debug("Collecting additional features")
-        train_df = self.train_data.copy()
-        test_df = self.eval_data.copy()
-
-        eng_stopwords = set(nltk.corpus.stopwords.words("english"))
-
-        train_df["words"] = train_df["text"].apply(lambda text: text.split())
-        test_df["words"] = test_df["text"].apply(lambda text: text.split())
-
-        train_df["num_words"] = train_df["words"].apply(
-            lambda words: len(words))
-        test_df["num_words"] = test_df["words"].apply(lambda words: len(words))
-
-        train_df["num_unique_words"] = train_df["words"].apply(
-            lambda words: len(set(words)))
-        test_df["num_unique_words"] = test_df["words"].apply(
-            lambda words: len(set(words)))
-
-        train_df["num_chars"] = train_df["text"].apply(lambda text: len(text))
-        test_df["num_chars"] = test_df["text"].apply(lambda text: len(text))
-
-        train_df["num_stopwords"] = train_df["words"].apply(
-            lambda words: len([w for w in words if w in eng_stopwords]))
-        test_df["num_stopwords"] = test_df["words"].apply(
-            lambda words: len([w for w in words if w in eng_stopwords]))
-
-        train_df["num_punctuations"] = train_df['text'].apply(
-            lambda text: len([c for c in text if c in string.punctuation]))
-        test_df["num_punctuations"] = test_df['text'].apply(
-            lambda text: len([c for c in text if c in string.punctuation]))
-
-        train_df["num_words_upper"] = train_df["words"].apply(
-            lambda words: len([w for w in words if w.isupper()]))
-        test_df["num_words_upper"] = test_df["words"].apply(
-            lambda words: len([w for w in words if w.isupper()]))
-
-        train_df["num_words_title"] = train_df["words"].apply(
-            lambda words: len([w for w in words if w.istitle()]))
-        test_df["num_words_title"] = test_df["words"].apply(
-            lambda words: len([w for w in words if w.istitle()]))
-
-        train_df["mean_word_len"] = train_df["words"].apply(
-            lambda words: np.mean([len(w) for w in words]))
-        test_df["mean_word_len"] = test_df["words"].apply(
-            lambda words: np.mean([len(w) for w in words]))
-
-        train_df.drop(["text", "id", "words"], axis=1, inplace=True)
-        test_df.drop(["text", "id", "words"], axis=1, inplace=True)
-        if "author" in train_df.columns:
-            train_df.drop(["author"], axis=1, inplace=True)
-        if "author" in test_df.columns:
-            test_df.drop(["author"], axis=1, inplace=True)
-        scaler = MinMaxScaler()
-        self.train_df = scaler.fit_transform(train_df)
-        self.eval_df = scaler.transform(test_df)
-        logger.debug("train_df size:" + str(self.train_df.shape) +
-                     ". test_df size:" + str(self.eval_df.shape))
-
     def prepare_data(self):
-        if self.model_choice2 == MODEL_INPUT2_DENSE:
-            self.collect_additional_features()
+        if self.model_choice2 == MODEL_INPUT2_DENSE or self.model_choice == MODEL_INPUT2_DENSE:
+            logger.debug("Fature engineering")
+            fe = FeatureEnginering(False)
+            self.train_df, self.eval_df = fe.process_data(
+                self.train_data, self.eval_data)
         # CREATE TARGET VARIABLE
         self.eval_id = self.eval_data['id']
         logger.debug("One hot encoding for label")
@@ -512,7 +888,7 @@ class SpookyAuthorIdentifer():
                 self.w2v_weights], input_length=self.input_length, trainable=False)
         else:
             embedding_layer = Embedding(
-                self.vocab_size, OUTPUT_DIM, input_length=self.input_length)
+                self.vocab_size, OUTPUT_DIM, input_length=self.input_length, trainable=True)
 
         return embedding_layer
 
@@ -587,13 +963,131 @@ class SpookyAuthorIdentifer():
         model = BatchNormalization()(model)
         return embbeding_input, model
 
+    # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
+    # https://github.com/synthesio/hierarchical-attention-networks/blob/master/model.py
+    def model_lstm_attrnn(self):
+        embbeding_input = Input(
+            shape=(self.input_length,), name="embbeding_input_lstm")
+        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        # LSTM
+        model = Bidirectional(
+            GRU(OUTPUT_DIM // 2, return_sequences=True))(model)
+        # model = GRU(OUTPUT_DIM, return_sequences=True)(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        model = AttentionWithContext()(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        return embbeding_input, model
+
+    # https://github.com/tqtg/textClassifier/blob/master/rnn_classififer.py
+    def model_lstm_attrnn2(self):
+        sentence_input = Input(shape=(self.input_length,), dtype='int32')
+        embedding_layer = self.buil_embbeding_layer()
+        embedded_sequences = embedding_layer(sentence_input)
+        l_dropout1 = Dropout(KERAS_DROPOUT_RATE)(embedded_sequences)
+
+        # ================================ Bidirectional LSTM model ===========
+        # l_lstm = Bidirectional(LSTM(OUTPUT_DIM//2))(l_dropout1)
+        # l_dropout2 = Dropout(dropout)(l_lstm)
+        # l_classifier = Dense(2, activation='softmax')(l_dropout2)
+        # ================================ One-level attention RNN (GRU) ======
+        h_word = Bidirectional(
+            GRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
+        # h_word = AttentionWithContext()(h_word)
+        h_word = Dropout(KERAS_DROPOUT_RATE)(h_word)
+        # Attention part
+        u_word = TimeDistributed(
+            Dense(OUTPUT_DIM, activation='tanh'), name='u_word')(h_word)
+        u_word = Dropout(KERAS_DROPOUT_RATE)(u_word)
+        # \alpha weight for each word
+        alpha_word = TimeDistributed(Dense(1, use_bias=False))(u_word)
+        alpha_word = Reshape((self.input_length,))(alpha_word)
+        alpha_word = Activation('softmax')(alpha_word)
+        alpha_word = Dropout(KERAS_DROPOUT_RATE)(alpha_word)
+        # Combine word representation to form sentence representation w.r.t
+        # \alpha weights
+        h_word_combined = Dot(axes=[1, 1])([h_word, alpha_word])
+        h_word_combined = Dropout(KERAS_DROPOUT_RATE)(h_word_combined)
+        # l_classifier = Dense(2, activation='softmax', name='classifier')(h_word_combined)
+        return sentence_input, h_word_combined
+
+    # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-HATN/
+    def model_lstm_he_attrnn_old(self):
+        embbeding_input = Input(
+            shape=(self.input_length,), name="embbeding_input_lstm")
+        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        model = Bidirectional(
+            GRU(OUTPUT_DIM, return_sequences=True))(model)
+        model = TimeDistributed(Dense(OUTPUT_DIM))(model)
+        model = AttentionWithContext()(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        sentEncoder = Model(embbeding_input, model)
+
+        review_input = Input(shape=(None, self.input_length))
+        review_encoder = TimeDistributed(sentEncoder)(review_input)
+        l_lstm_sent = Bidirectional(
+            GRU(OUTPUT_DIM, return_sequences=True))(review_encoder)
+        l_dense_sent = TimeDistributed(Dense(OUTPUT_DIM))(l_lstm_sent)
+        l_att_sent = AttentionWithContext()(l_dense_sent)
+        att_model = Dropout(dropout, seed=random_state)(l_att_sent)
+        # model = Model(review_input, att_model)
+        return embbeding_input, att_model
+
+    # https://github.com/tqtg/textClassifier/blob/master/hatt_classifier.py
+    def model_lstm_he_attrnn(self):
+        # Word level
+        sentence_input = Input(shape=(self.input_length,), dtype='int32')
+        embedding_layer = self.buil_embbeding_layer()
+        embedded_sequences = embedding_layer(sentence_input)
+        l_dropout1 = Dropout(dropout)(embedded_sequences)
+
+        h_word = Bidirectional(
+            GRU(OUTPUT_DIM, return_sequences=True), name='h_word')(l_dropout1)
+        u_word = TimeDistributed(
+            Dense(2 * OUTPUT_DIM, activation='tanh'), name='u_word')(h_word)
+
+        alpha_word = TimeDistributed(Dense(1, use_bias=False))(u_word)
+        alpha_word = Reshape((self.input_length,))(alpha_word)
+        alpha_word = Activation('softmax')(alpha_word)
+
+        h_word_combined = Dot(axes=[1, 1], name='h_word_combined')(
+            [h_word, alpha_word])
+
+        sent_encoder = Model(sentence_input, h_word_combined)
+        sent_encoder.summary()
+
+        # Sentence level
+        review_input = Input(
+            shape=(OUTPUT_DIM, self.input_length), dtype='int32')
+        review_encoder = TimeDistributed(
+            sent_encoder, name='sent_encoder')(review_input2)
+        l_dropout2 = Dropout(dropout)(review_encoder)
+
+        h_sent = Bidirectional(
+            GRU(OUTPUT_DIM, return_sequences=True), name='h_sent')(l_dropout2)
+        u_sent = TimeDistributed(
+            Dense(2 * OUTPUT_DIM, activation='tanh'), name='u_sent')(h_sent)
+
+        alpha_sent = TimeDistributed(Dense(1, use_bias=False))(u_sent)
+        alpha_sent = Reshape((OUTPUT_DIM,))(alpha_sent)
+        alpha_sent = Activation('softmax')(alpha_sent)
+
+        h_sent_combined = Dot(axes=[1, 1], name='h_sent_combined')(
+            [h_sent, alpha_sent])
+
+        # Classifier layer
+        # l_classifier = Dense(5, activation='softmax')(h_sent_combined)
+        return review_input, h_sent_combined
+
     def model_input2_dense(self):
         n_features = self.train_df.shape[1]
         logger.debug("Num features of input2:" + str(n_features))
         feature_input = Input(shape=(n_features,), name="features_input")
         # model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(feature_input)
         model = feature_input
-        nodes = OUTPUT_DIM
+        # nodes = OUTPUT_DIM
+        nodes = min(n_features * 2, OUTPUT_DIM * 2)
         layers = max(KERAS_LAYERS, 1)
         for i in range(layers):
             model = (Dense(nodes,
@@ -601,8 +1095,32 @@ class SpookyAuthorIdentifer():
             model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
             # model = BatchNormalization()(model)
             nodes = int(nodes // 2)
-            if nodes < 32:
-                nodes = 32
+            if nodes < 16:
+                nodes = 16
+        logger.debug("Input2 model shape:" + str(model.shape))
+        return feature_input, model
+
+    def model_input2_cnn(self):
+        n_features = self.train_df.shape[1]
+        logger.debug("Num features of input2:" + str(n_features))
+        feature_input = Input(shape=(n_features,), name="features_input")
+        model = Reshape((KERAS_KERNEL_SIZE, n_features //
+                         KERAS_KERNEL_SIZE))(feature_input)
+        # nodes = max(n_features, OUTPUT_DIM)
+        nodes = min(n_features*2, OUTPUT_DIM)
+        layers = max(KERAS_LAYERS, 1)
+        for i in range(layers):
+            model = Conv1D(nodes, KERAS_KERNEL_SIZE,
+                           activation='relu')(model)
+            model = MaxPooling1D(pool_size=1)(model)
+            model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
+        model = GlobalMaxPooling1D()(model)
+        model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
+        # model = (Dense(OUTPUT_DIM, activation='relu',
+        #                kernel_constraint=keras.constraints.maxnorm(KERAS_MAXNORM)))(model)
+        # model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
+        model = BatchNormalization()(model)
+        logger.debug("Input2 model shape:" + str(model.shape))
         return feature_input, model
 
     def build_model(self):
@@ -615,11 +1133,23 @@ class SpookyAuthorIdentifer():
             input1, model1 = self.model_lstm()
         elif self.model_choice == MODEL_CNN:
             input1, model1 = self.model_cnn()
+        elif self.model_choice == MODEL_LSTM_ATTRNN:
+            input1, model1 = self.model_lstm_attrnn2()
+        elif self.model_choice == MODEL_LSTM_HE_ATTRNN:
+            input1, model1 = self.model_lstm_he_attrnn()
+
+        elif self.model_choice == MODEL_INPUT2_DENSE:
+            # input1, model1 = self.model_input2_dense()
+            input1, model1 = self.model_input2_cnn()
+            # Change train set
+            self.train = self.train_df
+            self.X_eval = self.eval_df
 
         if self.model_choice2 is not None:  # Use additional input2
             logger.debug("Adding more model...")
             if self.model_choice2 == MODEL_INPUT2_DENSE:
-                input2, model2 = self.model_input2_dense()
+                # input2, model2 = self.model_input2_dense()
+                input2, model2 = self.model_input2_cnn()
             elif self.model_choice2 == MODEL_FASTEXT:
                 input2, model2 = self.model_fasttext()
             elif self.model_choice2 == MODEL_CUDNNLSTM:
@@ -628,14 +1158,17 @@ class SpookyAuthorIdentifer():
                 input2, model2 = self.model_lstm()
             elif self.model_choice2 == MODEL_CNN:
                 input2, model2 = self.model_cnn()
+            elif self.model_choice2 == MODEL_LSTM_ATTRNN:
+                input2, model2 = self.model_lstm_attrnn2()
 
             model3 = concatenate([model1, model2])
-            # model3 = Dot(1, normalize=True)([model1, model2])
             # model3 = Average()([model1, model2])
-            out_model = Reshape((2, OUTPUT_DIM))(model3)
-            out_model = GlobalAveragePooling1D()(out_model)
+            n_features = int(model3.shape[1])
+            logger.debug("Concatenate feature size:" + str(n_features))
+            # out_model = Reshape((2, n_features//2))(model3)
+            # out_model = GlobalAveragePooling1D()(out_model)
             out_model = Dropout(KERAS_DROPOUT_RATE,
-                                seed=random_state)(out_model)
+                                seed=random_state)(model3)
             out_model = Dense(3, activation='softmax')(out_model)
             self.model = Model(inputs=[input1, input2], outputs=out_model)
         else:
@@ -910,7 +1443,7 @@ if __name__ == "__main__":
         label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=MODEL_INPUT2_DENSE)
     object.load_data()
     object.prepare_data()
-    option = 2
+    option = 1
     if option == 1:
         object.train_single_model()
         object.predict_data()
@@ -921,3 +1454,5 @@ if __name__ == "__main__":
         object.plot_kfold_history()
 
     logger.info("Done!")
+
+
