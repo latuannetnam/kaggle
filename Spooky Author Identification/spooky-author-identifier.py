@@ -76,7 +76,7 @@ from sklearn.model_selection import cross_val_score, train_test_split, learning_
 from sklearn.utils import class_weight
 from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS as stopword2s
-
+from sklearn import decomposition
 
 # Keras
 import keras
@@ -104,8 +104,8 @@ GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 
 # VOCAB_SIZE = 100
 SEQUENCE_LENGTH = 500
+OUTPUT_DIM = 300  # use with pretrained word2vec
 # OUTPUT_DIM = 500
-OUTPUT_DIM = 500
 KERAS_LEARNING_RATE = 0.001
 KERAS_N_ROUNDS = 200
 KERAS_BATCH_SIZE = 64
@@ -113,15 +113,16 @@ KERAS_NODES = 1024
 KERAS_LAYERS = 1
 KERAS_DROPOUT_RATE = 0.5
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
-KERAS_REGULARIZER = 0
+KERAS_REGULARIZER = 0.04
 KERAS_VALIDATION_SPLIT = 0.2
-KERAS_EARLY_STOPPING = 5
+KERAS_EARLY_STOPPING = 3
 KERAS_MAXNORM = 3
 KERAS_PREDICT_BATCH_SIZE = 1024
 # ConvNet
-KERAS_FILTERS = OUTPUT_DIM
+# KERAS_FILTERS = OUTPUT_DIM
+KERAS_FILTERS = 32
 KERAS_KERNEL_SIZE = 2
-KERAS_POOL_SIZE = 2
+KERAS_POOL_SIZE = 3
 
 # Other keras params
 decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
@@ -136,7 +137,7 @@ w2v_weight_path = DATA_DIR + "/w2v_weight.pickle"
 random_state = 12343
 
 # ngram_range = 2 will add bi-grams features
-ngram_range = 1
+ngram_range = 2
 
 # Model choice
 MODEL_FASTEXT = 1
@@ -392,8 +393,9 @@ class SpacyPreprocess():
 
 # https://www.kaggle.com/opanichev/handcrafted-features/code
 class FeatureEnginering():
-    def __init__(self, create=True):
+    def __init__(self, create=True, use_pca=True):
         self.create = create
+        self.use_pca = use_pca
 
     def clean_text(self, x):
         punctuation = ['.', '..', '...', ',',
@@ -612,10 +614,19 @@ class FeatureEnginering():
                      ', test.shape = ' + str(test_all.shape))
         logger.debug("Train columns:" + str(train_all.columns))
         logger.debug("Test columns:" + str(test_all.columns))
-        logger.debug("Scaled transform train and test data")
-        scaler = MinMaxScaler()
-        train_all = scaler.fit_transform(train_all)
-        test_all = scaler.transform(test_all)
+        train_all = train_all.values
+        test_all = test_all.values
+        if self.use_pca:
+            logger.debug("PCA to reduce dimension ...")
+            pca = decomposition.PCA(n_components=OUTPUT_DIM)
+            pca.fit(train_all)
+            train_all = pca.transform(train_all)
+            test_all = pca.transform(test_all)
+        # else:
+        #     logger.debug("Scaled transform train and test data")
+        #     scaler = MinMaxScaler()
+        #     train_all = scaler.fit_transform(train_all)
+        #     test_all = scaler.transform(test_all)
         return train_all, test_all
 
 
@@ -849,12 +860,12 @@ class SpookyAuthorIdentifer():
             self.input_length = self.vocab_size
 
         if (self.word2vec == 1):
-            self.build_word2vec(x_all, True)
+            self.build_word2vec(x_all, False)
 
     def prepare_data(self):
         if self.model_choice2 == MODEL_INPUT2_DENSE or self.model_choice == MODEL_INPUT2_DENSE:
             logger.debug("Fature engineering")
-            fe = FeatureEnginering(False)
+            fe = FeatureEnginering(create=False, use_pca=True)
             self.train_df, self.eval_df = fe.process_data(
                 self.train_data, self.eval_data)
         # CREATE TARGET VARIABLE
@@ -881,11 +892,11 @@ class SpookyAuthorIdentifer():
             # load pre-trained word embedding
             embedding_matrix = self.load_pretrained_word_embedding(True)
             embedding_layer = Embedding(self.vocab_size, OUTPUT_DIM, weights=[
-                embedding_matrix], input_length=self.input_length, trainable=False)
+                embedding_matrix], input_length=self.input_length, trainable=True)
         elif self.word2vec == 1:
             # Use gensim generated word2vec
             embedding_layer = Embedding(self.vocab_size, OUTPUT_DIM, weights=[
-                self.w2v_weights], input_length=self.input_length, trainable=False)
+                self.w2v_weights], input_length=self.input_length, trainable=True)
         else:
             embedding_layer = Embedding(
                 self.vocab_size, OUTPUT_DIM, input_length=self.input_length, trainable=True)
@@ -896,11 +907,6 @@ class SpookyAuthorIdentifer():
         embbeding_input = Input(shape=(None,), name="embbeding_input")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
-        # for i in range(KERAS_LAYERS):
-        #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
-        #                    activation='relu')(model)
-        #     model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
-        #     model = Dropout(dropout, seed=random_state)(model)
         model = GlobalAveragePooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
         # model.add(BatchNormalization())
@@ -910,7 +916,6 @@ class SpookyAuthorIdentifer():
         return embbeding_input, model
 
     def model_cnn(self):
-        model = Sequential()
         if KERAS_EMBEDDING:
             input1 = Input(shape=(None,), name="embbeding_input_cnn")
             embedding_layer = self.buil_embbeding_layer()(input1)
@@ -932,6 +937,32 @@ class SpookyAuthorIdentifer():
         # model.add(BatchNormalization())
         # model.add(Dense(3, activation='softmax'))
         return input1, model
+
+    # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
+    # https://github.com/alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras/blob/master/sentiment_cnn.py
+    def model_cnn2(self):
+
+        embbeding_input = Input(shape=(None,), name="embbeding_input")
+        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        filter_sizes = [3, 4, 5]
+        conv_blocks = []
+        for fsz in filter_sizes:
+            conv = Conv1D(filters=KERAS_FILTERS,
+                          kernel_size=fsz,
+                          padding="valid",
+                          activation="relu",
+                          strides=1)(model)
+            conv = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(conv)
+            conv = Flatten()(conv)
+            conv_blocks.append(conv)
+        model_merge = concatenate(conv_blocks)
+        model = Dropout(dropout, seed=random_state)(model_merge)
+        # l_dense = Dense(KERAS_FILTERS, activation='relu',
+        #                 kernel_regularizer=regularizers.l2(KERAS_REGULARIZER))(model)
+        # l_dense = Dropout(dropout, seed=random_state)(l_dense)
+        # model = BatchNormalization()(model)
+        return embbeding_input, model
 
     def model_cudnnlstm(self):
         embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
@@ -1084,16 +1115,16 @@ class SpookyAuthorIdentifer():
         n_features = self.train_df.shape[1]
         logger.debug("Num features of input2:" + str(n_features))
         feature_input = Input(shape=(n_features,), name="features_input")
-        # model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(feature_input)
-        model = feature_input
+        model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(feature_input)
+        # model = feature_input
         # nodes = OUTPUT_DIM
-        nodes = min(n_features * 2, OUTPUT_DIM * 2)
+        nodes = min(n_features * 2, OUTPUT_DIM)
         layers = max(KERAS_LAYERS, 1)
         for i in range(layers):
             model = (Dense(nodes,
                            activation='relu', kernel_constraint=keras.constraints.maxnorm(KERAS_MAXNORM)))(model)
             model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
-            # model = BatchNormalization()(model)
+            model = BatchNormalization()(model)
             nodes = int(nodes // 2)
             if nodes < 16:
                 nodes = 16
@@ -1107,7 +1138,7 @@ class SpookyAuthorIdentifer():
         model = Reshape((KERAS_KERNEL_SIZE, n_features //
                          KERAS_KERNEL_SIZE))(feature_input)
         # nodes = max(n_features, OUTPUT_DIM)
-        nodes = min(n_features*2, OUTPUT_DIM)
+        nodes = min(n_features * 2, OUTPUT_DIM)
         layers = max(KERAS_LAYERS, 1)
         for i in range(layers):
             model = Conv1D(nodes, KERAS_KERNEL_SIZE,
@@ -1132,15 +1163,16 @@ class SpookyAuthorIdentifer():
         elif self.model_choice == MODEL_LSTM:
             input1, model1 = self.model_lstm()
         elif self.model_choice == MODEL_CNN:
-            input1, model1 = self.model_cnn()
+            # input1, model1 = self.model_cnn()
+            input1, model1 = self.model_cnn2()
         elif self.model_choice == MODEL_LSTM_ATTRNN:
             input1, model1 = self.model_lstm_attrnn2()
         elif self.model_choice == MODEL_LSTM_HE_ATTRNN:
             input1, model1 = self.model_lstm_he_attrnn()
 
         elif self.model_choice == MODEL_INPUT2_DENSE:
-            # input1, model1 = self.model_input2_dense()
-            input1, model1 = self.model_input2_cnn()
+            input1, model1 = self.model_input2_dense()
+            # input1, model1 = self.model_input2_cnn()
             # Change train set
             self.train = self.train_df
             self.X_eval = self.eval_df
@@ -1148,8 +1180,8 @@ class SpookyAuthorIdentifer():
         if self.model_choice2 is not None:  # Use additional input2
             logger.debug("Adding more model...")
             if self.model_choice2 == MODEL_INPUT2_DENSE:
-                # input2, model2 = self.model_input2_dense()
-                input2, model2 = self.model_input2_cnn()
+                input2, model2 = self.model_input2_dense()
+                # input2, model2 = self.model_input2_cnn()
             elif self.model_choice2 == MODEL_FASTEXT:
                 input2, model2 = self.model_fasttext()
             elif self.model_choice2 == MODEL_CUDNNLSTM:
@@ -1157,14 +1189,15 @@ class SpookyAuthorIdentifer():
             elif self.model_choice2 == MODEL_LSTM:
                 input2, model2 = self.model_lstm()
             elif self.model_choice2 == MODEL_CNN:
-                input2, model2 = self.model_cnn()
+                # input2, model2 = self.model_cnn()
+                input2, model2 = self.model_cnn2()
             elif self.model_choice2 == MODEL_LSTM_ATTRNN:
                 input2, model2 = self.model_lstm_attrnn2()
 
             model3 = concatenate([model1, model2])
             # model3 = Average()([model1, model2])
-            n_features = int(model3.shape[1])
-            logger.debug("Concatenate feature size:" + str(n_features))
+            # n_features = int(model3.shape[1])
+            # logger.debug("Concatenate feature size:" + str(n_features))
             # out_model = Reshape((2, n_features//2))(model3)
             # out_model = GlobalAveragePooling1D()(out_model)
             out_model = Dropout(KERAS_DROPOUT_RATE,
@@ -1270,10 +1303,11 @@ class SpookyAuthorIdentifer():
                 X2 = X
                 T2 = T
 
-        S_train = np.zeros((X.shape[0], N_FOLDS))
+        # S_train = np.zeros((X.shape[0], N_FOLDS))
         Y_eval = np.zeros((T.shape[0], Y.shape[1], N_FOLDS))
         total_time = 0
         total_metric = 0
+        total_best_round = 0
         self.history_total = []
 
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
@@ -1334,8 +1368,9 @@ class SpookyAuthorIdentifer():
             metric = callback_early_stopping.best
             total_metric = total_metric + metric
             logger.debug('Best metric:' + str(metric))
-            logger.debug(
-                'Best round:' + str(callback_early_stopping.stopped_epoch - KERAS_EARLY_STOPPING))
+            best_round = callback_early_stopping.stopped_epoch - KERAS_EARLY_STOPPING
+            total_best_round = total_best_round + best_round
+            logger.debug('Best round:' + str(best_round))
             logger.debug("Saving Y_eval for round:" + str(j + 1))
             if self.model_choice2 is not None:
                 Y_eval[:, :, j] = self.model.predict([T, T2])
@@ -1348,6 +1383,7 @@ class SpookyAuthorIdentifer():
             logger.debug("Done training for round:" + str(j + 1) +
                          " time:" + str(end) + "/" + str(total_time))
         logger.debug("Avg metric:" + str(total_metric / (j + 1)))
+        logger.debug("Avg best round:" + str(total_best_round / (j + 1)))
         Y_eval_total = Y_eval.mean(2)
         logger.debug("Y eval size:" + str(Y_eval_total.shape))
         logger.debug("Total training time:" + str(total_time))
@@ -1440,10 +1476,10 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     label = 'author'
     object = SpookyAuthorIdentifer(
-        label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=MODEL_INPUT2_DENSE)
+        label, word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=None)
     object.load_data()
     object.prepare_data()
-    option = 1
+    option = 2
     if option == 1:
         object.train_single_model()
         object.predict_data()
@@ -1454,5 +1490,3 @@ if __name__ == "__main__":
         object.plot_kfold_history()
 
     logger.info("Done!")
-
-
