@@ -23,6 +23,7 @@ import logging
 import sys
 import os
 import pickle
+import glob
 
 # set this code for reproduce training result
 os.environ['PYTHONHASHSEED'] = '0'
@@ -45,6 +46,7 @@ import re
 from nltk.tokenize import RegexpTokenizer
 from nltk import WordNetLemmatizer
 from nltk.corpus import stopwords
+from nltk import word_tokenize, pos_tag
 from gensim.models import Word2Vec
 import spacy
 import string
@@ -101,7 +103,10 @@ from keras import initializers, regularizers, constraints
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
 GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
-
+EXTRA_DATA_DIR = "extra-data"
+LOVECRAFT_DIR = EXTRA_DATA_DIR + "/corpus/lovecraft"
+POE_DIR = EXTRA_DATA_DIR + "/corpus/poe"
+SHELLEY_DIR = EXTRA_DATA_DIR + "/corpus/shelley"
 # VOCAB_SIZE = 100
 SEQUENCE_LENGTH = 500
 OUTPUT_DIM = 300  # use with pretrained word2vec
@@ -181,6 +186,10 @@ def dot_product(x, kernel):
         return K.squeeze(K.dot(x, K.expand_dims(kernel)), axis=-1)
     else:
         return K.dot(x, kernel)
+
+
+def id_generator(size=5, chars=string.digits):
+    return 'id' + ''.join(rn.choice(chars) for _ in range(size))
 
 
 # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
@@ -408,8 +417,6 @@ class FeatureEnginering():
     def extract_features(self, df):
         alphabet = 'abcdefghijklmnopqrstuvwxyz'
         # alphabet = 'abcd'
-        # df['len'] = df['text'].apply(lambda x: len(x))
-        # df['n_words'] = df['text'].apply(lambda x: len(x.split(' ')))
         df['n_.'] = df['text'].str.count('\.')
         df['n_...'] = df['text'].str.count('\...')
         df['n_,'] = df['text'].str.count('\,')
@@ -432,52 +439,60 @@ class FeatureEnginering():
         df['n_They '] = df['text'].str.count('They ')
         df['n_You '] = df['text'].str.count('You ')
 
-        # Find numbers of different combinations
-        for c in tqdm(alphabet.upper()):
-            df['n_' + c] = df['text'].str.count(c)
-            df['n_' + c + '.'] = df['text'].str.count(c + '\.')
-            df['n_' + c + ','] = df['text'].str.count(c + '\,')
+        is_alphabet = False
+        if is_alphabet:
+            # Find numbers of different combinations
+            for c in tqdm(alphabet.upper()):
+                df['n_' + c] = df['text'].str.count(c)
+                df['n_' + c + '.'] = df['text'].str.count(c + '\.')
+                df['n_' + c + ','] = df['text'].str.count(c + '\,')
 
-            for c2 in alphabet:
-                df['n_' + c + c2] = df['text'].str.count(c + c2)
-                df['n_' + c + c2 + '.'] = df['text'].str.count(c + c2 + '\.')
-                df['n_' + c + c2 + ','] = df['text'].str.count(c + c2 + '\,')
-
-        for c in tqdm(alphabet):
-            df['n_' + c + '.'] = df['text'].str.count(c + '\.')
-            df['n_' + c + ','] = df['text'].str.count(c + '\,')
-            df['n_' + c + '?'] = df['text'].str.count(c + '\?')
-            df['n_' + c + ';'] = df['text'].str.count(c + '\;')
-            df['n_' + c + ':'] = df['text'].str.count(c + '\:')
-
-            for c2 in alphabet:
-                df['n_' + c + c2 + '.'] = df['text'].str.count(c + c2 + '\.')
-                df['n_' + c + c2 + ','] = df['text'].str.count(c + c2 + '\,')
-                df['n_' + c + c2 + '?'] = df['text'].str.count(c + c2 + '\?')
-                df['n_' + c + c2 + ';'] = df['text'].str.count(c + c2 + '\;')
-                df['n_' + c + c2 + ':'] = df['text'].str.count(c + c2 + '\:')
-                df['n_' + c + ', ' + c2] = df['text'].str.count(c + '\, ' + c2)
-
-        # And now starting processing of cleaned text
-        for c in tqdm(alphabet):
-            df['n_' + c] = df['text_cleaned'].str.count(c)
-            df['n_' + c + ' '] = df['text_cleaned'].str.count(c + ' ')
-            df['n_' + ' ' + c] = df['text_cleaned'].str.count(' ' + c)
-
-            for c2 in alphabet:
-                df['n_' + c + c2] = df['text_cleaned'].str.count(c + c2)
-                df['n_' + c + c2 +
-                    ' '] = df['text_cleaned'].str.count(c + c2 + ' ')
-                df['n_' + ' ' + c +
-                    c2] = df['text_cleaned'].str.count(' ' + c + c2)
-                df['n_' + c + ' ' +
-                    c2] = df['text_cleaned'].str.count(c + ' ' + c2)
-
-                for c3 in alphabet:
+                for c2 in alphabet:
+                    df['n_' + c + c2] = df['text'].str.count(c + c2)
                     df['n_' + c + c2 +
-                        c3] = df['text_cleaned'].str.count(c + c2 + c3)
-                    # df['n_' + c + ' ' + c2 + c3] = df['text_cleaned'].str.count(c + ' ' + c2 + c3)
-                    # df['n_' + c + c2 + ' ' + c3] = df['text_cleaned'].str.count(c + c2 + ' ' + c3)
+                        '.'] = df['text'].str.count(c + c2 + '\.')
+                    df['n_' + c + c2 +
+                        ','] = df['text'].str.count(c + c2 + '\,')
+
+            for c in tqdm(alphabet):
+                df['n_' + c + '.'] = df['text'].str.count(c + '\.')
+                df['n_' + c + ','] = df['text'].str.count(c + '\,')
+                df['n_' + c + '?'] = df['text'].str.count(c + '\?')
+                df['n_' + c + ';'] = df['text'].str.count(c + '\;')
+                df['n_' + c + ':'] = df['text'].str.count(c + '\:')
+
+                for c2 in alphabet:
+                    df['n_' + c + c2 +
+                        '.'] = df['text'].str.count(c + c2 + '\.')
+                    df['n_' + c + c2 +
+                        ','] = df['text'].str.count(c + c2 + '\,')
+                    df['n_' + c + c2 +
+                        '?'] = df['text'].str.count(c + c2 + '\?')
+                    df['n_' + c + c2 +
+                        ';'] = df['text'].str.count(c + c2 + '\;')
+                    df['n_' + c + c2 +
+                        ':'] = df['text'].str.count(c + c2 + '\:')
+                    df['n_' + c + ', ' +
+                        c2] = df['text'].str.count(c + '\, ' + c2)
+
+            # And now starting processing of cleaned text
+            for c in tqdm(alphabet):
+                df['n_' + c] = df['text_cleaned'].str.count(c)
+                df['n_' + c + ' '] = df['text_cleaned'].str.count(c + ' ')
+                df['n_' + ' ' + c] = df['text_cleaned'].str.count(' ' + c)
+
+                for c2 in alphabet:
+                    df['n_' + c + c2] = df['text_cleaned'].str.count(c + c2)
+                    df['n_' + c + c2 +
+                        ' '] = df['text_cleaned'].str.count(c + c2 + ' ')
+                    df['n_' + ' ' + c +
+                        c2] = df['text_cleaned'].str.count(' ' + c + c2)
+                    df['n_' + c + ' ' +
+                        c2] = df['text_cleaned'].str.count(c + ' ' + c2)
+
+                    for c3 in alphabet:
+                        df['n_' + c + c2 +
+                            c3] = df['text_cleaned'].str.count(c + c2 + c3)
 
         df['n_the'] = df['text_cleaned'].str.count('the ')
         df['n_ a '] = df['text_cleaned'].str.count(' a ')
@@ -505,7 +520,6 @@ class FeatureEnginering():
         df['n_wall'] = df['text_cleaned'].str.count('wall')
         if "author" in df.columns:
             df.drop(["author"], axis=1, inplace=True)
-        logger.debug("Total feature extracted:" + str(len(df)))
         return df.drop(['id', 'text', 'text_cleaned'], axis=1)
 
     # https://www.kaggle.com/phoenix120/lstm-sentence-embeddings-with-additional-features
@@ -566,14 +580,55 @@ class FeatureEnginering():
                      ". test_df size:" + str(test_df.shape))
         return train_df, test_df
 
+    # https://www.kaggle.com/c/spooky-author-identification/discussion/42815
+    def determine_analysis_input(self, sentence):
+        text = word_tokenize(sentence)
+        tagged = pos_tag(text)
+        analysis = {}
+        analysis["cc"] = len([word for word in tagged if word[1] == "CC"])
+        analysis["in"] = len([word for word in tagged if word[1] == "IN"])
+        analysis["wh"] = len([word for word in tagged if word[1] == "WP"])
+        analysis["wh$"] = len([word for word in tagged if word[1] == "WP$"])
+        analysis["md"] = len([word for word in tagged if word[1] == "MD"])
+        analysis["present"] = len(
+            [word for word in tagged if word[1] in ["VBP", "VBZ", "VBG"]])
+        analysis["past"] = len(
+            [word for word in tagged if word[1] in ["VBD", "VBN"]])
+        analysis['adverb'] = len(
+            [word for word in tagged if word[1] in ["RB", "RBR", "RBS"]])
+        analysis['adjective'] = len(
+            [word for word in tagged if word[1] in ["JJ", "JJR", "JJS"]])
+        return analysis
+
+    def extract_feature_pos_tag(self, data):
+        # data_out = data.apply(lambda x: self.determine_analysis_input(x))
+        data_out = []
+        for index, row in data.iterrows():
+            row_out = self.determine_analysis_input(row['text'])
+            data_out.append(row_out)
+        # print(data_out[:5])
+        return pd.DataFrame(data_out)
+
     def process_data(self, train, test):
         train_file = DATA_DIR + "/train_fe.csv"
         test_file = DATA_DIR + "/test_fe.csv"
 
         if self.create:
+            # Extracting features based on statistic
+            logger.debug("Extracting features based on statistic method 1")
             train_df, test_df = self.collect_additional_features(train, test)
+            logger.debug("Numer of extracted features:" +
+                         str(len(train_df.columns)))
             train = train.copy()
             test = test.copy()
+            # Extracting additional features
+            logger.debug("Extracting features based on pos tag")
+            train_df3 = self.extract_feature_pos_tag(train)
+            test_df3 = self.extract_feature_pos_tag(test)
+            logger.debug("Numer of extracted features:" +
+                         str(len(train_df3.columns)))
+
+            logger.debug("Extracting features based statistic method 2")
             train['text_cleaned'] = train['text'].apply(
                 lambda x: self.clean_text(x))
             test['text_cleaned'] = test['text'].apply(
@@ -582,6 +637,8 @@ class FeatureEnginering():
             train_df2 = self.extract_features(train)
             logger.debug("Extracting feature for test")
             test_df2 = self.extract_features(test)
+            logger.debug("Numer of extracted features:" +
+                         str(len(test_df2.columns)))
 
             # Drop non-relevant columns
             logger.debug('Searching for columns with non-changing values...')
@@ -598,12 +655,12 @@ class FeatureEnginering():
             test_df2.drop(cols_to_drop, axis=1, inplace=True)
             logger.debug('Dropped ' + str(len(cols_to_drop)) + ' columns.')
 
-            logger.debug("Saving extraced features ...")
-            # Combined 2 features set
-            train_all = pd.concat([train_df, train_df2], axis=1)
-            test_all = pd.concat([test_df, test_df2], axis=1)
+            logger.debug("Saving extracted features ...")
+            # Combined 3 features set
+            train_all = pd.concat([train_df, train_df3, train_df2], axis=1)
+            test_all = pd.concat([test_df, test_df3, test_df2], axis=1)
             # save to file
-            train_all.to_csv(train_file, index=False, )
+            train_all.to_csv(train_file, index=False)
             test_all.to_csv(test_file, index=False)
         else:
             logger.debug("Loading extracted features ...")
@@ -613,7 +670,7 @@ class FeatureEnginering():
         logger.debug('train.shape = ' + str(train_all.shape) +
                      ', test.shape = ' + str(test_all.shape))
         logger.debug("Train columns:" + str(train_all.columns))
-        logger.debug("Test columns:" + str(test_all.columns))
+        # logger.debug("Test columns:" + str(test_all.columns))
         train_all = train_all.values
         test_all = test_all.values
         if self.use_pca:
@@ -630,6 +687,45 @@ class FeatureEnginering():
         return train_all, test_all
 
 
+# build extra dataset from corpus:
+# https://github.com/llealgt/edgar_philip_love_poe
+class BuildExtraDataSet():
+    def __init__(self):
+        pass
+
+    def process_corpus(self, dir=LOVECRAFT_DIR, code="HPL"):
+        logger.debug("Load all stories in " + dir)
+        filenames = glob.glob(dir + "/*.txt")
+        all_sentenses = []
+        for filename in filenames:
+            logger.debug("Processing " + filename)
+            f = open(filename, "r")
+            document = f.read()
+            sentences = nltk.sent_tokenize(document)
+            for sentence in sentences:
+                words = nltk.word_tokenize(sentence)
+                if len(words) > 5:
+                    all_sentenses.append(sentence.strip())
+        logger.debug("Total number of sentenses:" + str(len(all_sentenses)))
+        id_list = []
+        for i in range(len(all_sentenses)):
+            id = id_generator()
+            id_list.append(id)
+
+        data = pd.DataFrame({'id': id_list, 'text': all_sentenses})
+        data.loc[:, 'author'] = code
+        print(data.head(5))
+        return data
+
+    def build_dataset(self):
+        logger.debug("Building data set from corpus")
+        lovecraft = self.process_corpus(dir=LOVECRAFT_DIR, code="HPL")
+        poe = self.process_corpus(dir=POE_DIR, code='EAP')
+        shelley = self.process_corpus(dir=SHELLEY_DIR, code='MWS')
+        train_ex = pd.concat([lovecraft, poe, shelley])
+        train_ex.to_csv(DATA_DIR + "/train_ex.csv", index=False)
+
+
 class SpookyAuthorIdentifer():
     def __init__(self, label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=None):
         self.label = label
@@ -639,7 +735,9 @@ class SpookyAuthorIdentifer():
 
     def load_data(self):
         logger.info("Loading data ...")
-        self.train_data = pd.read_csv(DATA_DIR + "/train.csv")
+        train_data = pd.read_csv(DATA_DIR + "/train.csv")
+        train_data_ex = pd.read_csv(DATA_DIR + "/train_ex.csv")
+        self.train_data = pd.concat([train_data, train_data_ex])
         self.eval_data = pd.read_csv(DATA_DIR + "/test.csv")
 
         logger.debug("train size:" + str(self.train_data.shape) +
@@ -865,7 +963,7 @@ class SpookyAuthorIdentifer():
     def prepare_data(self):
         if self.model_choice2 == MODEL_INPUT2_DENSE or self.model_choice == MODEL_INPUT2_DENSE:
             logger.debug("Fature engineering")
-            fe = FeatureEnginering(create=False, use_pca=True)
+            fe = FeatureEnginering(create=True, use_pca=False)
             self.train_df, self.eval_df = fe.process_data(
                 self.train_data, self.eval_data)
         # CREATE TARGET VARIABLE
@@ -909,10 +1007,6 @@ class SpookyAuthorIdentifer():
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         model = GlobalAveragePooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
-        # model.add(BatchNormalization())
-        # model.add(Dense(OUTPUT_DIM, activation='relu'))
-        # model.add(Dropout(dropout, seed=random_state))
-        # model.add(BatchNormalization())(model)
         return embbeding_input, model
 
     def model_cnn(self):
@@ -932,10 +1026,6 @@ class SpookyAuthorIdentifer():
         model = GlobalMaxPooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
         model = BatchNormalization()(model)
-        # model.add(Dense(OUTPUT_DIM, activation='relu'))
-        # model.add(Dropout(dropout, seed=random_state))
-        # model.add(BatchNormalization())
-        # model.add(Dense(3, activation='softmax'))
         return input1, model
 
     # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
@@ -958,10 +1048,6 @@ class SpookyAuthorIdentifer():
             conv_blocks.append(conv)
         model_merge = concatenate(conv_blocks)
         model = Dropout(dropout, seed=random_state)(model_merge)
-        # l_dense = Dense(KERAS_FILTERS, activation='relu',
-        #                 kernel_regularizer=regularizers.l2(KERAS_REGULARIZER))(model)
-        # l_dense = Dropout(dropout, seed=random_state)(l_dense)
-        # model = BatchNormalization()(model)
         return embbeding_input, model
 
     def model_cudnnlstm(self):
@@ -1195,13 +1281,18 @@ class SpookyAuthorIdentifer():
                 input2, model2 = self.model_lstm_attrnn2()
 
             model3 = concatenate([model1, model2])
+            n_features = int(model3.shape[1])
+            logger.debug("Concatenate feature size:" + str(n_features))
             # model3 = Average()([model1, model2])
-            # n_features = int(model3.shape[1])
-            # logger.debug("Concatenate feature size:" + str(n_features))
             # out_model = Reshape((2, n_features//2))(model3)
             # out_model = GlobalAveragePooling1D()(out_model)
             out_model = Dropout(KERAS_DROPOUT_RATE,
                                 seed=random_state)(model3)
+            # out_model = Dense(3, activation='relu', kernel_constraint=keras.constraints.maxnorm(
+            #     KERAS_MAXNORM))(out_model)
+            # out_model = Dropout(KERAS_DROPOUT_RATE,
+            #                     seed=random_state)(out_model)
+            # out_model = BatchNormalization()(out_model)
             out_model = Dense(3, activation='softmax')(out_model)
             self.model = Model(inputs=[input1, input2], outputs=out_model)
         else:
@@ -1476,15 +1567,20 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     label = 'author'
     object = SpookyAuthorIdentifer(
-        label, word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=None)
-    object.load_data()
-    object.prepare_data()
+        label, word2vec=2, model_choice=MODEL_CNN, model_choice2=None)
     option = 2
-    if option == 1:
+    if option == 0:
+        data_obj = BuildExtraDataSet()
+        data_obj.build_dataset()
+    elif option == 1:
+        object.load_data()
+        object.prepare_data()
         object.train_single_model()
         object.predict_data()
         object.plot_history()
     elif option == 2:
+        object.load_data()
+        object.prepare_data()
         Y_pred = object.train_kfold_single()
         object.predict_data(Y_pred)
         object.plot_kfold_history()
