@@ -4638,11 +4638,11 @@ R6.10: Kfold + FastText
  - pre-train word Embeding: Glove 300d => new
  - preprocess text: PorterStemmer: train + eval
  - extra dataset => new
- - metric: 0.176835993088 =>
- - avg best round: 5
- - time/round: GPU: 500 , CPU: 
- - total time: 4662 => 2205
- - LB: 0.28921 (Best) =>
+ - metric: 0.176835993088 => 0.160948282706
+ - avg best round: 2
+ - time/round: GPU: 934 , CPU: 
+ - total time: 4662 => 4673
+ - LB: 0.28921 => 0.22222 (Best)
  #-----------------------------------------------------------------------
  R7.1: FastText + model_input2_dense
  - params:
@@ -6248,6 +6248,43 @@ R8.11: Kfold + FastText + model_input2_dense
  - average_round: 
  - total time: 
  - LB: 0.36631 => 
+
+ R8.15: Kfold + ConvNet + model_input2_cnn
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01 => new
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 10
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet (R1.19) => new
+    KERAS_FILTERS = 32 => new
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 3 => new
+    model = model_cnn2 => new
+    # Merge => Concatenate
+    model3 = Concatenate(model_fasttext + model_input2_dense)
+    out_model = dropout
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    n-gram = 1
+  - pre-train word Embeding: None
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2  + train_df3 + eval_df3 => new
+ - extra dataset => net
+ - metric: 0.233607849165 => 0.25031
+ - best round: 2
+ - time/round: GPU: 40, CPU: 124
+ - LB: 
  #--------------------------------------------------------
  R9.1: model_input2_dense
   - params:

@@ -657,8 +657,8 @@ class FeatureEnginering():
 
             logger.debug("Saving extracted features ...")
             # Combined 3 features set
-            train_all = pd.concat([train_df, train_df3, train_df2], axis=1)
-            test_all = pd.concat([test_df, test_df3, test_df2], axis=1)
+            train_all = pd.concat([train_df, train_df3, train_df2], axis=1, ignore_index=True)
+            test_all = pd.concat([test_df, test_df3, test_df2], axis=1, ignore_index=True)
             # save to file
             train_all.to_csv(train_file, index=False)
             test_all.to_csv(test_file, index=False)
@@ -1567,8 +1567,8 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     label = 'author'
     object = SpookyAuthorIdentifer(
-        label, word2vec=2, model_choice=MODEL_CNN, model_choice2=None)
-    option = 2
+        label, word2vec=2, model_choice=MODEL_INPUT2_DENSE, model_choice2=None)
+    option = 1
     if option == 0:
         data_obj = BuildExtraDataSet()
         data_obj.build_dataset()
