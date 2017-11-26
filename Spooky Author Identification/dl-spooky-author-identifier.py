@@ -83,7 +83,7 @@ from sklearn import decomposition
 # Keras
 import keras
 from keras.models import Sequential, Model
-from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape, Dot, Average, TimeDistributed, GRU, Activation
+from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape, Dot, Average, TimeDistributed, GRU, Activation, CuDNNGRU
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import SGD, Adam, RMSprop
 from keras.utils import np_utils
@@ -124,10 +124,10 @@ KERAS_EARLY_STOPPING = 3
 KERAS_MAXNORM = 3
 KERAS_PREDICT_BATCH_SIZE = 1024
 # ConvNet
-# KERAS_FILTERS = OUTPUT_DIM
-KERAS_FILTERS = 32
+KERAS_FILTERS = 32  # => Best
+KERAS_POOL_SIZE = 3  # Best
+# KERAS_POOL_SIZE = 2
 KERAS_KERNEL_SIZE = 2
-KERAS_POOL_SIZE = 3
 
 # Other keras params
 decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
@@ -142,7 +142,7 @@ w2v_weight_path = DATA_DIR + "/w2v_weight.pickle"
 random_state = 12343
 
 # ngram_range = 2 will add bi-grams features
-ngram_range = 2
+ngram_range = 1
 
 # Model choice
 MODEL_FASTEXT = 1
@@ -152,6 +152,7 @@ MODEL_CNN = 4
 MODEL_LSTM_ATTRNN = 5
 MODEL_LSTM_HE_ATTRNN = 6
 MODEL_INPUT2_DENSE = 10
+MODEL_CNN3 = 11
 # Text processing choice
 USE_SEQUENCE = True
 USE_SPACY = False
@@ -188,8 +189,13 @@ def dot_product(x, kernel):
         return K.dot(x, kernel)
 
 
-def id_generator(size=5, chars=string.digits):
+def id_generator(size=6, chars=string.digits):
     return 'id' + ''.join(rn.choice(chars) for _ in range(size))
+
+
+def id_generator2(size=7):
+    id_generator2.counter += 1
+    return 'id' + str(id_generator2.counter).zfill(size)
 
 
 # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
@@ -657,8 +663,11 @@ class FeatureEnginering():
 
             logger.debug("Saving extracted features ...")
             # Combined 3 features set
-            train_all = pd.concat([train_df, train_df3, train_df2], axis=1, ignore_index=True)
-            test_all = pd.concat([test_df, test_df3, test_df2], axis=1, ignore_index=True)
+            train_all = pd.concat(
+                [train_df, train_df3, train_df2], axis=1)
+            test_all = pd.concat(
+                [test_df, test_df3, test_df2], axis=1)
+
             # save to file
             train_all.to_csv(train_file, index=False)
             test_all.to_csv(test_file, index=False)
@@ -709,7 +718,7 @@ class BuildExtraDataSet():
         logger.debug("Total number of sentenses:" + str(len(all_sentenses)))
         id_list = []
         for i in range(len(all_sentenses)):
-            id = id_generator()
+            id = id_generator2()
             id_list.append(id)
 
         data = pd.DataFrame({'id': id_list, 'text': all_sentenses})
@@ -719,6 +728,7 @@ class BuildExtraDataSet():
 
     def build_dataset(self):
         logger.debug("Building data set from corpus")
+        id_generator2.counter = 0
         lovecraft = self.process_corpus(dir=LOVECRAFT_DIR, code="HPL")
         poe = self.process_corpus(dir=POE_DIR, code='EAP')
         shelley = self.process_corpus(dir=SHELLEY_DIR, code='MWS')
@@ -732,12 +742,15 @@ class SpookyAuthorIdentifer():
         self.word2vec = word2vec
         self.model_choice = model_choice
         self.model_choice2 = model_choice2
+        self.input_length = OUTPUT_DIM
+        self.vocab_size = OUTPUT_DIM
 
     def load_data(self):
         logger.info("Loading data ...")
         train_data = pd.read_csv(DATA_DIR + "/train.csv")
         train_data_ex = pd.read_csv(DATA_DIR + "/train_ex.csv")
-        self.train_data = pd.concat([train_data, train_data_ex])
+        self.train_data = pd.concat(
+            [train_data, train_data_ex], ignore_index=True)
         self.eval_data = pd.read_csv(DATA_DIR + "/test.csv")
 
         logger.debug("train size:" + str(self.train_data.shape) +
@@ -963,7 +976,7 @@ class SpookyAuthorIdentifer():
     def prepare_data(self):
         if self.model_choice2 == MODEL_INPUT2_DENSE or self.model_choice == MODEL_INPUT2_DENSE:
             logger.debug("Fature engineering")
-            fe = FeatureEnginering(create=True, use_pca=False)
+            fe = FeatureEnginering(create=False, use_pca=False)
             self.train_df, self.eval_df = fe.process_data(
                 self.train_data, self.eval_data)
         # CREATE TARGET VARIABLE
@@ -1002,6 +1015,7 @@ class SpookyAuthorIdentifer():
         return embedding_layer
 
     def model_fasttext(self):
+        logger.debug("Building FastText model ...")
         embbeding_input = Input(shape=(None,), name="embbeding_input")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
@@ -1028,14 +1042,14 @@ class SpookyAuthorIdentifer():
         model = BatchNormalization()(model)
         return input1, model
 
-    # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
     # https://github.com/alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras/blob/master/sentiment_cnn.py
     def model_cnn2(self):
-
+        logger.debug("Building CNN2 model ...")
         embbeding_input = Input(shape=(None,), name="embbeding_input")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
-        filter_sizes = [3, 4, 5]
+        filter_sizes = [3, 4, 5]  # => Best
+        # filter_sizes = [2, 3, 4, 5]
         conv_blocks = []
         for fsz in filter_sizes:
             conv = Conv1D(filters=KERAS_FILTERS,
@@ -1045,12 +1059,40 @@ class SpookyAuthorIdentifer():
                           strides=1)(model)
             conv = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(conv)
             conv = Flatten()(conv)
+            # conv = Dropout(dropout, seed=random_state)(conv)
             conv_blocks.append(conv)
         model_merge = concatenate(conv_blocks)
         model = Dropout(dropout, seed=random_state)(model_merge)
         return embbeding_input, model
 
+    # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
+    def model_cnn3(self):
+        logger.debug("Building CNN3 model ...")
+        embbeding_input = Input(shape=(None,), name="embbeding_input")
+        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        convs = []
+        filter_sizes = [3, 4, 5]
+        for fsz in filter_sizes:
+            l_conv = Conv1D(filters=128, kernel_size=fsz,
+                            activation='relu')(model)
+            l_pool = MaxPooling1D(5)(l_conv)
+            convs.append(l_pool)
+        l_merge = concatenate(convs)
+        l_merge = Dropout(dropout, seed=random_state)(l_merge)
+        l_cov1 = Conv1D(128, 5, activation='relu')(l_merge)
+        l_pool1 = MaxPooling1D(5)(l_cov1)
+        # l_cov2 = Conv1D(128, 5, activation='relu')(l_pool1)
+        # l_pool2 = MaxPooling1D(30)(l_cov2)
+        # https://github.com/fchollet/keras/issues/1592 => If error if Flatten, refer to this issue, may be pooling size is too large
+        l_flat = Flatten()(l_pool1)
+        l_flat = Dropout(dropout, seed=random_state)(l_flat)
+        l_dense = Dense(128, activation='relu')(l_flat)
+        l_dense = Dropout(dropout, seed=random_state)(l_dense)
+        return embbeding_input, l_dense
+
     def model_cudnnlstm(self):
+        logger.debug("Building CuDNN LSTM model ...")
         embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
@@ -1066,6 +1108,7 @@ class SpookyAuthorIdentifer():
         return embbeding_input, model
 
     def model_lstm(self):
+        logger.debug("Building LSTM model ...")
         embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
@@ -1098,6 +1141,7 @@ class SpookyAuthorIdentifer():
 
     # https://github.com/tqtg/textClassifier/blob/master/rnn_classififer.py
     def model_lstm_attrnn2(self):
+        logger.debug("Building Attention model ...")
         sentence_input = Input(shape=(self.input_length,), dtype='int32')
         embedding_layer = self.buil_embbeding_layer()
         embedded_sequences = embedding_layer(sentence_input)
@@ -1108,8 +1152,10 @@ class SpookyAuthorIdentifer():
         # l_dropout2 = Dropout(dropout)(l_lstm)
         # l_classifier = Dense(2, activation='softmax')(l_dropout2)
         # ================================ One-level attention RNN (GRU) ======
+        # h_word = Bidirectional(
+        #     GRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
         h_word = Bidirectional(
-            GRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
+            CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
         # h_word = AttentionWithContext()(h_word)
         h_word = Dropout(KERAS_DROPOUT_RATE)(h_word)
         # Attention part
@@ -1130,12 +1176,15 @@ class SpookyAuthorIdentifer():
 
     # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-HATN/
     def model_lstm_he_attrnn_old(self):
+        logger.debug("Building Attention Hierachical model ...")
         embbeding_input = Input(
             shape=(self.input_length,), name="embbeding_input_lstm")
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
+        # model = Bidirectional(
+        #     GRU(OUTPUT_DIM // 2, return_sequences=True))(model)
         model = Bidirectional(
-            GRU(OUTPUT_DIM, return_sequences=True))(model)
+            CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True))(model)
         model = TimeDistributed(Dense(OUTPUT_DIM))(model)
         model = AttentionWithContext()(model)
         model = Dropout(dropout, seed=random_state)(model)
@@ -1143,8 +1192,10 @@ class SpookyAuthorIdentifer():
 
         review_input = Input(shape=(None, self.input_length))
         review_encoder = TimeDistributed(sentEncoder)(review_input)
+        # l_lstm_sent = Bidirectional(
+        #     GRU(OUTPUT_DIM // 2, return_sequences=True))(review_encoder)
         l_lstm_sent = Bidirectional(
-            GRU(OUTPUT_DIM, return_sequences=True))(review_encoder)
+            CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True))(review_encoder)
         l_dense_sent = TimeDistributed(Dense(OUTPUT_DIM))(l_lstm_sent)
         l_att_sent = AttentionWithContext()(l_dense_sent)
         att_model = Dropout(dropout, seed=random_state)(l_att_sent)
@@ -1159,10 +1210,12 @@ class SpookyAuthorIdentifer():
         embedded_sequences = embedding_layer(sentence_input)
         l_dropout1 = Dropout(dropout)(embedded_sequences)
 
+        # h_word = Bidirectional(
+        #     GRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
         h_word = Bidirectional(
-            GRU(OUTPUT_DIM, return_sequences=True), name='h_word')(l_dropout1)
+            CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
         u_word = TimeDistributed(
-            Dense(2 * OUTPUT_DIM, activation='tanh'), name='u_word')(h_word)
+            Dense(OUTPUT_DIM, activation='tanh'), name='u_word')(h_word)
 
         alpha_word = TimeDistributed(Dense(1, use_bias=False))(u_word)
         alpha_word = Reshape((self.input_length,))(alpha_word)
@@ -1178,7 +1231,7 @@ class SpookyAuthorIdentifer():
         review_input = Input(
             shape=(OUTPUT_DIM, self.input_length), dtype='int32')
         review_encoder = TimeDistributed(
-            sent_encoder, name='sent_encoder')(review_input2)
+            sent_encoder, name='sent_encoder')(review_input)
         l_dropout2 = Dropout(dropout)(review_encoder)
 
         h_sent = Bidirectional(
@@ -1198,6 +1251,7 @@ class SpookyAuthorIdentifer():
         return review_input, h_sent_combined
 
     def model_input2_dense(self):
+        logger.debug("Building dense model from sencondary input ...")
         n_features = self.train_df.shape[1]
         logger.debug("Num features of input2:" + str(n_features))
         feature_input = Input(shape=(n_features,), name="features_input")
@@ -1251,6 +1305,8 @@ class SpookyAuthorIdentifer():
         elif self.model_choice == MODEL_CNN:
             # input1, model1 = self.model_cnn()
             input1, model1 = self.model_cnn2()
+        elif self.model_choice == MODEL_CNN3:
+            input1, model1 = self.model_cnn3()
         elif self.model_choice == MODEL_LSTM_ATTRNN:
             input1, model1 = self.model_lstm_attrnn2()
         elif self.model_choice == MODEL_LSTM_HE_ATTRNN:
@@ -1281,18 +1337,13 @@ class SpookyAuthorIdentifer():
                 input2, model2 = self.model_lstm_attrnn2()
 
             model3 = concatenate([model1, model2])
-            n_features = int(model3.shape[1])
-            logger.debug("Concatenate feature size:" + str(n_features))
+            # n_features = int(model3.shape[1])
+            # logger.debug("Concatenate feature size:" + str(n_features))
             # model3 = Average()([model1, model2])
             # out_model = Reshape((2, n_features//2))(model3)
             # out_model = GlobalAveragePooling1D()(out_model)
             out_model = Dropout(KERAS_DROPOUT_RATE,
                                 seed=random_state)(model3)
-            # out_model = Dense(3, activation='relu', kernel_constraint=keras.constraints.maxnorm(
-            #     KERAS_MAXNORM))(out_model)
-            # out_model = Dropout(KERAS_DROPOUT_RATE,
-            #                     seed=random_state)(out_model)
-            # out_model = BatchNormalization()(out_model)
             out_model = Dense(3, activation='softmax')(out_model)
             self.model = Model(inputs=[input1, input2], outputs=out_model)
         else:
@@ -1310,6 +1361,7 @@ class SpookyAuthorIdentifer():
                    to_file=DATA_DIR + '/model.png')
 
     def train_single_model(self):
+        logger.info("Training for single model ...")
         self.build_model()
         # Use Early-Stopping
         callback_early_stopping = keras.callbacks.EarlyStopping(
@@ -1565,9 +1617,12 @@ if __name__ == "__main__":
 
     # set GPU memory
     # KTF.set_session(set_gpu_memory())
+    # Fix the issue: The shape of the input to "Flatten" is not fully defined
+    # KTF.set_image_dim_ordering('tf')
+
     label = 'author'
     object = SpookyAuthorIdentifer(
-        label, word2vec=2, model_choice=MODEL_INPUT2_DENSE, model_choice2=None)
+        label, word2vec=2, model_choice=MODEL_CNN, model_choice2=None)
     option = 1
     if option == 0:
         data_obj = BuildExtraDataSet()
@@ -1584,5 +1639,9 @@ if __name__ == "__main__":
         Y_pred = object.train_kfold_single()
         object.predict_data(Y_pred)
         object.plot_kfold_history()
+    elif option == 3:
+        object = SpookyAuthorIdentifer(
+            label, word2vec=0, model_choice=MODEL_CNN3, model_choice2=None)
+        object.build_model()
 
     logger.info("Done!")

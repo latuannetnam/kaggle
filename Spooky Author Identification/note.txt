@@ -4572,7 +4572,7 @@ R6.10: Kfold + FastText
  - avg best round: 38
  - time/round: GPU: , CPU: 
  - total time: 4662 =>
- - LB: 0.32336 => 0.31986 => Best
+ - LB: 0.32336 => 0.31986 
 
  R6.14: Kfold + CNN2
 - params:
@@ -4607,7 +4607,7 @@ R6.10: Kfold + FastText
  - avg best round: 5
  - time/round: GPU: 500 , CPU: 
  - total time: 4662 => 2205
- - LB: 0.31986 => 0.28921 (Best)
+ - LB: 0.31986 => 0.28921 
 
  R6.15: Kfold + CNN2
 - params:
@@ -4643,6 +4643,287 @@ R6.10: Kfold + FastText
  - time/round: GPU: 934 , CPU: 
  - total time: 4662 => 4673
  - LB: 0.28921 => 0.22222 (Best)
+
+ R6.16: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 64 => new
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 3
+    model = model_cnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1 => new
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176835993088 => 0.177459112205
+ - avg best round: 4.8
+ - time/round: GPU: 580 , CPU: 
+ - total time: 2205 => 2824
+ - LB: 0.28921  => 0.28657
+
+ R6.17: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 32 => new
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 2 => new
+    model = model_cnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1 => new
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176835993088 => 0.176331042208
+ - avg best round: 5.2
+ - time/round: GPU: 580 , CPU: 
+ - total time: 2205 => 2257
+ - LB: 0.28657  => 0.28134
+
+ R6.18: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 64 => new
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 2 => new
+    model = model_cnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1 => new
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176331042208 => 0.179245409549
+ - avg best round: 5.6
+ - time/round: GPU: 747 , CPU: 
+ - total time: 2205 => 3224
+ - LB: 0.28134 =>
+
+ R6.19: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 128 => new
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 2 => new
+    model = model_cnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1 => new
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176331042208 => 0.181906031623
+ - avg best round: 4.8
+ - time/round: GPU: 1083 , CPU: 
+ - total time: 2205 => 4337
+ - LB: 0.28134 =>
+
+ R6.20: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 32 => new
+    KERAS_KERNEL_SIZE = [2, 3,4,5] => new
+    KERAS_POOL_SIZE = 2 => new
+    model = model_cnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176331042208 => 0.179243236541
+ - avg best round: 4.8
+ - time/round: GPU: 639 , CPU: 
+ - total time: 2205 => 2560
+ - LB: 0.28134 =>
+
+ R6.21: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 32 => new
+    KERAS_KERNEL_SIZE = [3,4,5] => new
+    KERAS_POOL_SIZE = 2 => new
+    model = model_cnn2 => new
+    + convnet + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176331042208 => 0.187852764905
+ - avg best round: 7.2
+ - time/round: GPU: 639 , CPU: 
+ - total time: 2205 => 2560
+ - LB: 0.28134 =>
+
+ R6.22: Kfold + CNN2
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 32
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 2 => new
+    model = model_cnn2 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 2 => new
+ - pre-train word Embeding: Glove 300d => new
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.160948282706 => 0.16539484061
+ - avg best round: 2
+ - time/round: GPU: 947 , CPU: 
+ - total time: 4673 => 4754
+ - LB: 0.22222 (Best) => 0.22310
+
+ R6.23: Kfold + CNN3
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet
+    KERAS_FILTERS = 128 => new
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 5 => new
+    model = model_cnn3 => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    N_FOLDS = 5
+    n-gram = 1 => new
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - extra dataset => new
+ - metric: 0.176331042208 => 
+ - avg best round: 
+ - time/round: GPU: 580 , CPU: 
+ - total time: 
+ - LB: 0.28134 => 
  #-----------------------------------------------------------------------
  R7.1: FastText + model_input2_dense
  - params:
@@ -6265,26 +6546,67 @@ R8.11: Kfold + FastText + model_input2_dense
     KERAS_EARLY_STOPPING = 10
     KERAS_MAXNORM = 3
     KERAS_PREDICT_BATCH_SIZE = 1024
-    # ConvNet (R1.19) => new
-    KERAS_FILTERS = 32 => new
+    # ConvNet (R1.22)
+    KERAS_FILTERS = 32
     KERAS_KERNEL_SIZE = [3,4,5]
-    KERAS_POOL_SIZE = 3 => new
-    model = model_cnn2 => new
+    KERAS_POOL_SIZE = 3
+    model = model_cnn2
     # Merge => Concatenate
-    model3 = Concatenate(model_fasttext + model_input2_dense)
+    model3 = Concatenate(model_cnn2 + model_input2_dense)
     out_model = dropout
     # Other keras params
+    N_FOLDS = 5
     decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
     dropout = KERAS_DROPOUT_RATE
     n-gram = 1
-  - pre-train word Embeding: None
+  - pre-train word Embeding: Glove 300d
  - preprocess text: PorterStemmer: train + eval
  - feature egineering: train_df + eval_df + train_df2 + eval_df2  + train_df3 + eval_df3 => new
  - extra dataset => net
- - metric: 0.233607849165 => 0.25031
- - best round: 2
- - time/round: GPU: 40, CPU: 124
- - LB: 
+ - metric: 0.176835993088 => 0.186406778773
+ - avg best round: 7
+ - time/round: GPU: 500 , CPU: 
+ - total time: 2771
+ - LB: 0.28921  => 0.31196
+
+ R8.16: Kfold + ConvNet + model_input2_cnn
+- params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 1000
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 3
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0.01 => new
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 10
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # ConvNet (R1.22)
+    KERAS_FILTERS = 32
+    KERAS_KERNEL_SIZE = [3,4,5]
+    KERAS_POOL_SIZE = 3
+    model = model_cnn2
+    # Merge => Concatenate
+    model3 = Concatenate(model_cnn2 + model_input2_dense)
+    out_model = dropout
+    # Other keras params
+    N_FOLDS = 5
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    n-gram = 2
+  - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - feature egineering: train_df + eval_df + train_df2 + eval_df2  + train_df3 + eval_df3 => new
+ - extra dataset => net
+ - metric: 0.160948282706 => 0.169094835174
+ - avg best round: 2
+ - time/round: GPU: 964 , CPU: 
+ - total time: 4662 => 4673 => 4819
+ - LB: 0.22222 (Best) => 0.24822
  #--------------------------------------------------------
  R9.1: model_input2_dense
   - params:
@@ -6873,6 +7195,38 @@ R9.12: model_input2_dense
  - best round: 2
  - metric: 0.250843730688 => 0.247854546337
  - time/round: GPU:300 , CPU: 
+ - total time:  
+ - LB:  
+
+ R10.4: MODEL_LSTM_ATTRNN
+  - params:
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300 
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 100
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 2
+    KERAS_DROPOUT_RATE = 0.5
+    # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
+    KERAS_REGULARIZER = 0
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    # MODEL_LSTM_ATTRNN
+    model = model_lstm_attrnn2 + dropout => new
+    # Other keras params
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    dropout = KERAS_DROPOUT_RATE
+    optimizer = Adam
+    input_length= max(max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
+    n-gram = 1
+ - pre-train word Embeding: Glove 300d
+ - preprocess text: PorterStemmer: train + eval
+ - best round: 
+ - metric: 0.247854546337 => 0.17920
+ - time/round: GPU: 720, CPU: 
  - total time:  
  - LB:  
 
