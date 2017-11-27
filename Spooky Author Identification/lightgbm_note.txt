@@ -1,0 +1,67 @@
+R20.1:
+ - params:
+    + MAX_FEATURES = 8000
+    + TF_IDF
+    + LEARNING_RATE = 0.1
+    + num_leaves = 31
+    + max_bin =  63
+- loss: 0.439083
+- LB: 0.49751
+
+R20.2:
+- params:
+    + MAX_FEATURES = 8000
+    + TF_IDF
+    + LEARNING_RATE = 0.1
+    + num_leaves = 1024
+    + max_bin =  63
+- loss: 0.439083 => 0.438633
+- best round: 90
+- LB: 0.49751 => 
+
+R20.3:
+- params:
+    + MAX_FEATURES = 8000
+    + TF_IDF
+    + LEARNING_RATE = 0.05
+    + num_leaves = 1024
+    + max_bin =  63
+- loss: 0.438633 => 0.435411 
+- best round: 179 
+- LB: 0.49751 => 
+
+R20.4:
+- params:
+    + MAX_FEATURES = 8000
+    + TF_IDF_W2C => new
+    + LEARNING_RATE = 0.05
+    + num_leaves = 1024
+    + max_bin =  63
+- loss: 0.435411 => 0.57254
+- best round: 117
+- time: 1620 
+- LB: 0.49751 => 
+
+R20.5:
+- params:
+    + MAX_FEATURES = 8000
+    + TF_IDF_NLTK => new
+    + LEARNING_RATE = 0.05
+    + num_leaves = 1024
+    + max_bin =  63
+- loss: 0.435411 => 0.380157
+- best round: 193
+- time: 234
+- LB: 0.49751 => 
+
+R20.6:
+- params:
+    + MAX_FEATURES = 8000
+    + TF_IDF_NLTK => new
+    + LEARNING_RATE = 0.01
+    + num_leaves = 1024
+    + max_bin =  63
+- loss: 0.435411 => 0.378627
+- best round: 956
+- time: 1115.9654948711395
+- LB: 0.49751 => 0.43475
