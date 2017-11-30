@@ -1,8 +1,10 @@
-# Spooky Author Identification
-# Share code and discuss insights to identify horror authors from their writings
-# https://www.kaggle.com/c/spooky-author-identification
+# Mercari Price Suggestion Challenge
+# Can you automatically suggest product prices to online sellers?
+# https://www.kaggle.com/c/mercari-price-suggestion-challenge
 # Credit:
-# https://www.kaggle.com/knowledgegrappler/magic-embeddings-keras-a-toy-example
+# https://www.kaggle.com/knowledgegrappler/a-simple-nn-solution-with-keras-0-48611-pl/notebook
+# https://www.kaggle.com/fmuetsch/keras-nn-with-rec-layers-sentiment-etc-2
+# References
 # https://machinelearningmastery.com/use-word-embedding-layers-deep-learning-keras/
 # https://blog.keras.io/using-pre-trained-word-embeddings-in-a-keras-model.html
 # https://machinelearningmastery.com/sequence-classification-lstm-recurrent-neural-networks-python-keras/
@@ -10,7 +12,6 @@
 # http://debajyotidatta.github.io/nlp/deep/learning/word-embeddings/2016/09/28/fast-text-and-skip-gram/
 # http://ben.bolte.cc/blog/2016/gensim.html
 # https://www.bonaccorso.eu/2017/08/07/twitter-sentiment-analysis-with-gensim-word2vec-and-keras-convolutional-networks/
-# https://www.kaggle.com/enerrio/scary-nlp-with-spacy-and-keras
 # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
 # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
 # https://github.com/synthesio/hierarchical-attention-networks/blob/master/model.py
@@ -24,6 +25,9 @@ import sys
 import os
 import pickle
 import glob
+import psutil
+from multiprocessing import Pool
+import math
 
 # set this code for reproduce training result
 os.environ['PYTHONHASHSEED'] = '0'
@@ -76,7 +80,7 @@ tf.set_random_seed(1234)
 # # Scikit-learn
 from sklearn.model_selection import cross_val_score, train_test_split, learning_curve, validation_curve, KFold
 from sklearn.utils import class_weight
-from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler
+from sklearn.preprocessing import LabelBinarizer, StandardScaler, MinMaxScaler, LabelEncoder
 from sklearn.feature_extraction.stop_words import ENGLISH_STOP_WORDS as stopword2s
 from sklearn import decomposition
 
@@ -97,23 +101,22 @@ from keras import backend as K
 from keras.utils import plot_model
 from keras.engine.topology import Layer
 from keras import initializers, regularizers, constraints
-
+from keras.models import load_model
 
 # Constants
 # Input data files are available in the DATA_DIR directory.
 DATA_DIR = "data-temp"
+OUTPUT_DIR = DATA_DIR
 GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
-EXTRA_DATA_DIR = "extra-data"
-LOVECRAFT_DIR = EXTRA_DATA_DIR + "/corpus/lovecraft"
-POE_DIR = EXTRA_DATA_DIR + "/corpus/poe"
-SHELLEY_DIR = EXTRA_DATA_DIR + "/corpus/shelley"
-# VOCAB_SIZE = 100
+
+# VOCAB_SIZE = 8000
+VOCAB_SIZE = 4000
 SEQUENCE_LENGTH = 500
-OUTPUT_DIM = 300  # use with pretrained word2vec
-# OUTPUT_DIM = 500
+# OUTPUT_DIM = 200  # use with pretrained word2vec
+OUTPUT_DIM = 50
 KERAS_LEARNING_RATE = 0.001
-# KERAS_N_ROUNDS = 200
-KERAS_N_ROUNDS = 5
+KERAS_N_ROUNDS = 200
+# KERAS_BATCH_SIZE = 64  # best
 KERAS_BATCH_SIZE = 64
 KERAS_NODES = 1024
 KERAS_LAYERS = 1
@@ -121,7 +124,7 @@ KERAS_DROPOUT_RATE = 0.5
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0.04
 KERAS_VALIDATION_SPLIT = 0.2
-KERAS_EARLY_STOPPING = 3
+KERAS_EARLY_STOPPING = 2
 KERAS_MAXNORM = 3
 KERAS_PREDICT_BATCH_SIZE = 1024
 # ConvNet
@@ -137,13 +140,16 @@ dropout = KERAS_DROPOUT_RATE
 KERAS_EMBEDDING = True
 N_FOLDS = 5
 VERBOSE = True
-model_weight_path = DATA_DIR + "/model_weight.h5"
-model_path = DATA_DIR + "/model.json"
-w2v_weight_path = DATA_DIR + "/w2v_weight.pickle"
+model_weight_path = OUTPUT_DIR + "/model_weight.h5"
+model_path = OUTPUT_DIR + "/pretrained_model.h5"
+pretrained_model_path = DATA_DIR + "/pretrained_model.h5"
+pretrained_model_weight_path = DATA_DIR + "/model_weight.h5"
+# model_path = OUTPUT_DIR + "/model.json"
+w2v_weight_path = OUTPUT_DIR + "/w2v_weight.pickle"
 random_state = 12343
 
 # ngram_range = 2 will add bi-grams features
-ngram_range = 1
+NGRAM_RANGE = 1
 
 # Model choice
 MODEL_FASTEXT = 1
@@ -154,10 +160,12 @@ MODEL_LSTM_ATTRNN = 5
 MODEL_LSTM_HE_ATTRNN = 6
 MODEL_INPUT2_DENSE = 10
 MODEL_CNN3 = 11
-MODEL_CNN4 = 12
 # Text processing choice
 USE_SEQUENCE = True
 USE_SPACY = False
+
+# Other params
+N_THREADS = psutil.cpu_count()
 # disable GPU: export CUDA_VISIBLE_DEVICES=
 
 # Set GPU memory
@@ -198,6 +206,34 @@ def id_generator(size=6, chars=string.digits):
 def id_generator2(size=7):
     id_generator2.counter += 1
     return 'id' + str(id_generator2.counter).zfill(size)
+
+
+def flatten(l):  # https://www.kaggle.com/fmuetsch/keras-nn-with-rec-layers-sentiment-etc-2
+    return [item for sublist in l for item in sublist]
+
+
+def _get_stem_single(args):
+    data, index = args
+    logger.debug("Stemmer text ..")
+    # stemmer = stm.SnowballStemmer("english")
+    # stemmer = stm.lancaster.LancasterStemmer()
+    stemmer = stm.PorterStemmer()
+    data_stem = data.apply(lambda x: (" ").join(
+            [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
+    return pd.Series(data_stem, index=index)
+
+
+def get_stem(data, index):
+    p = Pool(processes=N_THREADS)
+    n = math.ceil(len(data) / N_THREADS)
+    stems = p.map(_get_stem_single, [(data[i:i + n], index[i:i + n]) for i in range(0, len(data), n)])
+    # return np.array(flatten(stems))
+    # return stems
+    return pd.concat(stems)
+
+
+def keras_rmse(y_true, y_pred):
+	return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
 
 # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
@@ -698,73 +734,30 @@ class FeatureEnginering():
         return train_all, test_all
 
 
-# build extra dataset from corpus:
-# https://github.com/llealgt/edgar_philip_love_poe
-class BuildExtraDataSet():
-    def __init__(self):
-        pass
-
-    def process_corpus(self, dir=LOVECRAFT_DIR, code="HPL"):
-        logger.debug("Load all stories in " + dir)
-        filenames = glob.glob(dir + "/*.txt")
-        all_sentenses = []
-        for filename in filenames:
-            logger.debug("Processing " + filename)
-            f = open(filename, "r")
-            document = f.read()
-            sentences = nltk.sent_tokenize(document)
-            for sentence in sentences:
-                words = nltk.word_tokenize(sentence)
-                if len(words) > 5:
-                    all_sentenses.append(sentence.strip())
-        logger.debug("Total number of sentenses:" + str(len(all_sentenses)))
-        id_list = []
-        for i in range(len(all_sentenses)):
-            id = id_generator2()
-            id_list.append(id)
-
-        data = pd.DataFrame({'id': id_list, 'text': all_sentenses})
-        data.loc[:, 'author'] = code
-        print(data.head(5))
-        return data
-
-    def build_dataset(self):
-        logger.debug("Building data set from corpus")
-        id_generator2.counter = 0
-        lovecraft = self.process_corpus(dir=LOVECRAFT_DIR, code="HPL")
-        poe = self.process_corpus(dir=POE_DIR, code='EAP')
-        shelley = self.process_corpus(dir=SHELLEY_DIR, code='MWS')
-        train_ex = pd.concat([lovecraft, poe, shelley])
-        train_ex.to_csv(DATA_DIR + "/train_ex.csv", index=False)
-
-
-class SpookyAuthorIdentifer():
-    def __init__(self, label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=None):
+class MercatiPriceSuggestion():
+    def __init__(self, label, word2vec=0, model_choice=MODEL_CNN, model_choice2=None):
         self.label = label
         self.word2vec = word2vec
         self.model_choice = model_choice
         self.model_choice2 = model_choice2
-        self.input_length = OUTPUT_DIM
         self.vocab_size = OUTPUT_DIM
 
     def load_data(self):
         logger.info("Loading data ...")
-        train_data = pd.read_csv(DATA_DIR + "/train.csv")
-        train_data_ex = pd.read_csv(DATA_DIR + "/train_ex.csv")
-        self.train_data = pd.concat(
-            [train_data, train_data_ex], ignore_index=True)
-        self.eval_data = pd.read_csv(DATA_DIR + "/test.csv")
+        # self.train_data = pd.read_table(DATA_DIR + "/train.tsv", nrows=1000)
+        self.train_data = pd.read_table(DATA_DIR + "/train.tsv")
+        self.eval_data = pd.read_table(DATA_DIR + "/test.tsv")
 
         logger.debug("train size:" + str(self.train_data.shape) +
                      " test size:" + str(self.eval_data.shape))
 
     def load_pretrained_word_embedding(self, create=True):
-        file = DATA_DIR + "/embeding.pickle"
+        file = OUTPUT_DIR + "/embeding.pickle"
         if create:
             logger.debug("Loading pre-trained word embbeding ...")
             # load the whole embedding into memory
             embeddings_index = dict()
-            f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
+            f = open(GLOBAL_DATA_DIR + '/glove.6B.200d.txt')
             for line in f:
                 values = line.split()
                 word = values[0]
@@ -774,7 +767,9 @@ class SpookyAuthorIdentifer():
             logger.debug('Loaded ' + str(len(embeddings_index)))
             logger.debug("Create word matrix")
             # create a weight matrix for words in training docs
-            embedding_matrix = np.zeros((self.vocab_size, OUTPUT_DIM))
+            matrix_size = len(self.tokenizer.word_index) + 1
+            embedding_matrix = np.zeros((matrix_size, OUTPUT_DIM))
+
             for word, i in self.tokenizer.word_index.items():
                 embedding_vector = embeddings_index.get(word)
                 if embedding_vector is not None:
@@ -789,6 +784,85 @@ class SpookyAuthorIdentifer():
                 embedding_matrix = pickle.load(f)
         logger.debug("pre-trained weight size:" + str(embedding_matrix.shape))
         return embedding_matrix
+
+    def build_word2vec(self, data, create=True):
+        file = w2v_weight_path
+        if create:
+            logger.debug("Generating word2vec ....")
+            w2v = Word2Vec(data, min_count=1, size=OUTPUT_DIM, workers=4)
+            # create a weight matrix for words in training docs
+            matrix_size = len(self.tokenizer.word_index) + 1
+            embedding_matrix = np.zeros((matrix_size, OUTPUT_DIM))
+            for word, i in self.tokenizer.word_index.items():
+                try:
+                    embedding_vector = w2v.wv[word]
+                    embedding_matrix[i] = embedding_vector
+                except:
+                    pass
+            with open(file, 'wb') as f:
+                # Pickle the 'data' dictionary using the highest protocol
+                # available.
+                pickle.dump(embedding_matrix, f, pickle.HIGHEST_PROTOCOL)
+        else:
+            logger.debug("Loading from pickle")
+            with open(file, 'rb') as f:
+                embedding_matrix = pickle.load(f)
+        logger.debug("w2v size:" + str(self.embedding_matrix.shape))
+        return embedding_matrix
+
+    def preprocess_text_old(self, preprocess=1):
+        x_train_name = self.train_data.name
+        x_test_name = self.eval_data.name
+        x_train_item_description = self.train_data.item_description
+        x_test_item_description = self.eval_data.item_description
+        x_list = [x_train_name, x_test_name,
+                  x_train_item_description, x_test_item_description]
+        print("Before")
+        print(x_train_name[0])
+        if preprocess == 1:
+            logger.debug("Stemmer text ..")
+            # stemmer = stm.SnowballStemmer("english")
+            # stemmer = stm.lancaster.LancasterStemmer()
+            stemmer = stm.PorterStemmer()
+            for token in x_list:
+                token = token.apply(lambda x: (" ").join(
+                    [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
+            x_all = pd.concat(x_list)
+        elif preprocess == 2:
+            logger.debug("Lemmtizer text ..")
+            alpha_tokenizer = RegexpTokenizer('[A-Za-z]\w+')
+            lemmatizer = WordNetLemmatizer()
+            stop = stopwords.words('english')
+            x_all = ""
+            for token in x_list:
+                token_list = [[lemmatizer.lemmatize(word.lower()) for word in alpha_tokenizer.tokenize(
+                    sent) if word.lower() not in stop] for sent in token]
+                token = [" ".join(x) for x in token_list]
+                x_all += token
+        else:
+            x_all = pd.concat(x_list)
+
+        print("After")
+        print(x_train_name[0])
+        logger.debug("X_all size:" + str(len(x_all)))
+        return x_all, x_train_name, x_test_name, x_train_item_description, x_test_item_description
+
+    def preprocess_text(self, preprocess=1):
+        x_train_name = self.train_data.name
+        x_test_name = self.eval_data.name
+        x_train_item_description = self.train_data.item_description
+        x_test_item_description = self.eval_data.item_description
+        if preprocess == 1:
+            logger.debug("Preprocessing item description...")
+            x_train_item_description = get_stem(x_train_item_description, self.train_data.index)
+            print(x_train_item_description[1])
+            logger.debug("Done Preprocessing item description for train data")
+            x_test_item_description = get_stem(x_test_item_description, self.train_data.index)
+            print(x_test_item_description[1])
+            x_test_item_description.fillna(value="missing", inplace=True)
+            logger.debug("Done Preprocessing item description for eval data")
+        x_all = pd.concat([x_train_name, x_test_name, x_train_item_description, x_test_item_description])
+        return x_all, x_train_name, x_test_name, x_train_item_description, x_test_item_description
 
     # Credit:
     # https://github.com/fchollet/keras/blob/master/examples/imdb_fasttext.py
@@ -828,211 +902,162 @@ class SpookyAuthorIdentifer():
 
         return new_sequences
 
-    def preprocess_text(self, preprocess=1):
-        x_train = self.train_data.text
-        x_test = self.eval_data.text
-        if preprocess == 1:
-            logger.debug("Stemmer text ..")
-            # stemmer = stm.SnowballStemmer("english")
-            # stemmer = stm.lancaster.LancasterStemmer()
-            stemmer = stm.PorterStemmer()
-            x_train = x_train.apply(lambda x: (" ").join(
-                [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
-            x_test = x_test.apply(lambda x: (" ").join(
-                [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
-            x_all = pd.concat([x_train, x_test])
-        elif preprocess == 2:
-            logger.debug("Lemmtizer text ..")
-            alpha_tokenizer = RegexpTokenizer('[A-Za-z]\w+')
-            lemmatizer = WordNetLemmatizer()
-            stop = stopwords.words('english')
-            x_train_list = [[lemmatizer.lemmatize(word.lower()) for word in alpha_tokenizer.tokenize(
-                sent) if word.lower() not in stop] for sent in x_train]
-            x_test_list = [[lemmatizer.lemmatize(word.lower()) for word in alpha_tokenizer.tokenize(
-                sent) if word.lower() not in stop] for sent in x_test]
-            x_train = [" ".join(x) for x in x_train_list]
-            x_test = [" ".join(x) for x in x_test_list]
-            x_all = x_train + x_test
-        else:
-            x_all = pd.concat([x_train, x_test])
-        logger.debug("X_all size:" + str(len(x_all)))
-        print(x_train[0])
-        return x_all, x_train, x_test
-
-    def tokenize(self, x_all, x_train, x_test):
+    def tokenize(self, x_all, x_train_name, x_test_name, x_train_item_description, x_test_item_description):
         logger.debug("Tokenizing text ..")
         # prepare tokenizer
-        self.tokenizer = Tokenizer()
+        self.tokenizer = Tokenizer(num_words=VOCAB_SIZE, lower=True)
         self.tokenizer.fit_on_texts(x_all)
-        self.vocab_size = len(self.tokenizer.word_index) + 1
-        logger.debug("vocab size:" + str(self.vocab_size))
+        vocab_size = len(self.tokenizer.word_index) + 1
+        self.vocab_size = min(VOCAB_SIZE, vocab_size)
+        logger.debug("max vocab size:" + str(vocab_size) + ". Using:" + str(self.vocab_size))
+
         # integer encode the documents
         logger.debug("Text to sequences")
-        x_train_tokenized = self.tokenizer.texts_to_sequences(x_train)
-        x_test_tokenized = self.tokenizer.texts_to_sequences(x_test)
-        logger.debug("X train shape:" + str(len(x_train_tokenized)))
-        print(x_train_tokenized[0])
-        if USE_SEQUENCE is False:
-            logger.debug("Text to maxtrix")
-            x_train_matrix = self.tokenizer.texts_to_matrix(
-                x_train, mode='tfidf')
-            x_test_matrix = self.tokenizer.texts_to_matrix(
-                x_test, mode='tfidf')
-            logger.debug("X train matrix shape:" + str((x_train_matrix.shape)))
-            logger.debug("X test matrix shape:" + str((x_test_matrix.shape)))
-        else:
-            x_train_matrix = None
-            x_test_matrix = None
-        return x_train_tokenized, x_test_tokenized, x_train_matrix, x_test_matrix
-
-    def build_word2vec(self, data, create=True):
-        file = w2v_weight_path
-        if create:
-            logger.debug("Generating word2vec ....")
-            w2v = Word2Vec(data, min_count=1, size=OUTPUT_DIM, workers=4)
-            # create a weight matrix for words in training docs
-            embedding_matrix = np.zeros((self.vocab_size, OUTPUT_DIM))
-            for word, i in self.tokenizer.word_index.items():
-                try:
-                    embedding_vector = w2v.wv[word]
-                    embedding_matrix[i] = embedding_vector
-                except:
-                    pass
-            with open(file, 'wb') as f:
-                # Pickle the 'data' dictionary using the highest protocol
-                # available.
-                pickle.dump(embedding_matrix, f, pickle.HIGHEST_PROTOCOL)
-        else:
-            logger.debug("Loading from pickle")
-            with open(file, 'rb') as f:
-                embedding_matrix = pickle.load(f)
-        self.w2v_weights = embedding_matrix
-        logger.debug("w2v size:" + str(self.w2v_weights.shape))
+        x_list = [x_train_name, x_test_name,
+                  x_train_item_description, x_test_item_description]
+        x_list2 = []
+        for token in x_list:
+            token = self.tokenizer.texts_to_sequences(token)
+            x_list2.append(token)
+        return x_list2
 
     def tokenize_and_ngram(self):
-        x_all, x_train, x_test = self.preprocess_text(preprocess=1)
-        x_train, x_test, x_train_matrix, x_test_matrix = self.tokenize(
-            x_all, x_train, x_test)
-        # self.tokenize(x_all, x_train, x_test)
-        if USE_SEQUENCE:
-            # Create n-gram
-            if ngram_range > 1:
-                logger.debug("Creating n-gram ...:" + str(ngram_range))
-                # Create set of unique n-gram from the training set.
-                ngram_set = set()
-                for input_list in x_train:
-                    for i in range(2, ngram_range + 1):
-                        set_of_ngram = self.create_ngram_set(
-                            input_list, ngram_value=i)
-                        ngram_set.update(set_of_ngram)
+        x_all, x_train_name, x_test_name, x_train_item_description, x_test_item_description = self.preprocess_text(
+            preprocess=0)
+        logger.debug("Before tokenizing: X train shape:" +
+                     str(len(x_train_item_description)))
+        print(x_train_item_description[1])
+        x_train_name, x_test_name, x_train_item_description, x_test_item_description = self.tokenize(
+            x_all, x_train_name, x_test_name, x_train_item_description, x_test_item_description)
+        logger.debug("Alter tokenizing: X train shape:" +
+                     str(len(x_train_item_description)))
+        print(x_train_item_description[1])
+        x_list = [x_train_name, x_test_name,
+                  x_train_item_description, x_test_item_description]
+        # Create n-gram
+        if NGRAM_RANGE > 1:
+            logger.debug("Creating n-gram ...:" + str(NGRAM_RANGE))
+            # Create set of unique n-gram from the training set.
+            ngram_set = set()
+            for input_list in x_train:
+                for i in range(2, NGRAM_RANGE + 1):
+                    set_of_ngram = self.create_ngram_set(
+                        input_list, ngram_value=i)
+                    ngram_set.update(set_of_ngram)
 
-                # Dictionary mapping n-gram token to a unique integer.
-                # Integer values are greater than max_features in order
-                # to avoid collision with existing features.
-                start_index = self.vocab_size + 1
-                token_indice = {v: k + start_index for k,
-                                v in enumerate(ngram_set)}
-                indice_token = {token_indice[k]: k for k in token_indice}
+            # Dictionary mapping n-gram token to a unique integer.
+            # Integer values are greater than max_features in order
+            # to avoid collision with existing features.
+            start_index = self.vocab_size + 1
+            token_indice = {v: k + start_index for k,
+                            v in enumerate(ngram_set)}
+            indice_token = {token_indice[k]: k for k in token_indice}
 
-                # max_features is the highest integer that could be found in the
-                # dataset.
-                self.vocab_size = np.max(list(indice_token.keys())) + 1
-                logger.debug("New vocab size:" + str(self.vocab_size))
+            # max_features is the highest integer that could be found in the
+            # dataset.
+            self.vocab_size = np.max(list(indice_token.keys())) + 1
+            logger.debug("New vocab size:" + str(self.vocab_size))
 
-                # Augmenting x_train and x_test with n-grams features
-                x_train = self.add_ngram(x_train, token_indice, ngram_range)
-                x_test = self.add_ngram(x_test, token_indice, ngram_range)
-                print(x_train[0])
+            # Augmenting x_train and x_test with n-grams features
+            x_train = self.add_ngram(x_train, token_indice, ngram_range)
+            x_test = self.add_ngram(x_test, token_indice, ngram_range)
+            print(x_train[0])
 
-            max_train_sequence = np.amax(list(map(len, x_train)))
-            max_test_sequence = np.amax(list(map(len, x_test)))
-            print('Average train sequence length: {}'.format(
-                np.mean(list(map(len, x_train)), dtype=int)))
-            logger.debug('Max train sequence length: ' +
-                         str(max_train_sequence))
-            print('Average test sequence length: {}'.format(
-                np.mean(list(map(len, x_test)), dtype=int)))
-            logger.debug('Max test sequence length: ' + str(max_test_sequence))
+        self.input_name_length = max(np.amax(list(map(len, x_train_name))), np.amax(list(map(len, x_test_name))))
+        self.input_item_description_length = max(np.amax(list(map(len, x_train_item_description))), np.amax(list(map(len, x_test_item_description))))
+        logger.debug("Item name sequence length:" + str(self.input_name_length))
+        logger.debug("Item description sequence length:" + str(self.input_item_description_length))
+        # pad documents to a max length
+        logger.debug("Sequence padding ...")
+        self.train_name = pad_sequences(
+            x_train_name, maxlen=self.input_name_length)
+        self.train_item_description = pad_sequences(
+            x_train_item_description, maxlen=self.input_item_description_length)    
+        self.X_eval_name = pad_sequences(
+            x_test_name, maxlen=self.input_name_length)
+        self.X_eval_item_description = pad_sequences(
+            x_test_item_description, maxlen=self.input_item_description_length)    
+        logger.debug("Train shape after padding")
+        logger.debug("Item name:" + str(self.train_name.shape) + "/" + str(self.X_eval_name.shape))
+        logger.debug("Item description:" + str(self.train_item_description.shape) + "/" + str(self.X_eval_item_description.shape))
 
-            self.input_length = max(
-                max_train_sequence, max_test_sequence, SEQUENCE_LENGTH)
-            logger.debug('Old sequence length:' + str(SEQUENCE_LENGTH) +
-                         '. New squence length:' + str(self.input_length))
+        if self.word2vec == 1:
+            self.embedding_matrix = self.build_word2vec(x_all, True)
+        elif self.word2vec == 2:
+            # load pre-trained word embedding
+            self.embedding_matrix = self.load_pretrained_word_embedding(True)
 
-            # pad documents to a max length
-            logger.debug("Sequence padding ...")
-            self.train = pad_sequences(
-                x_train, maxlen=self.input_length)
-            self.X_eval = pad_sequences(
-                x_test, maxlen=self.input_length)
-            logger.debug("Train shape after padding:" + str(self.train.shape))
-            # print(self.train[0])
-        else:
-            self.train = x_train_matrix
-            self.X_eval = x_test_matrix
-            self.input_length = self.vocab_size
-
-        if (self.word2vec == 1):
-            self.build_word2vec(x_all, False)
+    def handle_missing(self, dataset):
+        dataset.name.fillna(value="missing", inplace=True)
+        dataset.category_name.fillna(value="missing", inplace=True)
+        dataset.brand_name.fillna(value="missing", inplace=True)
+        dataset.item_description.fillna(value="missing", inplace=True)
+        return (dataset)
 
     def prepare_data(self):
+        logger.debug("Data features preparing...")
         # if self.model_choice2 == MODEL_INPUT2_DENSE or self.model_choice == MODEL_INPUT2_DENSE:
-        logger.debug("Fature engineering")
-        fe = FeatureEnginering(create=False, use_pca=False)
-        self.train_df, self.eval_df = fe.process_data(
-            self.train_data, self.eval_data)
-        # CREATE TARGET VARIABLE
-        self.eval_id = self.eval_data['id']
-        logger.debug("One hot encoding for label")
-        self.train_data["EAP"] = (self.train_data.author == "EAP") * 1
-        self.train_data["HPL"] = (self.train_data.author == "HPL") * 1
-        self.train_data["MWS"] = (self.train_data.author == "MWS") * 1
-        self.target_vars = ["EAP", "HPL", "MWS"]
-        self.target = self.train_data[self.target_vars].values
-        if USE_SPACY:
-            spacy_object = SpacyPreprocess()
-            self.train = spacy_object.text2vec(self.train_data.text)
-            self.X_eval = spacy_object.text2vec(self.eval_data.text)
-            self.vocab_size = self.train.shape[1]
-            self.input_length = self.vocab_size
-            logger.debug("Vocab size:" + str(self.vocab_size))
-        else:
-            self.tokenize_and_ngram()
+        #     logger.debug("Fature engineering")
+        #     fe = FeatureEnginering(create=False, use_pca=False)
+        #     self.train_df, self.eval_df = fe.process_data(
+        #         self.train_data, self.eval_data)
+        # Handle missing value
+        self.train_data = self.handle_missing(self.train_data)
+        self.eval_data = self.handle_missing(self.eval_data)
+        self.eval_id = self.eval_data['test_id']
+        if self.model_choice2 is not None:
+            # feature engineering
+            # PROCESS CATEGORICAL DATA
+            logger.debug("Handling categorical variables...")
+            le = LabelEncoder()
+            le.fit(
+                np.vstack([self.train_data.category_name, self.eval_data.category_name]))
+            train.category_name = le.transform(self.train_data.category_name)
+            test.category_name = le.transform(self.eval_data.category_name)
+            le.fit(
+                np.vstack([self.train_data.brand_name, self.eval_data.brand_name]))
+            self.train_data.brand_name = le.transform(
+                self.train_data.brand_name)
+            self.eval_data.brand_name = le.transform(self.eval_data.brand_name)
+            # Second input
+            second_input_features = [
+                'category_name', 'brand_name', 'item_condition_id', 'shipping']
+            self.train_df = self.train_data[second_input_features]
+            self.eval_df = self.eval_data[second_input_features]
 
-    def buil_embbeding_layer(self):
-        logger.debug("Input length:" + str(self.input_length))
-        if self.word2vec == 2:
-            # load pre-trained word embedding
-            embedding_matrix = self.load_pretrained_word_embedding(False)
+        # Tokenize text data
+        self.tokenize_and_ngram()
+        # CREATE TARGET VARIABLE
+        self.target = np.log(self.train_data.price + 1)
+
+    def buil_embbeding_layer(self, input_length):
+        logger.debug("Input length:" + str(input_length))
+        if self.word2vec > 0:
             embedding_layer = Embedding(self.vocab_size, OUTPUT_DIM, weights=[
-                embedding_matrix], input_length=self.input_length, trainable=True)
-        elif self.word2vec == 1:
-            # Use gensim generated word2vec
-            embedding_layer = Embedding(self.vocab_size, OUTPUT_DIM, weights=[
-                self.w2v_weights], input_length=self.input_length, trainable=True)
+                self.embedding_matrix], input_length=input_length, trainable=True)
         else:
             embedding_layer = Embedding(
-                self.vocab_size, OUTPUT_DIM, input_length=self.input_length, trainable=True)
+                self.vocab_size, OUTPUT_DIM, input_length=input_length, trainable=True)
 
         return embedding_layer
 
-    def model_fasttext(self):
+    def model_fasttext(self, input_length):
         logger.debug("Building FastText model ...")
-        embbeding_input = Input(shape=(None,), name="embbeding_input")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        embbeding_input = Input(shape=(None,))
+        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         model = GlobalAveragePooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
         return embbeding_input, model
 
-    def model_cnn(self):
+    def model_cnn(self, input_length):
         if KERAS_EMBEDDING:
-            input1 = Input(shape=(None,), name="embbeding_input_cnn")
-            embedding_layer = self.buil_embbeding_layer()(input1)
+            input1 = Input(shape=(None,))
+            embedding_layer = self.buil_embbeding_layer(input_length)(input1)
             model = Dropout(dropout, seed=random_state)(embedding_layer)
         else:
-            input1 = Reshape((1, self.input_length),
-                             input_shape=(self.input_length,))
+            input1 = Reshape((1, input_length),
+                             input_shape=(input_length,))
             model = input1
         for i in range(KERAS_LAYERS):
             model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
@@ -1045,10 +1070,10 @@ class SpookyAuthorIdentifer():
         return input1, model
 
     # https://github.com/alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras/blob/master/sentiment_cnn.py
-    def model_cnn2(self):
+    def model_cnn2(self, input_length):
         logger.debug("Building CNN2 model ...")
-        embbeding_input = Input(shape=(None,), name="embbeding_input")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        embbeding_input = Input(shape=(None,))
+        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         filter_sizes = [3, 4, 5]  # => Best
         # filter_sizes = [2, 3, 4, 5]
@@ -1068,10 +1093,10 @@ class SpookyAuthorIdentifer():
         return embbeding_input, model
 
     # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
-    def model_cnn3(self):
+    def model_cnn3(self, input_length):
         logger.debug("Building CNN3 model ...")
-        embbeding_input = Input(shape=(None,), name="embbeding_input")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        embbeding_input = Input(shape=(None,))
+        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         convs = []
         filter_sizes = [3, 4, 5]
@@ -1086,46 +1111,18 @@ class SpookyAuthorIdentifer():
         l_pool1 = MaxPooling1D(5)(l_cov1)
         # l_cov2 = Conv1D(128, 5, activation='relu')(l_pool1)
         # l_pool2 = MaxPooling1D(30)(l_cov2)
-        # https://github.com/fchollet/keras/issues/1592 => If error if Flatten, refer to this issue, may be pooling size is too large
+        # https://github.com/fchollet/keras/issues/1592 => If error if Flatten,
+        # refer to this issue, may be pooling size is too large
         l_flat = Flatten()(l_pool1)
         l_flat = Dropout(dropout, seed=random_state)(l_flat)
         l_dense = Dense(128, activation='relu')(l_flat)
         l_dense = Dropout(dropout, seed=random_state)(l_dense)
         return embbeding_input, l_dense
 
-    # https://github.com/alexander-rakhlin/CNN-for-Sentence-Classification-in-Keras/blob/master/sentiment_cnn.py
-    def model_cnn4(self):
-        logger.debug("Building CNN4 model ...")
-        embbeding_input = Input(shape=(None,), name="embbeding_input")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
-        n_features = self.train_df.shape[1]
-        logger.debug("Num features of input2:" + str(n_features))
-        feature_input = Input(shape=(n_features,), name="features_input")
-        feature_embedding_layer = Embedding(
-            n_features, n_features, trainable=True)(feature_input)
-        model = concatenate([embedding_layer, feature_embedding_layer])
-        model = Dropout(dropout, seed=random_state)(model)
-        filter_sizes = [3, 4, 5]  # => Best
-        # filter_sizes = [2, 3, 4, 5]
-        conv_blocks = []
-        for fsz in filter_sizes:
-            conv = Conv1D(filters=KERAS_FILTERS,
-                          kernel_size=fsz,
-                          padding="valid",
-                          activation="relu",
-                          strides=1)(model)
-            conv = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(conv)
-            conv = Flatten()(conv)
-            # conv = Dropout(dropout, seed=random_state)(conv)
-            conv_blocks.append(conv)
-        model_merge = concatenate(conv_blocks)
-        model = Dropout(dropout, seed=random_state)(model_merge)
-        return embbeding_input, feature_input, model
-
-    def model_cudnnlstm(self):
+    def model_cudnnlstm(self, input_length):
         logger.debug("Building CuDNN LSTM model ...")
-        embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        embbeding_input = Input(shape=(None,))
+        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # for i in range(KERAS_LAYERS):
         #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
@@ -1138,10 +1135,10 @@ class SpookyAuthorIdentifer():
         model = BatchNormalization()(model)
         return embbeding_input, model
 
-    def model_lstm(self):
+    def model_lstm(self, input_length):
         logger.debug("Building LSTM model ...")
-        embbeding_input = Input(shape=(None,), name="embbeding_input_lstm")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+        embbeding_input = Input(shape=(None,))
+        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # for i in range(KERAS_LAYERS):
         #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
@@ -1156,10 +1153,10 @@ class SpookyAuthorIdentifer():
 
     # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
     # https://github.com/synthesio/hierarchical-attention-networks/blob/master/model.py
-    def model_lstm_attrnn(self):
+    def model_lstm_attrnn(self, input_length):
         embbeding_input = Input(
-            shape=(self.input_length,), name="embbeding_input_lstm")
-        embedding_layer = self.buil_embbeding_layer()(embbeding_input)
+            shape=(input_length,))
+        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # LSTM
         model = Bidirectional(
@@ -1171,10 +1168,10 @@ class SpookyAuthorIdentifer():
         return embbeding_input, model
 
     # https://github.com/tqtg/textClassifier/blob/master/rnn_classififer.py
-    def model_lstm_attrnn2(self):
+    def model_lstm_attrnn2(self, input_length):
         logger.debug("Building Attention model ...")
         sentence_input = Input(shape=(self.input_length,), dtype='int32')
-        embedding_layer = self.buil_embbeding_layer()
+        embedding_layer = self.buil_embbeding_layer(input_length)
         embedded_sequences = embedding_layer(sentence_input)
         l_dropout1 = Dropout(KERAS_DROPOUT_RATE)(embedded_sequences)
 
@@ -1184,7 +1181,8 @@ class SpookyAuthorIdentifer():
         # l_classifier = Dense(2, activation='softmax')(l_dropout2)
         # ================================ One-level attention RNN (GRU) ======
         # h_word = Bidirectional(
-        #     GRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
+        # GRU(OUTPUT_DIM // 2, return_sequences=True),
+        # name='h_word')(l_dropout1)
         h_word = Bidirectional(
             CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
         # h_word = AttentionWithContext()(h_word)
@@ -1202,14 +1200,15 @@ class SpookyAuthorIdentifer():
         # \alpha weights
         h_word_combined = Dot(axes=[1, 1])([h_word, alpha_word])
         h_word_combined = Dropout(KERAS_DROPOUT_RATE)(h_word_combined)
-        # l_classifier = Dense(2, activation='softmax', name='classifier')(h_word_combined)
+        # l_classifier = Dense(2, activation='softmax',
+        # name='classifier')(h_word_combined)
         return sentence_input, h_word_combined
 
     # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-HATN/
-    def model_lstm_he_attrnn_old(self):
+    def model_lstm_he_attrnn_old(self, input_length):
         logger.debug("Building Attention Hierachical model ...")
         embbeding_input = Input(
-            shape=(self.input_length,), name="embbeding_input_lstm")
+            shape=(self.input_length,))
         embedding_layer = self.buil_embbeding_layer()(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # model = Bidirectional(
@@ -1234,25 +1233,26 @@ class SpookyAuthorIdentifer():
         return embbeding_input, att_model
 
     # https://github.com/tqtg/textClassifier/blob/master/hatt_classifier.py
-    def model_lstm_he_attrnn(self):
+    def model_lstm_he_attrnn(self, input_length):
         # Word level
         sentence_input = Input(shape=(self.input_length,), dtype='int32')
-        embedding_layer = self.buil_embbeding_layer()
+        embedding_layer = self.buil_embbeding_layer(input_length)
         embedded_sequences = embedding_layer(sentence_input)
         l_dropout1 = Dropout(dropout)(embedded_sequences)
 
         # h_word = Bidirectional(
-        #     GRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
+        # GRU(OUTPUT_DIM // 2, return_sequences=True),
+        # name='h_word')(l_dropout1)
         h_word = Bidirectional(
-            CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True), name='h_word')(l_dropout1)
+            CuDNNGRU(OUTPUT_DIM // 2, return_sequences=True))(l_dropout1)
         u_word = TimeDistributed(
-            Dense(OUTPUT_DIM, activation='tanh'), name='u_word')(h_word)
+            Dense(OUTPUT_DIM, activation='tanh'))(h_word)
 
         alpha_word = TimeDistributed(Dense(1, use_bias=False))(u_word)
         alpha_word = Reshape((self.input_length,))(alpha_word)
         alpha_word = Activation('softmax')(alpha_word)
 
-        h_word_combined = Dot(axes=[1, 1], name='h_word_combined')(
+        h_word_combined = Dot(axes=[1, 1])(
             [h_word, alpha_word])
 
         sent_encoder = Model(sentence_input, h_word_combined)
@@ -1262,19 +1262,19 @@ class SpookyAuthorIdentifer():
         review_input = Input(
             shape=(OUTPUT_DIM, self.input_length), dtype='int32')
         review_encoder = TimeDistributed(
-            sent_encoder, name='sent_encoder')(review_input)
+            sent_encoder)(review_input)
         l_dropout2 = Dropout(dropout)(review_encoder)
 
         h_sent = Bidirectional(
-            GRU(OUTPUT_DIM, return_sequences=True), name='h_sent')(l_dropout2)
+            GRU(OUTPUT_DIM, return_sequences=True))(l_dropout2)
         u_sent = TimeDistributed(
-            Dense(2 * OUTPUT_DIM, activation='tanh'), name='u_sent')(h_sent)
+            Dense(2 * OUTPUT_DIM, activation='tanh'))(h_sent)
 
         alpha_sent = TimeDistributed(Dense(1, use_bias=False))(u_sent)
         alpha_sent = Reshape((OUTPUT_DIM,))(alpha_sent)
         alpha_sent = Activation('softmax')(alpha_sent)
 
-        h_sent_combined = Dot(axes=[1, 1], name='h_sent_combined')(
+        h_sent_combined = Dot(axes=[1, 1])(
             [h_sent, alpha_sent])
 
         # Classifier layer
@@ -1328,18 +1328,18 @@ class SpookyAuthorIdentifer():
     def build_model(self):
         logger.debug("Model definition")
         if self.model_choice == MODEL_FASTEXT:
-            input1, model1 = self.model_fasttext()
+            input1, model1 = self.model_fasttext(self.input_name_length)
+            input2, model2 = self.model_fasttext(self.input_item_description_length)
         elif self.model_choice == MODEL_CUDNNLSTM:
             input1, model1 = self.model_cudnnlstm()
         elif self.model_choice == MODEL_LSTM:
             input1, model1 = self.model_lstm()
         elif self.model_choice == MODEL_CNN:
             # input1, model1 = self.model_cnn()
-            input1, model1 = self.model_cnn2()
+            input1, model1 = self.model_cnn2(self.input_name_length)
+            input2, model2 = self.model_cnn2(self.input_item_description_length)
         elif self.model_choice == MODEL_CNN3:
             input1, model1 = self.model_cnn3()
-        elif self.model_choice == MODEL_CNN4:
-            input1, input2, model1 = self.model_cnn4()
         elif self.model_choice == MODEL_LSTM_ATTRNN:
             input1, model1 = self.model_lstm_attrnn2()
         elif self.model_choice == MODEL_LSTM_HE_ATTRNN:
@@ -1377,39 +1377,45 @@ class SpookyAuthorIdentifer():
             # out_model = GlobalAveragePooling1D()(out_model)
             out_model = Dropout(KERAS_DROPOUT_RATE,
                                 seed=random_state)(model3)
-            out_model = Dense(3, activation='softmax')(out_model)
+            out_model = Dense(1)(out_model)
             self.model = Model(inputs=[input1, input2], outputs=out_model)
         else:
-            out_model = Dense(3, activation='softmax')(model1)
-            if self.model_choice == MODEL_CNN4:
-                self.model = Model(inputs=[input1, input2], outputs=out_model)
-            else:
-                self.model = Model(inputs=[input1], outputs=out_model)
+            model_all = concatenate([model1, model2])
+            model_all = Dropout(KERAS_DROPOUT_RATE,
+                                seed=random_state)(model_all)
+            out_model = Dense(1)(model_all)
+            self.model = Model(inputs=[input1, input2], outputs=out_model)
         # compile the model
         optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)
         # optimizer = RMSprop(lr=KERAS_LEARNING_RATE, decay=decay)
         self.model.compile(optimizer=optimizer,
-                           loss='binary_crossentropy', metrics=['acc'])
+                           loss='mean_squared_error', metrics=[keras_rmse])
         # summarize the model
         print(self.model.summary())
         # Plot the model
         plot_model(self.model, show_shapes=True,
-                   to_file=DATA_DIR + '/model.png')
+                   to_file=OUTPUT_DIR + '/model.png')
+
+    def load_model(self):
+        logger.debug("Build and load pre-train model")
+        self.build_model()
+        # self.model = load_model(pretrained_model_path)
+        self.model.load_weights(pretrained_model_weight_path)
 
     def train_single_model(self):
         logger.info("Training for single model ...")
         self.build_model()
         # Use Early-Stopping
         callback_early_stopping = keras.callbacks.EarlyStopping(
-            monitor='val_loss', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='auto')
+            monitor='val_keras_rmse', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='auto')
         callback_tensorboard = keras.callbacks.TensorBoard(
-            log_dir=DATA_DIR + '/tensorboard', histogram_freq=1, batch_size=KERAS_BATCH_SIZE,
+            log_dir=OUTPUT_DIR + '/tensorboard', histogram_freq=1, batch_size=KERAS_BATCH_SIZE,
             write_graph=True, write_grads=True, write_images=False)
         callback_checkpoint = keras.callbacks.ModelCheckpoint(
-            model_weight_path, monitor='val_loss', verbose=VERBOSE, save_best_only=True, mode='auto')
+            model_weight_path, monitor='val_keras_rmse', verbose=VERBOSE, save_best_only=True, mode='auto')
         logger.debug(" Spliting train and test set...")
 
-        if (self.model_choice2 == MODEL_INPUT2_DENSE) or (self.model_choice == MODEL_CNN4):
+        if self.model_choice2 is not None:
             X_train, X_test, X_train2, X_test2, Y_train, Y_test = train_test_split(
                 self.train, self.train_df, self.target, test_size=KERAS_VALIDATION_SPLIT, random_state=1234)
             logger.debug("X_train:" + str(X_train.shape) +
@@ -1417,16 +1423,22 @@ class SpookyAuthorIdentifer():
             logger.debug("X_train2:" + str(X_train2.shape) +
                          ". X_test2:" + str(X_test2.shape))
         else:
-            X_train, X_test, Y_train, Y_test = train_test_split(
-                self.train, self.target, test_size=KERAS_VALIDATION_SPLIT, random_state=1234)
-            logger.debug("X_train:" + str(X_train.shape) +
-                         ". X_test:" + str(X_test.shape))
+            X_train_name, X_test_name, X_train_item_description, X_test_item_description, Y_train, Y_test = train_test_split(
+                self.train_name,
+                self.train_item_description,
+                self.target,
+                test_size=KERAS_VALIDATION_SPLIT,
+                random_state=1234)
+            logger.debug("X_train_name:" + str(X_train_name.shape) +
+                         ". X_test_name:" + str(X_test_name.shape))
+            logger.debug("X_train_desc:" + str(X_train_item_description.shape) +
+                         ". X_test_desc:" + str(X_test_item_description.shape))
 
         logger.debug("Training ...")
         start = time.time()
         # Training model
-        if (self.model_choice2 is not None) or (self.model_choice == MODEL_CNN4):
-            if (self.model_choice2 is not None) and (self.model_choice2 != MODEL_INPUT2_DENSE):
+        if self.model_choice2 is not None:
+            if self.model_choice2 != MODEL_INPUT2_DENSE:
                 X_train2 = X_train
                 X_test2 = X_test
             self.history = self.model.fit([X_train, X_train2], Y_train,
@@ -1443,8 +1455,8 @@ class SpookyAuthorIdentifer():
             )
 
         else:
-            self.history = self.model.fit(X_train, Y_train,
-                                          validation_data=(X_test, Y_test),
+            self.history = self.model.fit([X_train_name, X_train_item_description], Y_train,
+                                          validation_data=([X_test_name, X_test_item_description], Y_test),
                                           batch_size=KERAS_BATCH_SIZE,
                                           epochs=KERAS_N_ROUNDS,
                                           callbacks=[
@@ -1462,6 +1474,7 @@ class SpookyAuthorIdentifer():
         logger.debug('Best metric:' + str(callback_early_stopping.best))
         logger.debug(
             'Best round:' + str(callback_early_stopping.stopped_epoch - KERAS_EARLY_STOPPING))
+        self.model.save(model_path)    
 
     def train_kfold_single(self):
         logger.info("Train Kfold for single model")
@@ -1470,9 +1483,11 @@ class SpookyAuthorIdentifer():
         model_init_weights = self.model.get_weights()
 
         logger.debug("Prepare training data ...")
-        X = self.train
+        X_name = self.train_name
+        X_item_description = self.train_item_description
         Y = self.target
-        T = self.X_eval
+        T_name = self.X_eval_name
+        T_item_description = self.X_eval_item_description
 
         if self.model_choice2 is not None:
             if self.model_choice2 == MODEL_INPUT2_DENSE:
@@ -1483,7 +1498,7 @@ class SpookyAuthorIdentifer():
                 T2 = T
 
         # S_train = np.zeros((X.shape[0], N_FOLDS))
-        Y_eval = np.zeros((T.shape[0], Y.shape[1], N_FOLDS))
+        Y_eval = np.zeros((T_name.shape[0], Y.shape[1], N_FOLDS))
         total_time = 0
         total_metric = 0
         total_best_round = 0
@@ -1493,9 +1508,11 @@ class SpookyAuthorIdentifer():
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
             logger.debug("Round:" + str(j + 1))
             start = time.time()
-            X_train = X[train_idx]
+            X_train_name = X_name[train_idx]
+            X_train_item_description = X_item_description[train_idx]
             Y_train = Y[train_idx]
-            X_test = X[test_idx]
+            X_test_name = X_name[test_idx]
+            X_test_item_description = X_item_description[test_idx]
             Y_test = Y[test_idx]
 
             if self.model_choice2 is not None:
@@ -1506,7 +1523,7 @@ class SpookyAuthorIdentifer():
             callback_early_stopping = keras.callbacks.EarlyStopping(
                 monitor='val_loss', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='auto')
             callback_tensorboard = keras.callbacks.TensorBoard(
-                log_dir=DATA_DIR + '/tensorboard', histogram_freq=1, batch_size=KERAS_BATCH_SIZE,
+                log_dir=OUTPUT_DIR + '/tensorboard', histogram_freq=1, batch_size=KERAS_BATCH_SIZE,
                 write_graph=True, write_grads=True, write_images=False)
             callback_checkpoint = keras.callbacks.ModelCheckpoint(
                 model_weight_path, monitor='val_loss', verbose=VERBOSE, save_best_only=True, mode='auto')
@@ -1578,66 +1595,67 @@ class SpookyAuthorIdentifer():
                 else:
                     Y_pred = self.model.predict([self.X_eval, self.X_eval])
             else:
-                Y_pred = self.model.predict(self.X_eval)
-        preds = pd.DataFrame(Y_pred, columns=self.target_vars)
+                Y_pred = self.model.predict([self.X_eval_name, self.X_eval_item_description])
+        preds = pd.DataFrame(Y_pred, columns=['price'])
+        preds = np.exp(preds) + 1
         eval_output = pd.concat([self.eval_id, preds], 1)
         today = str(dtime.date.today())
         logger.debug("Date:" + today)
         eval_output.to_csv(
-            DATA_DIR + '/' + today + '-submission.csv.gz', index=False, float_format='%.5f',
-            compression='gzip')
+            OUTPUT_DIR + '/' + today + '-submission.csv', index=False, float_format='%.5f')
 
     def plot_history(self):
         history = self.history
         plt.figure(figsize=(20, 15))
-        plt.subplot(2, 1, 1)
-        plt.plot(history.history['loss'])
-        plt.plot(history.history['val_loss'])
-        plt.title('model loss')
-        plt.ylabel('loss')
+        # plt.subplot(2, 1, 1)
+        plt.plot(history.history['keras_rmse'])
+        plt.plot(history.history['val_keras_rmse'])
+        plt.title('model rmse')
+        plt.ylabel('rmse')
         plt.xlabel('epoch')
         plt.legend(['train', 'test'], loc='upper left')
-        # Summmary auc score
-        plt.subplot(2, 1, 2)
-        plt.plot(history.history['acc'])
-        plt.plot(history.history['val_acc'])
-        plt.title('model acc')
-        plt.ylabel('acc')
-        plt.xlabel('epoch')
-        plt.legend(['train', 'test'], loc='upper left')
+        # # Summmary auc score
+        # plt.subplot(2, 1, 2)
+        # plt.plot(history.history['acc'])
+        # plt.plot(history.history['val_acc'])
+        # plt.title('model acc')
+        # plt.ylabel('acc')
+        # plt.xlabel('epoch')
+        # plt.legend(['train', 'test'], loc='upper left')
         plt.savefig(DATA_DIR + "/history.png")
 
     def plot_kfold_history(self):
         history = self.history_total
         plt.figure(figsize=(20, 15))
-        plt.subplot(2, 1, 1)
-        plt.title('model loss')
-        plt.ylabel('loss')
+        # plt.subplot(2, 1, 1)
+        plt.title('model rmse')
+        plt.ylabel('rmse')
         plt.xlabel('epoch')
         for i, history in enumerate(self.history_total):
-            plt.plot(history.history['loss'], label='train_loss' + str(i + 1))
-            plt.plot(history.history['val_loss'],
-                     label='test_loss' + str(i + 1))
+            plt.plot(history.history['keras_rmse'], label='train_rmse' + str(i + 1))
+            plt.plot(history.history['val_keras_rmse'],
+                     label='test_rmse' + str(i + 1))
             # plt.legend(['train', 'test'], loc='upper left')
         plt.legend()
         # Summmary auc score
-        plt.subplot(2, 1, 2)
-        plt.title('model acc')
-        plt.ylabel('acc')
-        plt.xlabel('epoch')
-        for i, history in enumerate(self.history_total):
-            plt.plot(history.history['acc'], label='train_acc' + str(i + 1))
-            plt.plot(history.history['val_acc'],
-                     label='test_acc' + str(i + 1))
-        plt.legend()
+        # plt.subplot(2, 1, 2)
+        # plt.title('model acc')
+        # plt.ylabel('acc')
+        # plt.xlabel('epoch')
+        # for i, history in enumerate(self.history_total):
+        #     plt.plot(history.history['acc'], label='train_acc' + str(i + 1))
+        #     plt.plot(history.history['val_acc'],
+        #              label='test_acc' + str(i + 1))
+        # plt.legend()
         # plt.legend(['train', 'test'], loc='upper left')
         plt.savefig(DATA_DIR + "/history.png")
 
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
+    start = time.time()
     pd.options.display.float_format = '{:,.5f}'.format
-    logger = logging.getLogger('spooky-author-identification')
+    logger = logging.getLogger('mercari-price')
     logger.setLevel(logging.DEBUG)
     formatter = logging.Formatter(
         '%(asctime)s - %(levelname)s - %(message)s')
@@ -1646,7 +1664,7 @@ if __name__ == "__main__":
     ch.setFormatter(formatter)
     logger.addHandler(ch)
     # create file handler which logs even debug messages
-    fh = logging.FileHandler(DATA_DIR + '/model.log', mode='a')
+    fh = logging.FileHandler(OUTPUT_DIR + '/model.log', mode='a')
     fh.setLevel(logging.DEBUG)
     fh.setFormatter(formatter)
     logger.addHandler(fh)
@@ -1656,9 +1674,9 @@ if __name__ == "__main__":
     # Fix the issue: The shape of the input to "Flatten" is not fully defined
     # KTF.set_image_dim_ordering('tf')
 
-    label = 'author'
-    object = SpookyAuthorIdentifer(
-        label, word2vec=2, model_choice=MODEL_CNN, model_choice2=None)
+    label = 'price'
+    object = MercatiPriceSuggestion(
+        label, word2vec=0, model_choice=MODEL_FASTEXT, model_choice2=None)
     option = 1
     if option == 0:
         data_obj = BuildExtraDataSet()
@@ -1676,8 +1694,15 @@ if __name__ == "__main__":
         object.predict_data(Y_pred)
         object.plot_kfold_history()
     elif option == 3:
-        object = SpookyAuthorIdentifer(
+        object = MercatiPriceSuggestion(
             label, word2vec=0, model_choice=MODEL_CNN3, model_choice2=None)
         object.build_model()
+    elif option == 10:
+        object.load_data()
+        object.prepare_data()
+        object.load_model()
+        object.predict_data()
 
+    end = time.time() - start
+    logger.info("Total time:" + str(end))
     logger.info("Done!")

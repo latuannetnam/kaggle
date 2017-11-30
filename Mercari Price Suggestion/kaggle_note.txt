@@ -1,0 +1,97 @@
+#-------------------------------------------------
+R1.1 Keras + Embeding layer + FastText
+- params:
+    VOCAB_SIZE = 500
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 7
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+- text processing:    
+    Embeding = None
+    stem = None
+ - version: 9    
+ - metric (rmse): 0.487100285266
+ - best round:  
+ - time: 3088
+ - LB: 0.65002
+
+ R1.2 Keras + Embeding layer + FastText
+- params:
+    VOCAB_SIZE = 500
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 8
+    KERAS_BATCH_SIZE = 512
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = 2
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+- text processing:    
+    Embeding = None
+    stem = None
+ - version: 10
+ - metric (rmse): 0.487100285266 => 0.487055549037
+ - best round:  
+ - time: 2147
+ - LB: 0.65002 => 0.64999
+
+ R1.3 Keras + Embeding layer + FastText
+- params:
+    VOCAB_SIZE = 1000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 8
+    KERAS_BATCH_SIZE = 512
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = 2
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+- text processing:    
+    Embeding = None
+    stem = None
+ - version: 11
+ - metric (rmse): 0.487055549037 =>
+ - best round:  
+ - time: 2147
+ - LB: 0.64999 => 0.62542
+
+R1.4 Keras + Embeding layer + FastText
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 8
+    KERAS_BATCH_SIZE = 512
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = 2
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+- text processing:    
+    Embeding = None
+    stem = None
+ - version: 12
+ - metric (rmse): 0.487055549037 =>
+ - best round:  
+ - time: 
+ - LB: 0.62542 =>
+
