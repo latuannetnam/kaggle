@@ -120,13 +120,14 @@ KERAS_N_ROUNDS = 200
 KERAS_BATCH_SIZE = 64
 KERAS_NODES = 1024
 KERAS_LAYERS = 1
-KERAS_DROPOUT_RATE = 0.5
+# KERAS_DROPOUT_RATE = 0.5  # => Best
+KERAS_DROPOUT_RATE = 0.2
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0.04
 KERAS_VALIDATION_SPLIT = 0.2
 KERAS_EARLY_STOPPING = 2
 KERAS_MAXNORM = 3
-KERAS_PREDICT_BATCH_SIZE = 1024
+KERAS_PREDICT_BATCH_SIZE = 4096
 # ConvNet
 KERAS_FILTERS = 32  # => Best
 KERAS_POOL_SIZE = 3  # Best
@@ -219,21 +220,22 @@ def _get_stem_single(args):
     # stemmer = stm.lancaster.LancasterStemmer()
     stemmer = stm.PorterStemmer()
     data_stem = data.apply(lambda x: (" ").join(
-            [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
+        [stemmer.stem(z) for z in re.sub("[^a-zA-Z0-9]", " ", x).split(" ")]))
     return pd.Series(data_stem, index=index)
 
 
 def get_stem(data, index):
     p = Pool(processes=N_THREADS)
     n = math.ceil(len(data) / N_THREADS)
-    stems = p.map(_get_stem_single, [(data[i:i + n], index[i:i + n]) for i in range(0, len(data), n)])
+    stems = p.map(_get_stem_single, [
+                  (data[i:i + n], index[i:i + n]) for i in range(0, len(data), n)])
     # return np.array(flatten(stems))
     # return stems
     return pd.concat(stems)
 
 
 def keras_rmse(y_true, y_pred):
-	return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
+    return K.sqrt(K.mean(K.square(y_pred - y_true), axis=-1))
 
 
 # https://richliao.github.io/supervised/classification/2016/12/26/textclassifier-RNN/
@@ -745,9 +747,9 @@ class MercatiPriceSuggestion():
     def load_data(self):
         logger.info("Loading data ...")
         # self.train_data = pd.read_table(DATA_DIR + "/train.tsv", nrows=1000)
+        # self.eval_data = pd.read_table(DATA_DIR + "/test.tsv", nrows=1000)
         self.train_data = pd.read_table(DATA_DIR + "/train.tsv")
         self.eval_data = pd.read_table(DATA_DIR + "/test.tsv")
-
         logger.debug("train size:" + str(self.train_data.shape) +
                      " test size:" + str(self.eval_data.shape))
 
@@ -854,14 +856,17 @@ class MercatiPriceSuggestion():
         x_test_item_description = self.eval_data.item_description
         if preprocess == 1:
             logger.debug("Preprocessing item description...")
-            x_train_item_description = get_stem(x_train_item_description, self.train_data.index)
+            x_train_item_description = get_stem(
+                x_train_item_description, self.train_data.index)
             print(x_train_item_description[1])
             logger.debug("Done Preprocessing item description for train data")
-            x_test_item_description = get_stem(x_test_item_description, self.train_data.index)
+            x_test_item_description = get_stem(
+                x_test_item_description, self.train_data.index)
             print(x_test_item_description[1])
             x_test_item_description.fillna(value="missing", inplace=True)
             logger.debug("Done Preprocessing item description for eval data")
-        x_all = pd.concat([x_train_name, x_test_name, x_train_item_description, x_test_item_description])
+        x_all = pd.concat([x_train_name, x_test_name,
+                           x_train_item_description, x_test_item_description])
         return x_all, x_train_name, x_test_name, x_train_item_description, x_test_item_description
 
     # Credit:
@@ -909,7 +914,8 @@ class MercatiPriceSuggestion():
         self.tokenizer.fit_on_texts(x_all)
         vocab_size = len(self.tokenizer.word_index) + 1
         self.vocab_size = min(VOCAB_SIZE, vocab_size)
-        logger.debug("max vocab size:" + str(vocab_size) + ". Using:" + str(self.vocab_size))
+        logger.debug("max vocab size:" + str(vocab_size) +
+                     ". Using:" + str(self.vocab_size))
 
         # integer encode the documents
         logger.debug("Text to sequences")
@@ -963,23 +969,29 @@ class MercatiPriceSuggestion():
             x_test = self.add_ngram(x_test, token_indice, ngram_range)
             print(x_train[0])
 
-        self.input_name_length = max(np.amax(list(map(len, x_train_name))), np.amax(list(map(len, x_test_name))))
-        self.input_item_description_length = max(np.amax(list(map(len, x_train_item_description))), np.amax(list(map(len, x_test_item_description))))
-        logger.debug("Item name sequence length:" + str(self.input_name_length))
-        logger.debug("Item description sequence length:" + str(self.input_item_description_length))
+        self.input_name_length = max(
+            np.amax(list(map(len, x_train_name))), np.amax(list(map(len, x_test_name))))
+        self.input_item_description_length = max(np.amax(list(map(
+            len, x_train_item_description))), np.amax(list(map(len, x_test_item_description))))
+        logger.debug("Item name sequence length:" +
+                     str(self.input_name_length))
+        logger.debug("Item description sequence length:" +
+                     str(self.input_item_description_length))
         # pad documents to a max length
         logger.debug("Sequence padding ...")
         self.train_name = pad_sequences(
             x_train_name, maxlen=self.input_name_length)
         self.train_item_description = pad_sequences(
-            x_train_item_description, maxlen=self.input_item_description_length)    
+            x_train_item_description, maxlen=self.input_item_description_length)
         self.X_eval_name = pad_sequences(
             x_test_name, maxlen=self.input_name_length)
         self.X_eval_item_description = pad_sequences(
-            x_test_item_description, maxlen=self.input_item_description_length)    
+            x_test_item_description, maxlen=self.input_item_description_length)
         logger.debug("Train shape after padding")
-        logger.debug("Item name:" + str(self.train_name.shape) + "/" + str(self.X_eval_name.shape))
-        logger.debug("Item description:" + str(self.train_item_description.shape) + "/" + str(self.X_eval_item_description.shape))
+        logger.debug("Item name:" + str(self.train_name.shape) +
+                     "/" + str(self.X_eval_name.shape))
+        logger.debug("Item description:" + str(self.train_item_description.shape) +
+                     "/" + str(self.X_eval_item_description.shape))
 
         if self.word2vec == 1:
             self.embedding_matrix = self.build_word2vec(x_all, True)
@@ -1005,46 +1017,59 @@ class MercatiPriceSuggestion():
         self.train_data = self.handle_missing(self.train_data)
         self.eval_data = self.handle_missing(self.eval_data)
         self.eval_id = self.eval_data['test_id']
-        if self.model_choice2 is not None:
-            # feature engineering
-            # PROCESS CATEGORICAL DATA
-            logger.debug("Handling categorical variables...")
-            le = LabelEncoder()
-            le.fit(
-                np.vstack([self.train_data.category_name, self.eval_data.category_name]))
-            train.category_name = le.transform(self.train_data.category_name)
-            test.category_name = le.transform(self.eval_data.category_name)
-            le.fit(
-                np.vstack([self.train_data.brand_name, self.eval_data.brand_name]))
-            self.train_data.brand_name = le.transform(
-                self.train_data.brand_name)
-            self.eval_data.brand_name = le.transform(self.eval_data.brand_name)
-            # Second input
-            second_input_features = [
-                'category_name', 'brand_name', 'item_condition_id', 'shipping']
-            self.train_df = self.train_data[second_input_features]
-            self.eval_df = self.eval_data[second_input_features]
+        # feature engineering
+        # PROCESS CATEGORICAL DATA
+        logger.debug("Handling categorical variables...")
+        le = LabelEncoder()
+        le.fit(
+            np.hstack([self.train_data.category_name, self.eval_data.category_name]))
+        self.train_data.category_name = le.transform(
+            self.train_data.category_name)
+        self.eval_data.category_name = le.transform(
+            self.eval_data.category_name)
+        le.fit(
+            np.hstack([self.train_data.brand_name, self.eval_data.brand_name]))
+        self.train_data.brand_name = le.transform(
+            self.train_data.brand_name)
+        self.eval_data.brand_name = le.transform(self.eval_data.brand_name)
+        # Second input
+        second_input_features = [
+            'category_name', 'brand_name', 'item_condition_id', 'shipping']
+        second_input_features = [
+            'category_name']
+        self.train_df = self.train_data[second_input_features].values
+        self.X_eval_df = self.eval_data[second_input_features].values
+        self.input_df_length = self.train_df.shape[1]
 
         # Tokenize text data
         self.tokenize_and_ngram()
         # CREATE TARGET VARIABLE
         self.target = np.log(self.train_data.price + 1)
+        logger.debug("name size:" + str(self.train_name.shape) +
+                     "/" + str(self.X_eval_name.shape))
+        logger.debug("desc size:" + str(self.train_item_description.shape) +
+                     "/" + str(self.X_eval_item_description.shape))
+        logger.debug("df size:" + str(self.train_df.shape) +
+                     "/" + str(self.X_eval_df.shape))
 
     def buil_embbeding_layer(self, input_length):
         logger.debug("Input length:" + str(input_length))
+        # output_dim = min(input_length, OUTPUT_DIM)
+        output_dim = OUTPUT_DIM
         if self.word2vec > 0:
-            embedding_layer = Embedding(self.vocab_size, OUTPUT_DIM, weights=[
+            embedding_layer = Embedding(self.vocab_size, output_dim, weights=[
                 self.embedding_matrix], input_length=input_length, trainable=True)
         else:
             embedding_layer = Embedding(
-                self.vocab_size, OUTPUT_DIM, input_length=input_length, trainable=True)
+                self.vocab_size, output_dim, input_length=input_length, trainable=True)
 
         return embedding_layer
 
     def model_fasttext(self, input_length):
         logger.debug("Building FastText model ...")
         embbeding_input = Input(shape=(None,))
-        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(
+            input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         model = GlobalAveragePooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
@@ -1073,7 +1098,8 @@ class MercatiPriceSuggestion():
     def model_cnn2(self, input_length):
         logger.debug("Building CNN2 model ...")
         embbeding_input = Input(shape=(None,))
-        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(
+            input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         filter_sizes = [3, 4, 5]  # => Best
         # filter_sizes = [2, 3, 4, 5]
@@ -1096,7 +1122,8 @@ class MercatiPriceSuggestion():
     def model_cnn3(self, input_length):
         logger.debug("Building CNN3 model ...")
         embbeding_input = Input(shape=(None,))
-        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(
+            input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         convs = []
         filter_sizes = [3, 4, 5]
@@ -1122,7 +1149,8 @@ class MercatiPriceSuggestion():
     def model_cudnnlstm(self, input_length):
         logger.debug("Building CuDNN LSTM model ...")
         embbeding_input = Input(shape=(None,))
-        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(
+            input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # for i in range(KERAS_LAYERS):
         #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
@@ -1138,7 +1166,8 @@ class MercatiPriceSuggestion():
     def model_lstm(self, input_length):
         logger.debug("Building LSTM model ...")
         embbeding_input = Input(shape=(None,))
-        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(
+            input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # for i in range(KERAS_LAYERS):
         #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
@@ -1156,7 +1185,8 @@ class MercatiPriceSuggestion():
     def model_lstm_attrnn(self, input_length):
         embbeding_input = Input(
             shape=(input_length,))
-        embedding_layer = self.buil_embbeding_layer(input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(
+            input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # LSTM
         model = Bidirectional(
@@ -1329,7 +1359,9 @@ class MercatiPriceSuggestion():
         logger.debug("Model definition")
         if self.model_choice == MODEL_FASTEXT:
             input1, model1 = self.model_fasttext(self.input_name_length)
-            input2, model2 = self.model_fasttext(self.input_item_description_length)
+            input2, model2 = self.model_fasttext(
+                self.input_item_description_length)
+            input3, model3 = self.model_fasttext(self.input_df_length)
         elif self.model_choice == MODEL_CUDNNLSTM:
             input1, model1 = self.model_cudnnlstm()
         elif self.model_choice == MODEL_LSTM:
@@ -1337,7 +1369,8 @@ class MercatiPriceSuggestion():
         elif self.model_choice == MODEL_CNN:
             # input1, model1 = self.model_cnn()
             input1, model1 = self.model_cnn2(self.input_name_length)
-            input2, model2 = self.model_cnn2(self.input_item_description_length)
+            input2, model2 = self.model_cnn2(
+                self.input_item_description_length)
         elif self.model_choice == MODEL_CNN3:
             input1, model1 = self.model_cnn3()
         elif self.model_choice == MODEL_LSTM_ATTRNN:
@@ -1380,11 +1413,12 @@ class MercatiPriceSuggestion():
             out_model = Dense(1)(out_model)
             self.model = Model(inputs=[input1, input2], outputs=out_model)
         else:
-            model_all = concatenate([model1, model2])
+            model_all = concatenate([model1, model2, model3])
             model_all = Dropout(KERAS_DROPOUT_RATE,
                                 seed=random_state)(model_all)
             out_model = Dense(1)(model_all)
-            self.model = Model(inputs=[input1, input2], outputs=out_model)
+            self.model = Model(
+                inputs=[input1, input2, input3], outputs=out_model)
         # compile the model
         optimizer = Adam(lr=KERAS_LEARNING_RATE, decay=decay)
         # optimizer = RMSprop(lr=KERAS_LEARNING_RATE, decay=decay)
@@ -1417,22 +1451,34 @@ class MercatiPriceSuggestion():
 
         if self.model_choice2 is not None:
             X_train, X_test, X_train2, X_test2, Y_train, Y_test = train_test_split(
-                self.train, self.train_df, self.target, test_size=KERAS_VALIDATION_SPLIT, random_state=1234)
+                self.train, self.train_df, self.target, test_size=KERAS_VALIDATION_SPLIT, shuffle=False, random_state=1234)
             logger.debug("X_train:" + str(X_train.shape) +
                          ". X_test:" + str(X_test.shape))
             logger.debug("X_train2:" + str(X_train2.shape) +
                          ". X_test2:" + str(X_test2.shape))
         else:
-            X_train_name, X_test_name, X_train_item_description, X_test_item_description, Y_train, Y_test = train_test_split(
+            # X_train_name, X_test_name, X_train_item_description, X_test_item_description, Y_train, Y_test = train_test_split(
+            #     self.train_name,
+            #     self.train_item_description,
+            #     self.target,
+            #     test_size=KERAS_VALIDATION_SPLIT,
+            #     shuffle=False,
+            #     random_state=1234)
+
+            X_train_name, X_test_name, X_train_item_description, X_test_item_description, X_train_df, X_test_df, Y_train, Y_test = train_test_split(
                 self.train_name,
                 self.train_item_description,
+                self.train_df,
                 self.target,
                 test_size=KERAS_VALIDATION_SPLIT,
+                shuffle=False,
                 random_state=1234)
             logger.debug("X_train_name:" + str(X_train_name.shape) +
                          ". X_test_name:" + str(X_test_name.shape))
             logger.debug("X_train_desc:" + str(X_train_item_description.shape) +
                          ". X_test_desc:" + str(X_test_item_description.shape))
+            logger.debug("X_train_df:" + str(X_train_df.shape) +
+                         ". X_test_df:" + str(X_test_df.shape))
 
         logger.debug("Training ...")
         start = time.time()
@@ -1455,17 +1501,18 @@ class MercatiPriceSuggestion():
             )
 
         else:
-            self.history = self.model.fit([X_train_name, X_train_item_description], Y_train,
-                                          validation_data=([X_test_name, X_test_item_description], Y_test),
+            self.history = self.model.fit([X_train_name, X_train_item_description, X_train_df], Y_train,
+                                          validation_data=(
+                                              [X_test_name, X_test_item_description, X_test_df], Y_test),
                                           batch_size=KERAS_BATCH_SIZE,
                                           epochs=KERAS_N_ROUNDS,
                                           callbacks=[
                                               # callback_tensorboard,
                                               callback_early_stopping,
                                               callback_checkpoint,
-                                          ],
-                                          verbose=VERBOSE
-                                          )
+            ],
+                verbose=VERBOSE
+            )
         end = time.time() - start
         logger.debug("Train time:" + str(end))
         # load best model
@@ -1474,7 +1521,7 @@ class MercatiPriceSuggestion():
         logger.debug('Best metric:' + str(callback_early_stopping.best))
         logger.debug(
             'Best round:' + str(callback_early_stopping.stopped_epoch - KERAS_EARLY_STOPPING))
-        self.model.save(model_path)    
+        self.model.save(model_path)
 
     def train_kfold_single(self):
         logger.info("Train Kfold for single model")
@@ -1485,9 +1532,11 @@ class MercatiPriceSuggestion():
         logger.debug("Prepare training data ...")
         X_name = self.train_name
         X_item_description = self.train_item_description
+        X_df = self.train_df
         Y = self.target
         T_name = self.X_eval_name
         T_item_description = self.X_eval_item_description
+        T_df = self.X_eval_df
 
         if self.model_choice2 is not None:
             if self.model_choice2 == MODEL_INPUT2_DENSE:
@@ -1498,21 +1547,23 @@ class MercatiPriceSuggestion():
                 T2 = T
 
         # S_train = np.zeros((X.shape[0], N_FOLDS))
-        Y_eval = np.zeros((T_name.shape[0], Y.shape[1], N_FOLDS))
+        Y_eval = np.zeros((T_name.shape[0], N_FOLDS))
         total_time = 0
         total_metric = 0
         total_best_round = 0
         self.history_total = []
 
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
-        for j, (train_idx, test_idx) in enumerate(kfolds.split(X)):
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X_name)):
             logger.debug("Round:" + str(j + 1))
             start = time.time()
             X_train_name = X_name[train_idx]
             X_train_item_description = X_item_description[train_idx]
+            X_train_df = X_df[train_idx]
             Y_train = Y[train_idx]
             X_test_name = X_name[test_idx]
             X_test_item_description = X_item_description[test_idx]
+            X_test_df = X_df[test_idx]
             Y_test = Y[test_idx]
 
             if self.model_choice2 is not None:
@@ -1543,17 +1594,29 @@ class MercatiPriceSuggestion():
                     verbose=VERBOSE
                 )
             else:
-                history = self.model.fit(X_train, Y_train,
-                                         validation_data=(X_test, Y_test),
+                # history = self.model.fit(X_train, Y_train,
+                #                          validation_data=(X_test, Y_test),
+                #                          batch_size=KERAS_BATCH_SIZE,
+                #                          epochs=KERAS_N_ROUNDS,
+                #                          callbacks=[
+                #                              # callback_tensorboard,
+                #                              callback_early_stopping,
+                #                              callback_checkpoint,
+                #                          ],
+                #                          verbose=VERBOSE
+                #                          )
+                history = self.model.fit([X_train_name, X_train_item_description, X_train_df], Y_train,
+                                         validation_data=(
+                                             [X_test_name, X_test_item_description, X_test_df], Y_test),
                                          batch_size=KERAS_BATCH_SIZE,
                                          epochs=KERAS_N_ROUNDS,
                                          callbacks=[
-                                             # callback_tensorboard,
-                                             callback_early_stopping,
-                                             callback_checkpoint,
-                                         ],
-                                         verbose=VERBOSE
-                                         )
+                    # callback_tensorboard,
+                    callback_early_stopping,
+                    callback_checkpoint,
+                ],
+                    verbose=VERBOSE
+                )
 
             end = time.time() - start
             total_time = total_time + end
@@ -1569,9 +1632,10 @@ class MercatiPriceSuggestion():
             logger.debug('Best round:' + str(best_round))
             logger.debug("Saving Y_eval for round:" + str(j + 1))
             if self.model_choice2 is not None:
-                Y_eval[:, :, j] = self.model.predict([T, T2])
+                Y_eval[:, j] = self.model.predict([T, T2])
             else:
-                Y_eval[:, :, j] = self.model.predict(T)
+                Y_eval[:, j] = self.model.predict(
+                    [T_name, T_item_description, T_df])[:, 0]
             # Reset weigth
             logger.debug("Reset model weights")
             self.model.set_weights(model_init_weights)
@@ -1580,7 +1644,7 @@ class MercatiPriceSuggestion():
                          " time:" + str(end) + "/" + str(total_time))
         logger.debug("Avg metric:" + str(total_metric / (j + 1)))
         logger.debug("Avg best round:" + str(total_best_round / (j + 1)))
-        Y_eval_total = Y_eval.mean(2)
+        Y_eval_total = Y_eval.mean(1)
         logger.debug("Y eval size:" + str(Y_eval_total.shape))
         logger.debug("Total training time:" + str(total_time))
         return Y_eval_total
@@ -1591,11 +1655,13 @@ class MercatiPriceSuggestion():
         if Y_pred is None:
             if self.model_choice2 is not None:
                 if self.model_choice2 == MODEL_INPUT2_DENSE:
-                    Y_pred = self.model.predict([self.X_eval, self.eval_df])
+                    Y_pred = self.model.predict([self.X_eval, self.X_eval_df])
                 else:
-                    Y_pred = self.model.predict([self.X_eval, self.X_eval])
+                    Y_pred = self.model.predict(
+                        [self.X_eval, self.X_eval, self.X_eval_df])
             else:
-                Y_pred = self.model.predict([self.X_eval_name, self.X_eval_item_description])
+                Y_pred = self.model.predict(
+                    [self.X_eval_name, self.X_eval_item_description, self.X_eval_df])
         preds = pd.DataFrame(Y_pred, columns=['price'])
         preds = np.exp(preds) + 1
         eval_output = pd.concat([self.eval_id, preds], 1)
@@ -1632,7 +1698,8 @@ class MercatiPriceSuggestion():
         plt.ylabel('rmse')
         plt.xlabel('epoch')
         for i, history in enumerate(self.history_total):
-            plt.plot(history.history['keras_rmse'], label='train_rmse' + str(i + 1))
+            plt.plot(history.history['keras_rmse'],
+                     label='train_rmse' + str(i + 1))
             plt.plot(history.history['val_keras_rmse'],
                      label='test_rmse' + str(i + 1))
             # plt.legend(['train', 'test'], loc='upper left')

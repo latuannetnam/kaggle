@@ -1,5 +1,6 @@
 #-------------------------------------------------
-R1.1 Keras + Embeding layer + FastText
+1. Keras + Embeding layer + FastText
+R1.1 
 - params:
     VOCAB_SIZE = 500
     OUTPUT_DIM = 50
@@ -23,7 +24,7 @@ R1.1 Keras + Embeding layer + FastText
  - time: 3088
  - LB: 0.65002
 
- R1.2 Keras + Embeding layer + FastText
+ R1.2 
 - params:
     VOCAB_SIZE = 500
     OUTPUT_DIM = 50
@@ -47,7 +48,7 @@ R1.1 Keras + Embeding layer + FastText
  - time: 2147
  - LB: 0.65002 => 0.64999
 
- R1.3 Keras + Embeding layer + FastText
+ R1.3 
 - params:
     VOCAB_SIZE = 1000
     OUTPUT_DIM = 50
@@ -71,9 +72,9 @@ R1.1 Keras + Embeding layer + FastText
  - time: 2147
  - LB: 0.64999 => 0.62542
 
-R1.4 Keras + Embeding layer + FastText
+R1.4 
 - params:
-    VOCAB_SIZE = 4000
+    VOCAB_SIZE = 4000 => new
     OUTPUT_DIM = 50
     KERAS_LEARNING_RATE = 0.001
     KERAS_N_ROUNDS = 8
@@ -90,8 +91,114 @@ R1.4 Keras + Embeding layer + FastText
     Embeding = None
     stem = None
  - version: 12
- - metric (rmse): 0.487055549037 =>
+ - metric (rmse): 0.487055549037 => 0.421265431634
  - best round:  
- - time: 
- - LB: 0.62542 =>
+ - time/round: 380
+ - time: 3486
+ - LB: 0.62542 => 0.57260
 
+ R1.5 
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 100 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 8
+    KERAS_BATCH_SIZE = 512
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = 2
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+- text processing:    
+    Embeding = None
+    stem = None
+ - version: 13
+ - metric (rmse): 0.421265431634 => Time out
+ - best round:  
+ - time/round: 380 => 712s
+ - time: 3486 =>
+ - LB: 0.57260 =>
+
+ R1.6 
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 8
+    KERAS_BATCH_SIZE = 512
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = 2
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+- train data: name + item_description + train_df => new    
+- text processing:    
+    Embeding = None
+    stem = None
+ - version: 13
+ - metric (rmse): 0.421265431634 => Time out
+ - best round:  
+ - time/round: 380 => 712s
+ - time: 3486 =>
+ - LB: 0.57260 =>
+
+R1.7  
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM 
+- train data: 'name', 'item_description', 'brand_name', 'category_name', ['item_condition_id', 'shipping'] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - kernel: https://www.kaggle.com/latuannetnam/mercari-s-keras-model-v2-1 (Version 4)   
+ - metric (rmse): 0.563634401548
+ - best round: 10
+ - time/round: (CPU:206, GPU:50)
+ - time: 2533
+ - LB: 0.57260 => 0.73055
+
+ R1.8  
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM
+    loss = rmse 
+- train data: 'name', 'item_description', 'brand_name', 'category_name', ['item_condition_id', 'shipping'] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - kernel: https://www.kaggle.com/latuannetnam/mercari-s-keras-model-v2-1 (Version 5)   
+ - metric (rmse): 0.563634401548 =>
+ - best round: 
+ - time/round: (CPU:206, GPU:50)
+ - time: 2533 =>
+ - LB: 0.57260 => 0.73055 =>

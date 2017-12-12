@@ -1,5 +1,6 @@
 #-------------------------------------------------
-R1.1 Keras + Embeding layer + FastText
+1. Keras + Embeding layer + FastText
+R1.1 
 - params:
     VOCAB_SIZE = 8000
     OUTPUT_DIM = 200
@@ -22,7 +23,7 @@ R1.1 Keras + Embeding layer + FastText
  - time/round: (CPU:, GPU:)
  - time: 1630 
 
-R1.2 Keras + Embeding layer + FastText
+R1.2
 - params:
     VOCAB_SIZE = 500
     OUTPUT_DIM = 50
@@ -45,9 +46,9 @@ R1.2 Keras + Embeding layer + FastText
  - time/round: (CPU:, GPU:50)
  - time: 609 
 
- R1.3 Keras + Embeding layer + FastText
+ R1.3 
 - params:
-    VOCAB_SIZE = 400
+    VOCAB_SIZE = 4000 => new
     OUTPUT_DIM = 50
     KERAS_LEARNING_RATE = 0.001
     KERAS_N_ROUNDS = 200
@@ -68,6 +69,356 @@ R1.2 Keras + Embeding layer + FastText
  - time/round: (CPU:, GPU:50)
  - time: 654 
 
+R1.4
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = min(input_leng, OUTPUT_DIM) => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.400808424877 => 0.419414996525 => 0.427546112638
+ - best round: 5
+ - time/round: (CPU:, GPU:50)
+ - time: 654 => 605
+
+ R1.5 
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 200 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 1024
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = min(input_leng, OUTPUT_DIM) => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.400808424877 => 0.419414996525 => 0.429232702489
+ - best round: 
+ - time/round: (CPU:, GPU:50)
+ - time: 605 => 776
+
+ R1.6
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 100 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.5
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.419414996525 => 0.418849463031
+ - best round: 2
+ - time/round: (CPU:, GPU:50)
+ - time: 605 => 571
+
+ R1.7
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 100
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2 => new
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.418849463031 => 0.41674751179
+ - best round: 2
+ - time/round: (CPU:, GPU:50)
+ - time: 571 => 573
+
+R1.8 
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 100
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2 => new
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM => new
+- train data: name + item_description + train_df => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.41674751179 => 3.21940877111
+ - best round: 0
+ - time/round: (CPU:, GPU:50)
+ - time: 573 => 345
+
+ R1.9
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50 => new
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM 
+- train data: name + item_description + train_df => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.41674751179 => 3.23554450253
+ - best round: 0
+ - time/round: (CPU:, GPU:50)
+ - time: 573 => 345
+
+ R1.10
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 1
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM 
+- train data: name + item_description + train_df[category_name] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.41674751179 => 0.402132718976
+ - best round: 0
+ - time/round: (CPU:, GPU:50)
+ - time: 345 => 286
+
+ R1.11
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM 
+- train data: 'name', 'item_description', 'brand_name', 'category_name', 'item_condition_id', 'shipping' => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976 => 0.562957910616
+ - best round: 2
+ - time/round: (CPU:, GPU:50)
+ - time: 286 =>
+
+ R1.12
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM 
+- train data: 'name', 'item_description', 'brand_name', 'category_name', removed=>['item_condition_id', 'shipping'] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976 => 0.579816978105
+ - best round: 2
+ - time/round: (CPU:, GPU:50)
+ - time: 286 => 396
+
+ R1.13 
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM 
+- train data: 'name', 'item_description', 'brand_name', 'category_name', removed=>['item_condition_id', 'shipping'] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976 => 0.579820903043
+ - best round: 2
+ - time/round: (CPU:, GPU:50)
+ - time: 286 => 579
+
+ R1.14
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM
+    early_stopping_metric = loss => new 
+- train data: 'name', 'item_description', 'brand_name', 'category_name', removed=>['item_condition_id', 'shipping'] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976 => 0.579820903043 => 0.583058927295 (0.579821052337)
+ - loss:0.561660049745
+ - best round: 5
+ - time/round: (CPU:, GPU:50)
+ - time: 286 => 579
+
+R1.15
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM
+    loss = rmse => new
+- train data: 'name', 'item_description', 'brand_name', 'category_name', removed=>['item_condition_id', 'shipping'] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976 => 0.579761527535
+ - best round: 6
+ - time/round: (CPU:, GPU:50)
+ - time: 286 => 
+
+ R1.16
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM
+    loss = rmse
+- train data: 'name', 'item_description' => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976 => 0.579761527535 => 0.582010278484
+ - best round: 2
+ - time/round: (CPU:, GPU:50)
+ - time: 286 =>  
+
+ R1.17
+- params:
+    VOCAB_SIZE = 4000
+    OUTPUT_DIM = 50
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 200
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    output_dim = OUTPUT_DIM
+    loss = rmse
+- train data: 'name', 'item_description', 'brand_name', 'category_name', ['item_condition_id',] => new
+- text processing:    
+    Embeding = None
+    stem = None
+ - metric (rmse): 0.402132718976  => 0.562744010941 => 0.589270861988
+ - best round: 
+ - time/round: (CPU:, GPU:50)
+ - time: 286 =>
 #----------------------------------------------------------------------
 R2.1 Keras + Embeding layer + CNN
 - params:
