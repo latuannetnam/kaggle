@@ -42,7 +42,8 @@ df_test['air_store_id'] = df_test['id'].apply(
     lambda x: '_'.join(x.split('_')[:2]))
 df_test['visit_date'] = df_test['id'].apply(lambda x: x.split('_')[-1])
 index_test = df_test['id']
-del df_test['id'], df_test['visitors']
+# del df_test['id'], df_test['visitors']
+
 
 gc.collect()
 print("Loading Data Compelete.")
@@ -136,6 +137,7 @@ time_format = '%Y-%m-%d'
 def seperate_date(data):
     # split date feature in real visit datetime
     data_time = pd.to_datetime(data.visit_date, format=time_format)
+    data['visit_date'] = data_time
     data['Year_visit'] = data_time.dt.year
     data['Month_visit'] = data_time.dt.month
     data['DayOfYear_visit'] = data_time.dt.dayofyear
@@ -156,6 +158,7 @@ time_format = "%Y-%m-%d %H:%M:%S"
 def seperate_date(data):
     # split date feature in reservation datetime
     data_time = pd.to_datetime(data.reserve_datetime, format=time_format)
+    data['reserve_datetime'] = data_time
     data['Year_re'] = data_time.dt.year
     data['Month_re'] = data_time.dt.month
     data['DayOfYear_re'] = data_time.dt.dayofyear
@@ -173,6 +176,7 @@ seperate_date(df_ar)
 def seperate_date(data):
     # split date feature in reservation datetime
     data_time = pd.to_datetime(data.reserve_datetime, format=time_format)
+    data['reserve_datetime'] = data_time
     data['Year_re_h'] = data_time.dt.year
     data['Month_re_h'] = data_time.dt.month
     data['DayOfYear_re_h'] = data_time.dt.dayofyear
@@ -193,6 +197,7 @@ time_format = "%Y-%m-%d %H:%M:%S"
 def seperate_date(data):
     # split date feature in reserved visiting datetime
     data_time = pd.to_datetime(data.visit_datetime, format=time_format)
+    data['visit_datetime'] = data_time
     data['Year_re_visit'] = data_time.dt.year
     data['Month_re_visit'] = data_time.dt.month
     data['DayOfYear_re_visit'] = data_time.dt.dayofyear
@@ -210,6 +215,7 @@ seperate_date(df_ar)
 def seperate_date(data):
     # split date feature in reserved visiting datetime
     data_time = pd.to_datetime(data.visit_datetime, format=time_format)
+    data['visit_datetime'] = data_time
     data['Year_re_visit_h'] = data_time.dt.year
     data['Month_re_visit_h'] = data_time.dt.month
     data['DayOfYear_re_visit_h'] = data_time.dt.dayofyear
@@ -342,7 +348,7 @@ df_test = add_is_holiday(df_test)
 
 
 def drop_datetime_info(data):
-    del data['visit_date'], data['visit_datetime'], data['reserve_datetime'], data['visit_datetime__'], data['reserve_datetime__']
+    del data['visit_datetime'], data['reserve_datetime'], data['visit_datetime__'], data['reserve_datetime__']
 #    del data['visit_date'], data['visit_datetime'], data['reserve_datetime']
     return data
 
@@ -351,12 +357,19 @@ df_train = drop_datetime_info(df_train)
 
 
 def drop_datetime_info(data):
-    del data['visit_date'], data['visit_datetime'], data['reserve_datetime'], data['visit_datetime__'], data['reserve_datetime__']
+    del data['visit_datetime'], data['reserve_datetime'], data['visit_datetime__'], data['reserve_datetime__']
 #    del data['visit_date'], data['visit_datetime'], data['reserve_datetime']
     return data
 
 
 df_test = drop_datetime_info(df_test)
+
+
+print("Tranform visit_date")
+total_visit_date = np.hstack((df_train.visit_date, df_test.visit_date))
+le.fit(total_visit_date)
+df_train.visit_date = le.transform(df_train.visit_date)
+df_test.visit_date = le.transform(df_test.visit_date)
 
 
 # =============================================================================
