@@ -85,7 +85,43 @@
  -  KERAS_METRIC_DELTA = 0.002 => new
  - All stores => new 
  - RMSLE: 
- - time: 34451 =>
- - LB: 0.625 => 
+ - time: 34451 => 6017
+ - LB: 0.625 => 2.581
+
+  R1.12:
+ - NUM_THREAD = 8
+ - KERAS_NODES = 512 => new
+ - KERAS_N_ROUNDS = 200
+ - KERAS_DROPOUT_RATE = 0.2
+ - KERAS_EARLY_STOPPING = 5
+ -  KERAS_METRIC_DELTA = 0.002
+ - All stores => new 
+ - RMSLE: 
+ - time: 34451 => 28787
+ - LB: 0.593 => 
+
+ R1.13:
+ - NUM_THREAD = 4
+ - KERAS_NODES = 512
+ - KERAS_N_ROUNDS = 20 => new
+ - KERAS_DROPOUT_RATE = 0.2
+ - KERAS_EARLY_STOPPING = 5
+ - KERAS_LOOK_BACK = 1 => new
+ -  KERAS_METRIC_DELTA = 0.002
+ - All stores => new 
+ - Error: air_fff68b929994bfbd
+ - RMSLE: 
+ - time: 34451 => 6482
+ - LB: 0.593 => 
 
 
+#--------------------- Multivariate 
+R2.1
+- KERAS_NODES = 512 => Best
+- KERAS_N_ROUNDS = 100 => new
+- KERAS_DROPOUT_RATE = 0.2
+- KERAS_EARLY_STOPPING = 5 => new
+-  KERAS_METRIC_DELTA = 0.003
+- RMSLE: 
+- time: 
+- LB: 

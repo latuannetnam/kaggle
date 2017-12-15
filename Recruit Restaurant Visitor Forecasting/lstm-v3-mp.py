@@ -111,13 +111,13 @@ KTF.set_session(session)   # Set GPU Memory
 LOG_LEVEL = logging.DEBUG
 DATA_DIR = "data-temp"
 OUTPUT_DIR = DATA_DIR
-NUM_THREAD = 8
+NUM_THREAD = 1
 KERAS_LEARNING_RATE = 0.001
-KERAS_N_ROUNDS = 200
-# KERAS_NODES = 512
-KERAS_NODES = 256
+KERAS_N_ROUNDS = 2
+KERAS_NODES = 512
+# KERAS_NODES = 256
 KERAS_BATCH_SIZE = 1
-KERAS_LOOK_BACK = 10
+KERAS_LOOK_BACK = 1
 # KERAS_DROPOUT_RATE = 0.5  # => Best
 KERAS_DROPOUT_RATE = 0.2
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
@@ -136,8 +136,9 @@ def rmsle(y, pred):
 
 
 class EarlyStopping():
-    def __init__(self, model, model_weight_path, delta=0, patience=0, verbose=False):
+    def __init__(self, logger, model, model_weight_path, delta=0, patience=0, verbose=False):
         self.metric = math.inf
+        self.logger = logger
         self.model = model
         self.model_weight_path = model_weight_path
         self.delta = delta
@@ -151,8 +152,8 @@ class EarlyStopping():
             metric_delta = metric - self.delta
             if metric_delta <= self.metric:
                 if self.verbose:
-                    print("metric improved from:" +
-                          str(self.metric) + " to:" + str(metric) + " (-" + str(self.delta) + ")")
+                    self.logger.debug("metric improved from:" +
+                                      str(self.metric) + " to:" + str(metric) + " (-" + str(self.delta) + ")")
                 self.metric = metric
                 self.wait = 0
                 self.best_epoch = epoch
@@ -161,14 +162,41 @@ class EarlyStopping():
                 if self.patience > 0:
                     self.wait += 1
                     if self.wait >= self.patience:
-                        print("metric not improved for:" +
-                              str(self.patience) + ". End trainning")
-                        print("Best epoch:" + str(self.best_epoch))
+                        self.logger.debug("metric not improved for:" +
+                                          str(self.patience) + ". End training")
+                        self.logger.debug("Best epoch:" + str(self.best_epoch))
                         return False
         else:
-            print("Metric is Inf. End training")
+            self.logger.error("Metric is Inf. End training")
             return False
         return True
+
+
+class MultiProcessBase(multiprocessing.Process):
+    def __init__(self, thread_count=0, in_queue=None, out_queue=None):
+        multiprocessing.Process.__init__(self)
+        self.thread_count = thread_count
+        if in_queue is not None:
+            self.in_queue = in_queue
+        if out_queue is not None:
+            self.out_queue = out_queue
+
+    def get_logger(self):
+        logger = logging.getLogger('kaggle-' + str(self.thread_count))
+        logger.setLevel(logging.DEBUG)
+        formatter = logging.Formatter(
+            '%(asctime)s - %(levelname)s - ' + str(self.thread_count) + ': %(message)s')
+        ch = logging.StreamHandler(sys.stdout)
+        ch.setLevel(LOG_LEVEL)
+        ch.setFormatter(formatter)
+        logger.addHandler(ch)
+        # create file handler which logs even debug messages
+        fh = logging.FileHandler(
+            DATA_DIR + '/model_' + str(self.thread_count) + '.log', mode='a')
+        fh.setLevel(logging.DEBUG)
+        fh.setFormatter(formatter)
+        logger.addHandler(fh)
+        return logger
 
 
 class TimeSeriesForecastMP(multiprocessing.Process):
@@ -216,20 +244,20 @@ class TimeSeriesForecastMP(multiprocessing.Process):
                             " No task remain. Existing ...")
                 self.in_queue.task_done()
                 break
-            logger.debug(str(self.thread_count) +
-                         " got data:" + str(data.keys()))
-            self.train_model(model, data)
-            # try:
-            #     self.train_model(model, data)
-            # except:
-            #     logger.debug("Error training for store:" +
-            #                  str(data['air_store_id']) + ". Try one more time")
-            #     # Try to train 1 more time
-            #     try:
-            #         self.train_model(model, data)
-            #     except:
-            #         logger.debug("Error training for store:" +
-            #                      str(data['air_store_id']))
+            logger.debug(
+                "Store-ID: %d/%d - %s", data['store_order'], data['store_count'],
+                data['air_store_id'])
+            # self.train_model(model, data)
+            try:
+                self.train_model(model, data)
+            except Exception as e:
+                logger.error("Error 1 - %s: %s", data['air_store_id'], e)
+                logger.debug("Try one more time")
+                # Try to train 1 more time
+                try:
+                    self.train_model(model, data)
+                except Exception as e:
+                    logger.error("Error 2 - %s: %s", data['air_store_id'], e)
 
             # Reset weight after training
             model.set_weights(model_init_weights)
@@ -390,8 +418,10 @@ class TimeSeriesForecastMP(multiprocessing.Process):
         test_x = np.reshape(test_x, (test_x.shape[0], test_x.shape[1], 1))
         # create and fit Multilayer Perceptron model
         logger.debug("Training for " + str(air_store_id) + " ....")
-        early_stopping = EarlyStopping(
-            model, self.model_weight_path, KERAS_METRIC_DELTA, KERAS_EARLY_STOPPING)
+        early_stopping = EarlyStopping(logger,
+                                       model, self.model_weight_path,
+                                       KERAS_METRIC_DELTA,
+                                       KERAS_EARLY_STOPPING)
         history_all = {'loss': [], 'val_loss': []}
         # for i in range(KERAS_N_ROUNDS):
         desc = str(self.thread_count) + " - " + str(store_order) + \
@@ -406,8 +436,9 @@ class TimeSeriesForecastMP(multiprocessing.Process):
             model.reset_states()
             if early_stopping.check(i + 1, history.history['val_loss'][0]) is False:
                 break
+        logger.debug("End training for %s. Best epoch:%d",
+                     air_store_id, early_stopping.best_epoch)
 
-        self.plot_history(history_all)
         # Load best model
         model.load_weights(self.model_weight_path)
         # generate predictions for training
@@ -418,20 +449,23 @@ class TimeSeriesForecastMP(multiprocessing.Process):
         forecast_predict = self.make_forecast(
             model, test_x[-1::], timesteps=len(test_set), batch_size=batch_size)
         # invert dataset and predictions
-        dataset = scaler.inverse_transform(dataset)
-        train_predict = scaler.inverse_transform(train_predict)
-        train_y = scaler.inverse_transform([train_y])
-        test_predict = scaler.inverse_transform(test_predict)
-        test_y = scaler.inverse_transform([test_y])
         forecast_predict = scaler.inverse_transform(forecast_predict)
-        print(forecast_predict[-2:])
-        self.plot_data(dataset, look_back, train_predict,
-                       test_predict, forecast_predict)
-        # calculate root mean squared error
-        train_score = rmsle(train_y[0], train_predict[:, 0])
-        test_score = rmsle(test_y[0], test_predict[:, 0])
-        logger.debug('Train/Test RMSLE: ' +
-                     str(train_score) + " - " + str(test_score))
+
+        if VERBOSE > 0:
+            dataset = scaler.inverse_transform(dataset)
+            train_predict = scaler.inverse_transform(train_predict)
+            train_y = scaler.inverse_transform([train_y])
+            test_predict = scaler.inverse_transform(test_predict)
+            test_y = scaler.inverse_transform([test_y])
+            print(forecast_predict[-2:])
+            self.plot_history(history_all)
+            self.plot_data(dataset, look_back, train_predict,
+                           test_predict, forecast_predict)
+            # calculate root mean squared error
+            train_score = rmsle(train_y[0], train_predict[:, 0])
+            test_score = rmsle(test_y[0], test_predict[:, 0])
+            logger.debug('Train/Test RMSLE: ' +
+                         str(train_score) + " - " + str(test_score))
         out_data = {}
         out_data[air_store_id] = forecast_predict
         self.out_queue.put(out_data)
@@ -476,6 +510,14 @@ if __name__ == "__main__":
     in_queue = multiprocessing.JoinableQueue()
     out_queue = multiprocessing.Queue()
 
+    #  Init worker thread
+    #  create worker
+    workers = [TimeSeriesForecastMP(x + 1, in_queue=in_queue, out_queue=out_queue)
+               for x in range(NUM_THREAD)]
+    logger.info("Total workers:" + str(len(workers)))
+    for w in workers:
+        w.start()
+    # store_id_list = ['air_fff68b929994bfbd']
     for air_store_id in store_id_list:
         count += 1
         logger.debug("Processing for store:" + str(air_store_id) +
@@ -487,8 +529,8 @@ if __name__ == "__main__":
         in_data['train_set'] = train[train.air_store_id == air_store_id][label]
         in_data['test_set'] = test[test.air_store_id == air_store_id][label]
         in_queue.put(in_data)
-        # if count > 10:
-        #     break
+        if count > 5:
+            break
 
     # Debug
     # air_store_id = 'air_3155ee23d92202da'
@@ -503,13 +545,6 @@ if __name__ == "__main__":
     for i in range(NUM_THREAD):
         in_queue.put(None)
 
-    #  Init worker thread
-    #  create worker
-    workers = [TimeSeriesForecastMP(x + 1, in_queue=in_queue, out_queue=out_queue)
-               for x in range(NUM_THREAD)]
-    logger.info("Total workers:" + str(len(workers)))
-    for w in workers:
-        w.start()
     # Causes the main thread to wait for the queue to finish processing all
     # the tasks
     in_queue.join()
@@ -518,17 +553,19 @@ if __name__ == "__main__":
     logger.debug("Done all training and forecasting")
 
     # Process output result
+    count = 0
     while True:
         data = out_queue.get()
         if data is not None:
             for air_store_id in data:
+                count += 1
                 logger.debug("Update forecasting result for: " +
                              str(air_store_id))
                 y_pred = data[air_store_id]
                 test.loc[test.air_store_id == air_store_id, label] = y_pred
         else:
             break
-
+    logger.debug("Total results: %d", count)
     # convert negative values to abs values
     test.loc[test[label] < 0, label] = np.absolute(
         test[test[label] < 0][label])
