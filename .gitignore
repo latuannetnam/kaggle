@@ -2,6 +2,7 @@
 **/data-temp
 **/data
 secret_twitter_credentials.pkl
+settings.json
 .DS_Store
 Icon_
 *.pyc
