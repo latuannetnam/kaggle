@@ -1,0 +1,570 @@
+1. Keras + FastText
+R1.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = None
+ - best round: 2      
+ - metric: 0.166188313578
+ - LB: 0.165
+
+ R1.2:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d => new
+ - best round: 2       
+ - time: 15.796352863311768
+ - metric: 0.166188313578 => 0.148338600657
+ - LB: 0.165 => 
+
+  R1.3:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 2
+ - time: 29.47109866142273
+ - metric: 0.148338600657 => 0.139457521098
+ - LB: 0.165 => 0.139
+
+R1.4:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5 => new
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 5 
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = None => new
+ - best round: 
+ - time: 
+ - metric: 0.139457521098 => 0.191688971368
+ - LB: 0.139 =>
+
+ 
+ #----------------------------------------------------------------------------
+ 2. Keras + CNN2
+R2.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5 => new
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3 => new
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32
+    filter_sizes = [1, 2, 3]  # => Best
+    KERAS_POOL_SIZE = 3  # Best
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = None => new
+ - best round: 
+ - time: 
+ - metric: 0.139457521098 => 0.16397921893
+ - LB: 0.139 =>
+
+#-----------------------------------------------------------------
+3. Keras + CuDNNLSTM
+R3.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = None
+ - best round: 4
+ - time: 50.19034957885742
+ - metric: 0.139457521098 => 0.143724579724
+ - LB: 0.139 =>
+
+R3.2:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 3
+ - time: 91.65597367286682
+ - metric: 0.139457521098 => 0.127599516224
+ - LB: 0.139 => 0.127
+
+ R3.3:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5 => new
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 
+ - time: 
+ - metric: 0.127599516224 => 0.128049285332
+ - LB: 0.127 =>
+
+ R3.4:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 1000
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.5 => new
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    process_text = RegexpTokenizer => new
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 4
+ - time: 72.47323083877563
+ - metric: 0.127599516224 => 0.126552815653
+ - LB: 0.127 =>
+
+
+#-----------------------------------------------------------------
+4. Keras + CuDNNLSTM2
+ R4.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 4
+ - time: 96.01661539077759
+ - metric: 0.127599516224 => 0.12894232205
+ - LB: 0.127 => 
+ 
+ R4.2:
+- params:
+    VOCAB_SIZE = 8000 => new
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 4
+ - time: 107.7463173866272
+ - metric: 0.127599516224 => 0.12950064937
+ - LB: 0.127 => 
+
+  R4.3:
+- params:
+    VOCAB_SIZE = 8000
+    SEQUENCE_LENGTH = 1000  => new
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 10
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 6
+ - time: 136.68713212013245
+ - metric: 0.127599516224 => 0.129366428426
+ - LB: 0.127 => 
+#---------------------------------------------
+ 11. Kfold + FastText
+R11.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 6.0
+ - time: 797.7720720767975 => 193.8643078804016
+ - metric: 0.127599516224 => 0.13215601281 => 0.137934191211 
+ - LB: 0.127 => 
+
+
+ #---------------------------------------------
+ 13. Kfold + CuDNNLSTM
+ R13.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$'] => new
+ - best round: 2.4
+ - time: 797.7720720767975
+ - metric: 0.127599516224 => 0.13215601281 
+ - LB: 0.127 => 0.127
+
+ R13.2:
+- params:
+    VOCAB_SIZE = 8000 => new
+    SEQUENCE_LENGTH = 1000 => new
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 7
+ - time: 604.3077001571655
+ - metric: 0.127599516224 => 0.13215601281 => 0.132148224675
+ - LB: 0.127 => 0.133
+
+ R13.3:
+- params:
+    VOCAB_SIZE = 4000 => new
+    SEQUENCE_LENGTH = 1000 => new
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 5.8
+ - time: 456.1935374736786
+ - metric: 0.127599516224 => 0.132148224675 => 0.124307605062
+ - LB: 0.127 => 0.124
+
+ R13.4:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 2000 => new
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 5.0
+ - time: 447.1896131038666
+ - metric: 0.124307605062 => 0.12698688433
+ - LB: 0.124 =>
+
+ R13.5:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 1000 => new
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    process_text = RegexpTokenizer => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 6
+ - time: 454.5150077342987
+ - metric: 0.124307605062 => 0.124473381337
+ - LB: 0.124 => 0.125
+
+ R13.6:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 1000
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    process_text = RegexpTokenizer
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    embedding layer: train = False => new
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 8.4
+ - time: 457.8468403816223
+ - metric: 0.124307605062 => 0.124473381337 => 0.132199731739
+ - LB: 0.124 => 
+
+ #---------------------------------------------
+ 14. Kfold + CuDNNLSTM2
+ R14.1:
+- params:
+    VOCAB_SIZE = 8000 => new
+    SEQUENCE_LENGTH = 1000 => new
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_NODES = 1024
+    KERAS_LAYERS = 1
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 3
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    N_FOLDS = 5 => new
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    numeric_features = ['num_words', 'num_unique_words', 'num_chars', 'num_stopwords',
+       'num_punctuations', 'num_words_upper', 'num_words_title',
+       'mean_word_len', 'adjective', 'adverb', 'cc', 'in', 'md', 'past',
+       'present', 'wh', 'wh$']
+ - best round: 6.4
+ - time: 702.0589997768402
+ - metric: 0.127599516224 => 0.13215601281 => 0.132775486297
+ - LB: 0.127 => 0.174
