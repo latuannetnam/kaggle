@@ -251,10 +251,11 @@ class DonnorsChoose():
         self.vocab_size = OUTPUT_DIM
         self.embedding_features = [
             'project_title',
-            'project_essay_1',
-            'project_essay_2',
-            'project_essay_3',
-            'project_essay_4',
+            # 'project_essay_1',
+            # 'project_essay_2',
+            # 'project_essay_3',
+            # 'project_essay_4',
+            'project_essay',
             'project_resource_summary']
         # self.embedding_features = []
         self.category_features = ['teacher_id',
@@ -327,7 +328,14 @@ class DonnorsChoose():
 
     def prepare_data(self):
         logger.debug("Data features preparing...")
-
+        # Combine project essay
+        self.combine_data.loc[:, 'project_essay'] = self.combine_data.apply(
+            lambda row: ' '.join([
+                str(row['project_essay_1']),
+                str(row['project_essay_2']),
+                str(row['project_essay_3']),
+                str(row['project_essay_4']),
+            ]), axis=1)
         # Handle missing value
         self.combine_data = self.handle_missing(self.combine_data)
         for key in self.embedding_features:
@@ -525,7 +533,7 @@ class DonnorsChoose():
 
             if self.word2vec == 1:
                 self.embedding_matrix = self.load_pretrained_word_embedding(
-                    tokenizer, key, create=False)
+                    tokenizer, key, create=True)
 
     def load_pretrained_word_embedding(self, tokenizer, key, create=True):
         logger.debug("Build embbeding matrix from pre-trained word2vec Glove")
