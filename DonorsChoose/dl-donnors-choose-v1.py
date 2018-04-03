@@ -289,18 +289,20 @@ class DonnorsChoose():
             {
                 'quantity': [
                     'sum',
+                    'count',
                     'min',
                     'max',
                     'mean',
-                    # 'std',
+                    'std',
                     # lambda x: len(np.unique(x)),
                 ],
                 'price': [
                     'sum',
+                    'count',
                     'min',
                     'max',
                     'mean',
-                    # 'std',
+                    'std',
                     # lambda x: len(np.unique(x)),
                 ]}
         ))

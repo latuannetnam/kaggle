@@ -210,3 +210,29 @@ R1.1:
  - best round: 5
  - metric (AUC): :0.63016195666 => 0.672653617517 (Best)
  - LB: 0.66834 (Best)
+
+ R1.10:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.003
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + count, std => new
+    model_choice2 = Dense
+    embedding features = All
+ - best round: 5
+ - metric (AUC): :0.672653617517 (Best) =>
+ - LB: 0.66834 (Best) =>
