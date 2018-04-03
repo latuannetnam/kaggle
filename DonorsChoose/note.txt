@@ -1,0 +1,185 @@
+1. Keras + FastText
+R1.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.03
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+ - best round: 1
+ - metric (AUC): 0.563912623796
+ - LB: 0.57123
+
+ R1.2:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.01
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+ - best round: 4
+ - metric (AUC): 0.577089000631
+ - LB: 
+
+ R1.3:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.01
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: STEM
+ - best round: 4
+ - metric (AUC): 0.576524975482
+ - LB: 
+
+ 
+  R1.4:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.003
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+ - best round: 4
+ - metric (AUC): 0.579012278068
+ - LB: 
+
+ R1.5:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.003
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+    model_choice2 = Dense
+    embedding features = None
+ - best round: 2
+ - metric (AUC): 0.66067992685
+ - LB: 
+
+ R1.6:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.003
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+    model_choice2 = None
+    embedding features = All
+ - best round: 1
+ - metric (AUC): 3.0833e-05
+ - LB: 
+
+ R1.7:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.003
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+    model_choice2 = Dense
+    embedding features = All
+ - best round: 4
+ - metric (AUC): :0.63016195666
+ - LB: 
+
+ R1.8:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.003
+    KERAS_N_ROUNDS = 20
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer
+    model_choice2 = FastText
+    embedding features = All
+ - best round: 3
+ - metric (AUC): 0.593587478534
+ - LB: 
