@@ -122,9 +122,9 @@ KERAS_PREDICT_BATCH_SIZE = 4096
 # ConvNet
 KERAS_FILTERS = 32  # => Best
 # KERAS_FILTERS = 4
-KERAS_POOL_SIZE = 3  # Best
-# KERAS_POOL_SIZE = 1
-KERAS_KERNEL_SIZE = 2
+# KERAS_POOL_SIZE = 3  # Best
+KERAS_POOL_SIZE = 1
+KERAS_KERNEL_SIZE = 1
 
 # Other keras params
 decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
@@ -634,7 +634,7 @@ class DonnorsChoose():
         return embbeding_input, model
 
     # https://richliao.github.io/supervised/classification/2016/11/26/textclassifier-convolutional/
-    def model_cnn3(self, input_length):
+    def model_cnn3(self, name, vocab_size, output_dim, input_length, word2vec=0):
         logger.debug("Building CNN3 model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
         embedding_layer = self.buil_embbeding_layer(
@@ -932,8 +932,10 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     # Fix the issue: The shape of the input to "Flatten" is not fully defined
     # KTF.set_image_dim_ordering('tf')
+    # object = DonnorsChoose(
+    #     word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_INPUT2_DENSE)
     object = DonnorsChoose(
-        word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_INPUT2_DENSE)
+        word2vec=1, model_choice=MODEL_CNN2, model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_FASTEXT)
     option = 1
@@ -950,3 +952,4 @@ if __name__ == "__main__":
     end = time.time() - start
     logger.info("Total time:" + str(end))
     logger.info("Done!")
+
