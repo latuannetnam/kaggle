@@ -105,7 +105,7 @@ SEQUENCE_LENGTH = 1000  # => best
 # SEQUENCE_LENGTH = 2000
 OUTPUT_DIM = 300  # use with pretrained word2vec
 # OUTPUT_DIM = 50
-KERAS_LEARNING_RATE = 0.003
+KERAS_LEARNING_RATE = 0.001
 
 # KERAS_BATCH_SIZE = 64  # best
 KERAS_BATCH_SIZE = 64
@@ -146,15 +146,16 @@ NGRAM_RANGE = 1
 
 # Model choice
 MODEL_FASTEXT = 1
-MODEL_CUDNNLSTM = 2
-MODEL_LSTM = 3
-MODEL_CNN = 4
-MODEL_LSTM_ATTRNN = 5
-MODEL_LSTM_HE_ATTRNN = 6
+MODEL_CNN = 2
+MODEL_CNN2 = 3
+MODEL_CNN3 = 4
+MODEL_CNN4 = 15
+MODEL_CUDNNLSTM = 5
+MODEL_CUDNNLSTM2 = 6
+MODEL_LSTM = 7
 MODEL_INPUT2_DENSE = 10
-MODEL_CNN3 = 11
-MODEL_CNN2 = 12
-MODEL_CUDNNLSTM2 = 13
+
+
 # Text processing choice
 USE_SEQUENCE = True
 USE_SPACY = False
@@ -241,6 +242,143 @@ def binary_PTA(y_true, y_pred, threshold=K.variable(value=0.5)):
     # labels
     TP = K.sum(y_pred * y_true)
     return TP / P
+
+
+class TokernizedText():
+    def __init__(self):
+        pass
+
+    # Credit:
+    # https://github.com/fchollet/keras/blob/master/examples/imdb_fasttext.py
+    def create_ngram_set(self, input_list, ngram_value=2):
+        """
+        Extract a set of n-grams from a list of integers.
+        >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=2)
+        {(4, 9), (4, 1), (1, 4), (9, 4)}
+        >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=3)
+        [(1, 4, 9), (4, 9, 4), (9, 4, 1), (4, 1, 4)]
+        """
+        return set(zip(*[input_list[i:] for i in range(ngram_value)]))
+
+    def add_ngram(self, sequences, token_indice, ngram_range=2):
+        """
+        Augment the input list of list (sequences) by appending n-grams values.
+        Example: adding bi-gram
+        >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
+        >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017}
+        >>> add_ngram(sequences, token_indice, ngram_range=2)
+        [[1, 3, 4, 5, 1337, 2017], [1, 3, 7, 9, 2, 1337, 42]]
+        Example: adding tri-gram
+        >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
+        >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017, (7, 9, 2): 2018}
+        >>> add_ngram(sequences, token_indice, ngram_range=3)
+        [[1, 3, 4, 5, 1337], [1, 3, 7, 9, 2, 1337, 2018]]
+        """
+        new_sequences = []
+        for input_list in sequences:
+            new_list = input_list[:]
+            for i in range(len(new_list) - ngram_range + 1):
+                for ngram_value in range(2, ngram_range + 1):
+                    ngram = tuple(new_list[i:i + ngram_value])
+                    if ngram in token_indice:
+                        new_list.append(token_indice[ngram])
+            new_sequences.append(new_list)
+
+        return new_sequences
+
+    def load_pretrained_word_embedding(self, tokenizer, key, vocab_size, create=True):
+        logger.debug("Build embbeding matrix from pre-trained word2vec Glove")
+        file = OUTPUT_DIR + "/embeding-" + key + ".pickle"
+        if create:
+            logger.debug("Loading pre-trained word embbeding ...")
+            # load the whole embedding into memory
+            embeddings_index = dict()
+            f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
+            for line in f:
+                values = line.split()
+                word = values[0]
+                coefs = np.asarray(values[1:], dtype='float32')
+                embeddings_index[word] = coefs
+            f.close()
+            logger.debug('Loaded ' + str(len(embeddings_index)))
+            logger.debug("Create word matrix")
+            # create a weight matrix for words in training docs
+            # matrix_size = len(tokenizer.word_index) + 1
+            embedding_matrix = np.zeros((vocab_size, OUTPUT_DIM))
+
+            for word, i in tokenizer.word_index.items():
+                if i >= self.vocab_size:
+                    continue
+                embedding_vector = embeddings_index.get(word)
+                if embedding_vector is not None:
+                    embedding_matrix[i] = embedding_vector
+            with open(file, 'wb') as f:
+                # Pickle the 'data' dictionary using the highest protocol
+                # available.
+                pickle.dump(embedding_matrix, f, pickle.HIGHEST_PROTOCOL)
+        else:
+            logger.debug("Loading from pickle")
+            with open(file, 'rb') as f:
+                embedding_matrix = pickle.load(f)
+        logger.debug("pre-trained weight size:" + str(embedding_matrix.shape))
+        return embedding_matrix
+
+    def tokenize_and_ngram(self, key, texts, word2vec):
+        tokenizer = Tokenizer(num_words=VOCAB_SIZE)
+        tokenizer.fit_on_texts(texts)
+        vocab_size = len(tokenizer.word_index) + 1
+        logger.debug("vocab size:" + str(vocab_size))
+        vocab_size = min(vocab_size, VOCAB_SIZE)
+        # integer encode the documents
+        logger.debug("Text to sequences")
+        texts = tokenizer.texts_to_sequences(
+            texts)
+        # Create n-gram
+        if NGRAM_RANGE > 1:
+            logger.debug("Creating n-gram ...:" + str(NGRAM_RANGE))
+            # Create set of unique n-gram from the training set.
+            ngram_set = set()
+            for input_list in texts:
+                for i in range(2, NGRAM_RANGE + 1):
+                    set_of_ngram = self.create_ngram_set(
+                        input_list, ngram_value=i)
+                    ngram_set.update(set_of_ngram)
+
+            # Dictionary mapping n-gram token to a unique integer.
+            # Integer values are greater than max_features in order
+            # to avoid collision with existing features.
+            start_index = vocab_size + 1
+            token_indice = {v: k + start_index for k,
+                            v in enumerate(ngram_set)}
+            indice_token = {token_indice[k]: k for k in token_indice}
+
+            # max_features is the highest integer that could be found in the
+            # dataset.
+            vocab_size = np.max(list(indice_token.keys())) + 1
+            logger.debug("New vocab size:" + str(vocab_size))
+
+            # Augmenting x_train and x_test with n-grams features
+            texts = self.add_ngram(
+                texts, token_indice, NGRAM_RANGE)
+
+        max_sequence_length = np.amax(
+            list(map(len, texts)))
+        sequence_length = min(
+            max_sequence_length, SEQUENCE_LENGTH)
+        logger.debug("Max sequence length:%d. Sequence length:%d",
+                     max_sequence_length, sequence_length)
+        # pad documents to a max length
+        texts = pad_sequences(
+            texts, sequence_length)
+        logger.debug(key + ":Train shape after padding:" +
+                     str(texts.shape))
+        logger.debug("Vocabulary size:" + str(vocab_size))
+
+        embedding_matrix = []
+        if word2vec == 1:
+            embedding_matrix = self.load_pretrained_word_embedding(
+                tokenizer, key, vocab_size, create=False)
+        return texts, embedding_matrix, vocab_size, sequence_length
 
 
 class DonnorsChoose():
@@ -356,7 +494,8 @@ class DonnorsChoose():
             self.combine_data[key] = pd.factorize(self.combine_data[key])[0]
 
         # Append category features to numberic features
-        self.numeric_features.extend(self.category_features)
+        # self.numeric_features.extend(self.category_features)
+        logger.debug("Categorial features: %s", self.category_features)
         logger.debug("Numerical features: %s", self.numeric_features)
 
         # Split train and test set
@@ -439,145 +578,21 @@ class DonnorsChoose():
         logger.debug("Done Preprocessing ")
         return new_texts
 
-    # Credit:
-    # https://github.com/fchollet/keras/blob/master/examples/imdb_fasttext.py
-    def create_ngram_set(self, input_list, ngram_value=2):
-        """
-        Extract a set of n-grams from a list of integers.
-        >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=2)
-        {(4, 9), (4, 1), (1, 4), (9, 4)}
-        >>> create_ngram_set([1, 4, 9, 4, 1, 4], ngram_value=3)
-        [(1, 4, 9), (4, 9, 4), (9, 4, 1), (4, 1, 4)]
-        """
-        return set(zip(*[input_list[i:] for i in range(ngram_value)]))
-
-    def add_ngram(self, sequences, token_indice, ngram_range=2):
-        """
-        Augment the input list of list (sequences) by appending n-grams values.
-        Example: adding bi-gram
-        >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
-        >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017}
-        >>> add_ngram(sequences, token_indice, ngram_range=2)
-        [[1, 3, 4, 5, 1337, 2017], [1, 3, 7, 9, 2, 1337, 42]]
-        Example: adding tri-gram
-        >>> sequences = [[1, 3, 4, 5], [1, 3, 7, 9, 2]]
-        >>> token_indice = {(1, 3): 1337, (9, 2): 42, (4, 5): 2017, (7, 9, 2): 2018}
-        >>> add_ngram(sequences, token_indice, ngram_range=3)
-        [[1, 3, 4, 5, 1337], [1, 3, 7, 9, 2, 1337, 2018]]
-        """
-        new_sequences = []
-        for input_list in sequences:
-            new_list = input_list[:]
-            for i in range(len(new_list) - ngram_range + 1):
-                for ngram_value in range(2, ngram_range + 1):
-                    ngram = tuple(new_list[i:i + ngram_value])
-                    if ngram in token_indice:
-                        new_list.append(token_indice[ngram])
-            new_sequences.append(new_list)
-
-        return new_sequences
-
     def tokenize_and_ngram(self):
         self.vocab_size = {}
         self.sequence_length = {}
+        self.embedding_matrix = {}
 
         for key in self.embedding_features:
             logger.debug("Tokenizing for " + key)
-            tokenizer = Tokenizer(num_words=VOCAB_SIZE)
-            tokenizer.fit_on_texts(self.combine_data[key])
-            vocab_size = len(tokenizer.word_index) + 1
-            logger.debug("vocab size:" + str(vocab_size))
-            self.vocab_size[key] = min(vocab_size, VOCAB_SIZE)
-            # integer encode the documents
-            logger.debug("Text to sequences")
-            self.combine_data[key] = tokenizer.texts_to_sequences(
-                self.combine_data[key])
-            # Create n-gram
-            if NGRAM_RANGE > 1:
-                logger.debug("Creating n-gram ...:" + str(NGRAM_RANGE))
-                # Create set of unique n-gram from the training set.
-                ngram_set = set()
-                for input_list in self.combine_data[key]:
-                    for i in range(2, NGRAM_RANGE + 1):
-                        set_of_ngram = self.create_ngram_set(
-                            input_list, ngram_value=i)
-                        ngram_set.update(set_of_ngram)
+            object = TokernizedText()
+            self.combine_data[key], self.embedding_matrix[key], self.vocab_size[key], self.sequence_length[key] = object.tokenize_and_ngram(
+                key, self.combine_data[key], self.word2vec)
 
-                # Dictionary mapping n-gram token to a unique integer.
-                # Integer values are greater than max_features in order
-                # to avoid collision with existing features.
-                start_index = self.vocab_size[key] + 1
-                token_indice = {v: k + start_index for k,
-                                v in enumerate(ngram_set)}
-                indice_token = {token_indice[k]: k for k in token_indice}
-
-                # max_features is the highest integer that could be found in the
-                # dataset.
-                self.vocab_size[key] = np.max(list(indice_token.keys())) + 1
-                logger.debug("New vocab size:" + str(self.vocab_size[key]))
-
-                # Augmenting x_train and x_test with n-grams features
-                self.combine_data[key] = self.add_ngram(
-                    self.combine_data[key], token_indice, NGRAM_RANGE)
-
-            max_sequence_length = np.amax(
-                list(map(len, self.combine_data[key])))
-            self.sequence_length[key] = min(
-                max_sequence_length, SEQUENCE_LENGTH)
-            logger.debug("Max sequence length:%d. Sequence length:%d",
-                         max_sequence_length, self.sequence_length[key])
-            # pad documents to a max length
-            self.combine_data[key] = pad_sequences(
-                self.combine_data[key], self.sequence_length[key])
-            logger.debug(key + ":Train shape after padding:" +
-                         str(self.combine_data[key].shape))
-            logger.debug("Vocabulary size:" + str(self.vocab_size[key]))
-
-            if self.word2vec == 1:
-                self.embedding_matrix = self.load_pretrained_word_embedding(
-                    tokenizer, key, create=True)
-
-    def load_pretrained_word_embedding(self, tokenizer, key, create=True):
-        logger.debug("Build embbeding matrix from pre-trained word2vec Glove")
-        file = OUTPUT_DIR + "/embeding-" + key + ".pickle"
-        if create:
-            logger.debug("Loading pre-trained word embbeding ...")
-            # load the whole embedding into memory
-            embeddings_index = dict()
-            f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
-            for line in f:
-                values = line.split()
-                word = values[0]
-                coefs = np.asarray(values[1:], dtype='float32')
-                embeddings_index[word] = coefs
-            f.close()
-            logger.debug('Loaded ' + str(len(embeddings_index)))
-            logger.debug("Create word matrix")
-            # create a weight matrix for words in training docs
-            # matrix_size = len(tokenizer.word_index) + 1
-            embedding_matrix = np.zeros((self.vocab_size[key], OUTPUT_DIM))
-
-            for word, i in tokenizer.word_index.items():
-                if i >= self.vocab_size[key]:
-                    continue
-                embedding_vector = embeddings_index.get(word)
-                if embedding_vector is not None:
-                    embedding_matrix[i] = embedding_vector
-            with open(file, 'wb') as f:
-                # Pickle the 'data' dictionary using the highest protocol
-                # available.
-                pickle.dump(embedding_matrix, f, pickle.HIGHEST_PROTOCOL)
-        else:
-            logger.debug("Loading from pickle")
-            with open(file, 'rb') as f:
-                embedding_matrix = pickle.load(f)
-        logger.debug("pre-trained weight size:" + str(embedding_matrix.shape))
-        return embedding_matrix
-
-    def buil_embbeding_layer(self, vocab_size, output_dim, input_length, word2vec=0):
+    def buil_embbeding_layer(self, name, vocab_size, output_dim, input_length, word2vec=0):
         if word2vec > 0:
             embedding_layer = Embedding(vocab_size, output_dim, weights=[
-                self.embedding_matrix], input_length=input_length, trainable=True)
+                self.embedding_matrix[name]], input_length=input_length, trainable=True)
         else:
             embedding_layer = Embedding(
                 vocab_size, output_dim, input_length=input_length, trainable=True)
@@ -586,8 +601,8 @@ class DonnorsChoose():
     def model_fasttext(self, name, vocab_size, output_dim, input_length, word2vec=0):
         logger.debug("Building FastText model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
-        embedding_layer = self.buil_embbeding_layer(
-            vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         model = GlobalAveragePooling1D()(model)
         model = Dropout(dropout, seed=random_state)(model)
@@ -596,8 +611,8 @@ class DonnorsChoose():
     def model_cnn(self, name, vocab_size, output_dim, input_length, word2vec=0):
         logger.debug("Building CNN model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
-        embedding_layer = self.buil_embbeding_layer(
-            vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         for i in range(KERAS_LAYERS):
             model = Conv1D(output_dim, KERAS_KERNEL_SIZE,
@@ -613,8 +628,8 @@ class DonnorsChoose():
     def model_cnn2(self, name, vocab_size, output_dim, input_length, word2vec=0):
         logger.debug("Building CNN2 model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
-        embedding_layer = self.buil_embbeding_layer(
-            vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         filter_sizes = [1, 2]  # => Best
         # filter_sizes = [2, 3, 4, 5]
@@ -637,8 +652,8 @@ class DonnorsChoose():
     def model_cnn3(self, name, vocab_size, output_dim, input_length, word2vec=0):
         logger.debug("Building CNN3 model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
-        embedding_layer = self.buil_embbeding_layer(
-            vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         convs = []
         filter_sizes = [3, 4, 5]
@@ -661,11 +676,26 @@ class DonnorsChoose():
         l_dense = Dropout(dropout, seed=random_state)(l_dense)
         return embbeding_input, l_dense
 
+    def model_cnn4(self, name, vocab_size, output_dim, input_length, word2vec=0):
+        logger.debug("Building CNN model v4 for %s ...", name)
+        embbeding_input = Input(shape=(None,), name=name)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        model = Conv1D(filters=KERAS_FILTERS, kernel_size=KERAS_KERNEL_SIZE,
+                       activation='relu')(model)
+        model = MaxPooling1D(pool_size=KERAS_POOL_SIZE)(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        model = GlobalMaxPooling1D()(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        # model = BatchNormalization()(model)
+        return embbeding_input, model
+
     def model_cudnnlstm(self, name, vocab_size, output_dim, input_length, word2vec=0):
         logger.debug("Building CuDNN LSTM model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
-        embedding_layer = self.buil_embbeding_layer(
-            vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # LSTM
         model = CuDNNLSTM(output_dim)(model)
@@ -677,8 +707,8 @@ class DonnorsChoose():
         logger.debug(
             "Building Bidirectional CuDNN LSTM model for %s ...", name)
         embbeding_input = Input(shape=(None,), name=name)
-        embedding_layer = self.buil_embbeding_layer(
-            vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # LSTM
         model = Bidirectional(
@@ -691,8 +721,8 @@ class DonnorsChoose():
     def model_lstm(self, input_length):
         logger.debug("Building LSTM model for %s ...", name)
         embbeding_input = Input(shape=(None,))
-        embedding_layer = self.buil_embbeding_layer(
-            input_length)(embbeding_input)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    input_length)(embbeding_input)
         model = Dropout(dropout, seed=random_state)(embedding_layer)
         # for i in range(KERAS_LAYERS):
         #     model = Conv1D(OUTPUT_DIM, KERAS_KERNEL_SIZE,
@@ -721,14 +751,13 @@ class DonnorsChoose():
             model = Dropout(KERAS_DROPOUT_RATE, seed=random_state)(model)
             model = BatchNormalization()(model)
             nodes = int(nodes // 2)
-            if nodes < 16:
-                nodes = 16
+            if nodes < 2:
+                nodes = 2
         # logger.debug("Input2 model shape:" + str(model.shape))
         return feature_input, model
 
     def build_model(self, X_train):
         logger.debug("Model definition")
-        key_var = 'num_vars'
 
         if self.model_choice == MODEL_FASTEXT:
             model = self.model_fasttext
@@ -751,12 +780,8 @@ class DonnorsChoose():
         elif self.model_choice == MODEL_CNN3:
             model = self.model_cnn3
 
-        elif self.model_choice == MODEL_LSTM_ATTRNN:
-            # model = self.model_lstm_attrnn2
-            model = self.model_lstm_attrnn
-
-        elif self.model_choice == MODEL_LSTM_HE_ATTRNN:
-            model = self.model_lstm_he_attrnn
+        elif self.model_choice == MODEL_CNN4:
+            model = self.model_cnn4
 
         # Build models for each features in dataset
         inputs = []
@@ -766,23 +791,23 @@ class DonnorsChoose():
             if key in self.embedding_features:
                 input, in_model = model(
                     key, self.vocab_size[key], OUTPUT_DIM, self.sequence_length[key], word2vec=1)
-                inputs.append(input)
-                in_models.append(in_model)
-            elif key == key_var:
+                # inputs.append(input)
+                # in_models.append(in_model)
+            elif key == 'num_vars' or key == 'cat_vars':
                 if self.model_choice2 == MODEL_INPUT2_DENSE:
                     logger.debug("Bulding dense layer for %s", key)
                     input, in_model = self.model_input2_dense(
-                        key_var, X_train[key_var])
+                        key, X_train[key])
                 else:
-                    vocab_size = int(np.max(X_train[key_var]) + 1)
-                    sequence_length = X_train[key_var].shape[1]
+                    vocab_size = int(np.max(X_train[key]) + 1)
+                    sequence_length = X_train[key].shape[1]
                     logger.debug("Vocab size for num_vars:" + str(vocab_size) +
                                  " . Sequence length:" + str(sequence_length))
                     input, in_model = model(
-                        key_var, vocab_size, sequence_length, sequence_length, word2vec=0)
+                        key, vocab_size, sequence_length, sequence_length, word2vec=0)
 
-                inputs.append(input)
-                in_models.append(in_model)
+            inputs.append(input)
+            in_models.append(in_model)
 
         if len(in_models) > 1:
             model_all = concatenate(in_models)
@@ -819,6 +844,7 @@ class DonnorsChoose():
             X[key] = dataset[key].values
         if self.model_choice2 is not None:
             X['num_vars'] = dataset[self.numeric_features].values
+            X['cat_vars'] = dataset[self.category_features].values
         return X
 
     def train_single_model(self):
@@ -932,10 +958,12 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     # Fix the issue: The shape of the input to "Flatten" is not fully defined
     # KTF.set_image_dim_ordering('tf')
+    object = DonnorsChoose(word2vec=1, model_choice=MODEL_FASTEXT,
+                           model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
-    #     word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_INPUT2_DENSE)
-    object = DonnorsChoose(
-        word2vec=1, model_choice=MODEL_CNN2, model_choice2=MODEL_INPUT2_DENSE)
+    #     word2vec=1, model_choice=MODEL_CUDNNLSTM, model_choice2=MODEL_INPUT2_DENSE)
+    # object = DonnorsChoose(
+    #     word2vec=1, model_choice=MODEL_CNN4, model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_FASTEXT)
     option = 1
@@ -952,4 +980,3 @@ if __name__ == "__main__":
     end = time.time() - start
     logger.info("Total time:" + str(end))
     logger.info("Done!")
-

@@ -237,9 +237,42 @@ R1.1:
  - metric (AUC): :0.672653617517 (Best) => 0.662279305747
  - LB: 0.66834 (Best) =>
 
+R1.11:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 1
+    KERAS_KERNEL_SIZE = 1
+    # Dense
+    Min node = 2
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + sum, mean, count, std
+    Categorial_features: 'teacher_id', 'teacher_prefix', ...
+    model_choice2 = Dense
+    embedding features = All, correct embedding matrix
+ - best round: 4
+ - metric (AUC): 0.686894637053 => 0.68752134281
+ - LB: 0.68348 (Best) => 0.68318
+
  #----------------------------------------------------------------------------
  2. Keras + CNN
- R2.1:
+ R2.1 (CNN):
 - params:
     VOCAB_SIZE = 4000
     SEQUENCE_LENGTH = 500
@@ -268,11 +301,44 @@ R1.1:
  - best round: 3
  - metric (AUC): :0.672653617517 (Best) => 0.666279349731
  - LB: 0.66834 (Best) => 0.65988
+
+R2.2 (CNN4):
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 1 => new
+    KERAS_KERNEL_SIZE = 1 => new
+    # Dense
+    Min node = 2
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + sum, mean, count, std
+    Categorial_features: 'teacher_id', 'teacher_prefix', ...
+    model_choice2 = Dense
+    embedding features = All, correct embedding matrix
+ - best round: 6
+ - metric (AUC): 0.68656311869 => 0.686894637053
+ - LB: 0.68221  => 0.68348 (Best)
 
 
  #----------------------------------------------------------------------------
- 3. Keras + CNN2
- R3.1:
+ 5. Keras + CUDNNLSTM
+ R5.1:
 - params:
     VOCAB_SIZE = 4000
     SEQUENCE_LENGTH = 500
@@ -298,8 +364,199 @@ R1.1:
     Numerical features: + count, std
     model_choice2 = Dense
     embedding features = All
- - best round: 3
- - metric (AUC): :0.672653617517 (Best) => 0.666279349731
- - LB: 0.66834 (Best) => 0.65988
+ - best round: 1
+ - metric (AUC): :0.672653617517 (Best) => 0.657436582006
+ - LB: 0.66834 (Best) => 
 
- 
+ R5.2:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001 => new
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 1
+    KERAS_KERNEL_SIZE = 1
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + count, std
+    model_choice2 = Dense
+    embedding features = All
+ - best round: 1
+ - metric (AUC): :0.672653617517 (Best) => 0.670849277705
+ - LB: 0.66834 (Best) => 
+
+R5.3:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 1
+    KERAS_KERNEL_SIZE = 1
+    # Dense
+    Min node = 2
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + sum, mean, count, std
+    Categorial_features: 'teacher_id', 'teacher_prefix', ...
+    model_choice2 = Dense
+    embedding features = All, correct embedding matrix
+ - best round: 4
+ - metric (AUC): 0.686894637053 => 0.686074081749
+ - LB: 0.68348 (Best) =>
+
+ #--------------------------------------------------------------------------------
+
+ 6. Keras + Bidirectional CUDNNLSTM2
+ R6.1:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001 => new
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 1
+    KERAS_KERNEL_SIZE = 1
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + count, std
+    model_choice2 = Dense
+    embedding features = All
+ - best round: 2
+ - metric (AUC): :0.672653617517 (Best) => 0.671635498743
+ - LB: 0.66834 (Best) => 
+
+ R6.2:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 1
+    KERAS_KERNEL_SIZE = 1
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + sum, mean, count, std
+    Categorial_features: 'teacher_id', 'teacher_prefix', ... => new
+    model_choice2 = Dense
+    embedding features = All
+ - best round: 3
+ - metric (AUC): :0.671635498743 => 0.685118169692
+ - LB: 0.66834  => 0.68124 (Best)
+
+ R6.3:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 2 => new
+    KERAS_KERNEL_SIZE = 8 => new
+    # Dense
+    Min node = 2 => new
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + sum, mean, count, std
+    Categorial_features: 'teacher_id', 'teacher_prefix', ...
+    model_choice2 = Dense
+    embedding features = All
+ - best round: 4
+ - metric (AUC): 0.685118169692 => 0.684906291417
+ - LB: 0.68124 (Best) =>
+
+ R6.4:
+- params:
+    VOCAB_SIZE = 4000
+    SEQUENCE_LENGTH = 500
+    OUTPUT_DIM = 300  # use with pretrained word2vec
+    KERAS_LEARNING_RATE = 0.001
+    KERAS_N_ROUNDS = 20
+    KERAS_LAYERS = 2
+    KERAS_BATCH_SIZE = 64
+    KERAS_DROPOUT_RATE = 0.2
+    KERAS_REGULARIZER = 0.04
+    KERAS_VALIDATION_SPLIT = 0.2
+    KERAS_EARLY_STOPPING = 2
+    KERAS_MAXNORM = 3
+    KERAS_PREDICT_BATCH_SIZE = 4096
+    # ConvNet
+    KERAS_FILTERS = 32  # => Best
+    KERAS_POOL_SIZE = 2
+    KERAS_KERNEL_SIZE = 8
+    # Dense
+    Min node = 2
+    VERBOSE = True
+    decay = KERAS_LEARNING_RATE / KERAS_N_ROUNDS
+    word2vec = Glove 300d
+    Text processing: Regexp Tokenizer + combine (project essay)
+    Numerical features: + sum, mean, count, std
+    Categorial_features: 'teacher_id', 'teacher_prefix', ...
+    model_choice2 = Dense
+    embedding features = All, correct embedding matrix => new
+ - best round: 6
+ - metric (AUC): 0.685118169692 => 0.68656311869
+ - LB: 0.68124  => 0.68221 (Best)
