@@ -5,6 +5,7 @@
 # Credit:
 #   - https://www.kaggle.com/vlasoff/beginner-s-guide-nn-with-multichannel-input
 #   - https://www.kaggle.com/opanichev/lightgbm-and-tf-idf-starter
+#   - https://www.kaggle.com/fizzbuzz/beginner-s-guide-to-capsule-networks
 
 # System
 import datetime as dtime
@@ -76,7 +77,11 @@ from sklearn import decomposition
 # Keras
 import keras
 from keras.models import Sequential, Model
-from keras.layers import concatenate, Input, Dense, Dropout, BatchNormalization, Flatten, Conv1D, MaxPooling1D, GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional, GlobalAveragePooling1D, Reshape, Dot, Average, TimeDistributed, GRU, Activation, CuDNNGRU
+from keras.layers import concatenate, Input, Dense, Dropout
+from keras.layers import BatchNormalization, Flatten, Conv1D, MaxPooling1D
+from keras.layers import GlobalMaxPooling1D, LSTM, CuDNNLSTM, Bidirectional
+from keras.layers import GlobalAveragePooling1D, Reshape, Dot, Average
+from keras.layers import TimeDistributed, GRU, Activation, CuDNNGRU, SpatialDropout1D
 from keras.wrappers.scikit_learn import KerasRegressor
 from keras.optimizers import SGD, Adam, RMSprop
 from keras.utils import np_utils
@@ -153,6 +158,7 @@ MODEL_CNN4 = 15
 MODEL_CUDNNLSTM = 5
 MODEL_CUDNNLSTM2 = 6
 MODEL_LSTM = 7
+MODEL_CAPSULE = 8
 MODEL_INPUT2_DENSE = 10
 
 
@@ -244,9 +250,81 @@ def binary_PTA(y_true, y_pred, threshold=K.variable(value=0.5)):
     return TP / P
 
 
+def squash(x, axis=-1):
+    s_squared_norm = K.sum(K.square(x), axis, keepdims=True)
+    scale = K.sqrt(s_squared_norm + K.epsilon())
+    return x / scale
+
+
+class Capsule(Layer):
+    # https://www.kaggle.com/fizzbuzz/beginner-s-guide-to-capsule-networks
+    def __init__(self, num_capsule, dim_capsule, routings=3, kernel_size=(9, 1), share_weights=True,
+                 activation='default', **kwargs):
+        super(Capsule, self).__init__(**kwargs)
+        self.num_capsule = num_capsule
+        self.dim_capsule = dim_capsule
+        self.routings = routings
+        self.kernel_size = kernel_size
+        self.share_weights = share_weights
+        if activation == 'default':
+            self.activation = squash
+        else:
+            self.activation = Activation(activation)
+
+    def build(self, input_shape):
+        super(Capsule, self).build(input_shape)
+        input_dim_capsule = input_shape[-1]
+        if self.share_weights:
+            self.W = self.add_weight(name='capsule_kernel',
+                                     shape=(1, input_dim_capsule,
+                                            self.num_capsule * self.dim_capsule),
+                                     # shape=self.kernel_size,
+                                     initializer='glorot_uniform',
+                                     trainable=True)
+        else:
+            input_num_capsule = input_shape[-2]
+            self.W = self.add_weight(name='capsule_kernel',
+                                     shape=(input_num_capsule,
+                                            input_dim_capsule,
+                                            self.num_capsule * self.dim_capsule),
+                                     initializer='glorot_uniform',
+                                     trainable=True)
+
+    def call(self, u_vecs):
+        if self.share_weights:
+            u_hat_vecs = K.conv1d(u_vecs, self.W)
+        else:
+            u_hat_vecs = K.local_conv1d(u_vecs, self.W, [1], [1])
+
+        batch_size = K.shape(u_vecs)[0]
+        input_num_capsule = K.shape(u_vecs)[1]
+        u_hat_vecs = K.reshape(u_hat_vecs, (batch_size, input_num_capsule,
+                                            self.num_capsule, self.dim_capsule))
+        u_hat_vecs = K.permute_dimensions(u_hat_vecs, (0, 2, 1, 3))
+        # final u_hat_vecs.shape = [None, num_capsule, input_num_capsule,
+        # dim_capsule]
+
+        # shape = [None, num_capsule, input_num_capsule]
+        b = K.zeros_like(u_hat_vecs[:, :, :, 0])
+        for i in range(self.routings):
+            # shape = [None, input_num_capsule, num_capsule]
+            b = K.permute_dimensions(b, (0, 2, 1))
+            c = K.softmax(b)
+            c = K.permute_dimensions(c, (0, 2, 1))
+            b = K.permute_dimensions(b, (0, 2, 1))
+            outputs = self.activation(K.batch_dot(c, u_hat_vecs, [2, 2]))
+            if i < self.routings - 1:
+                b = K.batch_dot(outputs, u_hat_vecs, [2, 3])
+
+        return outputs
+
+    def compute_output_shape(self, input_shape):
+        return (None, self.num_capsule, self.dim_capsule)
+
+
 class TokernizedText():
     def __init__(self):
-        pass
+        self.embeddings_index = None
 
     # Credit:
     # https://github.com/fchollet/keras/blob/master/examples/imdb_fasttext.py
@@ -290,26 +368,27 @@ class TokernizedText():
         logger.debug("Build embbeding matrix from pre-trained word2vec Glove")
         file = OUTPUT_DIR + "/embeding-" + key + ".pickle"
         if create:
-            logger.debug("Loading pre-trained word embbeding ...")
-            # load the whole embedding into memory
-            embeddings_index = dict()
-            f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
-            for line in f:
-                values = line.split()
-                word = values[0]
-                coefs = np.asarray(values[1:], dtype='float32')
-                embeddings_index[word] = coefs
-            f.close()
-            logger.debug('Loaded ' + str(len(embeddings_index)))
+            if self.embeddings_index is None:
+                logger.debug("Loading pre-trained word embbeding ...")
+                # load the whole embedding into memory
+                self.embeddings_index = dict()
+                f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
+                for line in f:
+                    values = line.split()
+                    word = values[0]
+                    coefs = np.asarray(values[1:], dtype='float32')
+                    self.embeddings_index[word] = coefs
+                f.close()
+                logger.debug('Loaded ' + str(len(self.embeddings_index)))
             logger.debug("Create word matrix")
             # create a weight matrix for words in training docs
             # matrix_size = len(tokenizer.word_index) + 1
             embedding_matrix = np.zeros((vocab_size, OUTPUT_DIM))
 
             for word, i in tokenizer.word_index.items():
-                if i >= self.vocab_size:
+                if i >= vocab_size:
                     continue
-                embedding_vector = embeddings_index.get(word)
+                embedding_vector = self.embeddings_index.get(word)
                 if embedding_vector is not None:
                     embedding_matrix[i] = embedding_vector
             with open(file, 'wb') as f:
@@ -354,10 +433,13 @@ class TokernizedText():
 
             # max_features is the highest integer that could be found in the
             # dataset.
-            vocab_size = np.max(list(indice_token.keys())) + 1
-            logger.debug("New vocab size:" + str(vocab_size))
+            vocab_size_new = np.max(list(indice_token.keys())) + 1
+            vocab_size = min(vocab_size_new, VOCAB_SIZE * 2)
+            logger.debug("New vocab size: %d. Final vocal size:%d",
+                         vocab_size_new, vocab_size)
 
             # Augmenting x_train and x_test with n-grams features
+            logger.debug("Adding ngram ...")
             texts = self.add_ngram(
                 texts, token_indice, NGRAM_RANGE)
 
@@ -376,8 +458,9 @@ class TokernizedText():
 
         embedding_matrix = []
         if word2vec == 1:
+            logger.debug("Building embbeding matrix ...")
             embedding_matrix = self.load_pretrained_word_embedding(
-                tokenizer, key, vocab_size, create=False)
+                tokenizer, key, vocab_size, create=True)
         return texts, embedding_matrix, vocab_size, sequence_length
 
 
@@ -389,12 +472,9 @@ class DonnorsChoose():
         self.vocab_size = OUTPUT_DIM
         self.embedding_features = [
             'project_title',
-            # 'project_essay_1',
-            # 'project_essay_2',
-            # 'project_essay_3',
-            # 'project_essay_4',
             'project_essay',
-            'project_resource_summary']
+            'project_resource_summary'
+        ]
         # self.embedding_features = []
         self.category_features = ['teacher_id',
                                   'teacher_prefix',
@@ -735,6 +815,27 @@ class DonnorsChoose():
         model = BatchNormalization()(model)
         return embbeding_input, model
 
+    def model_capsule(self, name, vocab_size, output_dim, input_length, word2vec=0):
+        # https://www.kaggle.com/fizzbuzz/beginner-s-guide-to-capsule-networks
+        logger.debug(
+            "Building Capsule model for %s ...", name)
+        gru_len = 128
+        routings = 5
+        num_capsule = 10
+        dim_capsule = 16
+        embbeding_input = Input(shape=(None,), name=name)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        embedding_layer = SpatialDropout1D(dropout)(embedding_layer)
+        x = Bidirectional(
+            GRU(gru_len, activation='relu', dropout=dropout, recurrent_dropout=dropout, return_sequences=True))(
+            embedding_layer)
+        capsule = Capsule(num_capsule=num_capsule, dim_capsule=dim_capsule, routings=routings,
+                          share_weights=True)(x)
+        capsule = Flatten()(capsule)
+        model = Dropout(dropout)(capsule)
+        return embbeding_input, model
+
     def model_input2_dense(self, name, data):
         logger.debug("Building dense model from numerical features ...")
         n_features = data.shape[1]
@@ -782,6 +883,9 @@ class DonnorsChoose():
 
         elif self.model_choice == MODEL_CNN4:
             model = self.model_cnn4
+        
+        elif self.model_choice == MODEL_CAPSULE:
+            model = self.model_capsule
 
         # Build models for each features in dataset
         inputs = []
@@ -958,12 +1062,14 @@ if __name__ == "__main__":
     # KTF.set_session(set_gpu_memory())
     # Fix the issue: The shape of the input to "Flatten" is not fully defined
     # KTF.set_image_dim_ordering('tf')
-    object = DonnorsChoose(word2vec=1, model_choice=MODEL_FASTEXT,
-                           model_choice2=MODEL_INPUT2_DENSE)
+    # object = DonnorsChoose(word2vec=1, model_choice=MODEL_FASTEXT,
+    #                        model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_CUDNNLSTM, model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_CNN4, model_choice2=MODEL_INPUT2_DENSE)
+    object = DonnorsChoose(word2vec=1, model_choice=MODEL_CAPSULE,
+                           model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_FASTEXT)
     option = 1
