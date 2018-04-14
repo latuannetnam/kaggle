@@ -6,6 +6,7 @@
 #   - https://www.kaggle.com/vlasoff/beginner-s-guide-nn-with-multichannel-input
 #   - https://www.kaggle.com/opanichev/lightgbm-and-tf-idf-starter
 #   - https://www.kaggle.com/fizzbuzz/beginner-s-guide-to-capsule-networks
+#   - https://www.kaggle.com/qinhui1999/deep-learning-is-all-you-need-lb-0-80x/code
 
 # System
 import datetime as dtime
@@ -103,11 +104,13 @@ DATA_DIR = "data-temp"
 OUTPUT_DIR = DATA_DIR
 GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 
-KERAS_N_ROUNDS = 20
-# VOCAB_SIZE = 8000
-VOCAB_SIZE = 4000  # => best
-SEQUENCE_LENGTH = 1000  # => best
+KERAS_N_ROUNDS = 50
+# KERAS_N_ROUNDS = 2
+VOCAB_SIZE = 8000
+# VOCAB_SIZE = 4000  # => best
+# SEQUENCE_LENGTH = 1000  # => best
 # SEQUENCE_LENGTH = 2000
+SEQUENCE_LENGTH = 300
 OUTPUT_DIM = 300  # use with pretrained word2vec
 # OUTPUT_DIM = 50
 KERAS_LEARNING_RATE = 0.001
@@ -121,7 +124,7 @@ KERAS_DROPOUT_RATE = 0.2  # => Best
 # KERAS_REGULARIZER = KERAS_LEARNING_RATE/10
 KERAS_REGULARIZER = 0.04
 KERAS_VALIDATION_SPLIT = 0.2
-KERAS_EARLY_STOPPING = 2
+KERAS_EARLY_STOPPING = 3
 KERAS_MAXNORM = 3
 KERAS_PREDICT_BATCH_SIZE = 4096
 # ConvNet
@@ -137,6 +140,7 @@ nodes = KERAS_NODES
 dropout = KERAS_DROPOUT_RATE
 KERAS_EMBEDDING = True
 N_FOLDS = 5
+# N_FOLDS = 2
 VERBOSE = True
 model_weight_path = OUTPUT_DIR + "/model_weight.h5"
 model_path = OUTPUT_DIR + "/pretrained_model.h5"
@@ -365,14 +369,16 @@ class TokernizedText():
         return new_sequences
 
     def load_pretrained_word_embedding(self, tokenizer, key, vocab_size, create=True):
-        logger.debug("Build embbeding matrix from pre-trained word2vec Glove")
+        logger.debug("Build embbeding matrix from pre-trained word2vec")
         file = OUTPUT_DIR + "/embeding-" + key + ".pickle"
         if create:
             if self.embeddings_index is None:
                 logger.debug("Loading pre-trained word embbeding ...")
                 # load the whole embedding into memory
                 self.embeddings_index = dict()
-                f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
+                # f = open(GLOBAL_DATA_DIR + '/glove.6B.300d.txt')
+                f = open(GLOBAL_DATA_DIR + '/crawl-300d-2M.vec')
+
                 for line in f:
                     values = line.split()
                     word = values[0]
@@ -406,7 +412,7 @@ class TokernizedText():
         tokenizer = Tokenizer(num_words=VOCAB_SIZE)
         tokenizer.fit_on_texts(texts)
         vocab_size = len(tokenizer.word_index) + 1
-        logger.debug("vocab size:" + str(vocab_size))
+        logger.debug("Native vocab size:%d", vocab_size)
         vocab_size = min(vocab_size, VOCAB_SIZE)
         # integer encode the documents
         logger.debug("Text to sequences")
@@ -454,7 +460,7 @@ class TokernizedText():
             texts, sequence_length)
         logger.debug(key + ":Train shape after padding:" +
                      str(texts.shape))
-        logger.debug("Vocabulary size:" + str(vocab_size))
+        logger.debug("Final vocabulary size:%d", vocab_size)
 
         embedding_matrix = []
         if word2vec == 1:
@@ -470,10 +476,21 @@ class DonnorsChoose():
         self.model_choice = model_choice
         self.model_choice2 = model_choice2
         self.vocab_size = OUTPUT_DIM
+        self.scaler = StandardScaler()
+        self.text_features = [
+            'project_title',
+            'project_resource_summary',
+            'project_essay_1',
+            'project_essay_2',
+            'project_essay_3',
+            'project_essay_4',
+        ]
+
         self.embedding_features = [
             'project_title',
             'project_essay',
             'project_resource_summary'
+            # 'text'
         ]
         # self.embedding_features = []
         self.category_features = ['teacher_id',
@@ -548,7 +565,10 @@ class DonnorsChoose():
 
     def prepare_data(self):
         logger.debug("Data features preparing...")
+        # Handle missing value
+        self.combine_data = self.handle_missing(self.combine_data)
         # Combine project essay
+        logger.debug("Combining project essay...")
         self.combine_data.loc[:, 'project_essay'] = self.combine_data.apply(
             lambda row: ' '.join([
                 str(row['project_essay_1']),
@@ -556,8 +576,14 @@ class DonnorsChoose():
                 str(row['project_essay_3']),
                 str(row['project_essay_4']),
             ]), axis=1)
-        # Handle missing value
-        self.combine_data = self.handle_missing(self.combine_data)
+
+        # Combine all text features
+        logger.debug("Combining all text features...")
+        self.combine_data.loc[:, 'text'] = self.combine_data.apply(
+            lambda row: ' '.join([
+                str(row[col]) for col in self.text_features
+            ]), axis=1)
+
         for key in self.embedding_features:
             logger.debug("Text processing for %s", key)
             self.combine_data[key] = self.preprocess_text(
@@ -585,13 +611,13 @@ class DonnorsChoose():
         del self.combine_data
 
         # CREATE TARGET VARIABLE
-        self.target = self.train_data['project_is_approved']
+        self.target = self.train_data[['project_is_approved']].values
         self.eval_id = self.eval_data['id']
         logger.debug("train size:" + str(self.train_data.shape))
         logger.debug("test size:" + str(self.eval_data.shape))
 
     def handle_missing(self, dataset):
-        for key in self.embedding_features:
+        for key in self.text_features:
             dataset[key].fillna(value="missing", inplace=True)
         return (dataset)
 
@@ -662,12 +688,12 @@ class DonnorsChoose():
         self.vocab_size = {}
         self.sequence_length = {}
         self.embedding_matrix = {}
-
+        object = TokernizedText()
         for key in self.embedding_features:
             logger.debug("Tokenizing for " + key)
-            object = TokernizedText()
             self.combine_data[key], self.embedding_matrix[key], self.vocab_size[key], self.sequence_length[key] = object.tokenize_and_ngram(
                 key, self.combine_data[key], self.word2vec)
+        del object
 
     def buil_embbeding_layer(self, name, vocab_size, output_dim, input_length, word2vec=0):
         if word2vec > 0:
@@ -883,14 +909,14 @@ class DonnorsChoose():
 
         elif self.model_choice == MODEL_CNN4:
             model = self.model_cnn4
-        
+
         elif self.model_choice == MODEL_CAPSULE:
             model = self.model_capsule
 
         # Build models for each features in dataset
         inputs = []
         in_models = []
-        for key in X_train:
+        for key in sorted(X_train):
             logger.debug("Building model for %s", key)
             if key in self.embedding_features:
                 input, in_model = model(
@@ -959,6 +985,10 @@ class DonnorsChoose():
             self.train_data, self.target, test_size=KERAS_VALIDATION_SPLIT, shuffle=False, random_state=1234)
         X_train = self.get_keras_data(d_train)
         X_test = self.get_keras_data(d_valid)
+        # Scale numeric features
+        logger.debug("Scaling mumeric features")
+        X_train['num_vars'] = self.scaler.fit_transform(X_train['num_vars'])
+        X_test['num_vars'] = self.scaler.transform(X_test['num_vars'])
 
         for key in X_train:
             logger.debug("Key: %s, shape: %s", key, str(X_train[key].shape))
@@ -971,19 +1001,25 @@ class DonnorsChoose():
             write_graph=True, write_grads=True, write_images=False)
         callback_checkpoint = keras.callbacks.ModelCheckpoint(
             model_weight_path, monitor='val_auc', verbose=VERBOSE, save_best_only=True, mode='max')
-
+        lr_reduced = keras.callbacks.ReduceLROnPlateau(monitor='val_auc',
+                                                       factor=0.1,
+                                                       patience=KERAS_EARLY_STOPPING - 2,
+                                                       verbose=VERBOSE,
+                                                       epsilon=1e-4,
+                                                       mode='max')
         logger.debug("Training ...")
         start = time.time()
         # Training model
-        self.history = self.model.fit([X_train[key] for key in X_train], Y_train,
+        self.history = self.model.fit([X_train[key] for key in sorted(X_train)], Y_train,
                                       validation_data=(
-            [X_test[key] for key in X_test], Y_test),
+            [X_test[key] for key in sorted(X_test)], Y_test),
             batch_size=KERAS_BATCH_SIZE,
             epochs=KERAS_N_ROUNDS,
             callbacks=[
             # callback_tensorboard,
             callback_early_stopping,
             callback_checkpoint,
+            lr_reduced
         ],
             verbose=VERBOSE
         )
@@ -1005,12 +1041,100 @@ class DonnorsChoose():
             'Best round:' + str(callback_early_stopping.stopped_epoch + 1 - KERAS_EARLY_STOPPING))
         # self.model.save(model_path)
 
+    def train_kfold_single(self):
+        logger.info("Train Kfold for single model")
+
+        logger.debug("Prepare training data ...")
+        X = self.get_keras_data(self.train_data)
+        X_Kfold = X[self.embedding_features[0]]
+        Y = self.target
+        T = self.get_keras_data(self.eval_data)
+        T_Kfold = T[self.embedding_features[0]]
+        Y_eval = np.zeros((T_Kfold.shape[0], Y.shape[1], N_FOLDS))
+        logger.debug("Y eval size:" + str(Y_eval.shape))
+        total_time = 0
+        total_metric = 0
+        total_best_round = 0
+        self.history_total = []
+        # build model and train
+        self.build_model(X)
+        # Save initilize model weigth for reseting weigth after each loop
+        model_init_weights = self.model.get_weights()
+        # Setup KFold
+        kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
+        for j, (train_idx, test_idx) in enumerate(kfolds.split(X_Kfold)):
+            logger.debug("Round:" + str(j + 1))
+            start = time.time()
+            X_train = {}
+            X_test = {}
+            # Split train and test data
+            for key in sorted(X):
+                X_train[key] = X[key][train_idx]
+                X_test[key] = X[key][test_idx]
+                logger.debug(
+                    key + ":Train size:" + str(X_train[key].shape) + " .Test size:" + str(X_test[key].shape))
+
+            Y_train = Y[train_idx]
+            Y_test = Y[test_idx]
+
+            # Use Early-Stopping
+            callback_early_stopping = keras.callbacks.EarlyStopping(
+                monitor='val_auc', patience=KERAS_EARLY_STOPPING, verbose=VERBOSE, mode='max')
+            callback_tensorboard = keras.callbacks.TensorBoard(
+                log_dir=OUTPUT_DIR + '/tensorboard', histogram_freq=1, batch_size=KERAS_BATCH_SIZE,
+                write_graph=True, write_grads=True, write_images=False)
+            callback_checkpoint = keras.callbacks.ModelCheckpoint(
+                model_weight_path, monitor='val_auc', verbose=VERBOSE, save_best_only=True, mode='max')
+            # Training
+            history = self.model.fit([X_train[key] for key in sorted(X_train)], Y_train,
+                                     validation_data=(
+                [X_test[key] for key in sorted(X_test)], Y_test),
+                batch_size=KERAS_BATCH_SIZE,
+                epochs=KERAS_N_ROUNDS,
+                callbacks=[
+                # callback_tensorboard,
+                callback_early_stopping,
+                callback_checkpoint,
+            ],
+                verbose=VERBOSE
+            )
+
+            end = time.time() - start
+            total_time = total_time + end
+            self.history_total.append(history)
+            # load best model
+            logger.info("Loading best model ...")
+            self.model.load_weights(model_weight_path)
+            metric = callback_early_stopping.best
+            total_metric = total_metric + metric
+            logger.debug('Best metric:' + str(metric))
+            best_round = callback_early_stopping.stopped_epoch + 1 - KERAS_EARLY_STOPPING
+            total_best_round = total_best_round + best_round
+            logger.debug('Best round:' + str(best_round))
+            # Predict
+            logger.debug("Saving Y_eval for round:" + str(j + 1))
+            Y_eval[:, :, j] = self.model.predict([T[key] for key in sorted(T)])
+            # Reset weigth
+            logger.debug("Reset model weights")
+            self.model.set_weights(model_init_weights)
+            logger.debug("Done training for round:" + str(j + 1) +
+                         " time:" + str(end) + "/" + str(total_time))
+
+        logger.debug("Avg metric:" + str(total_metric / (j + 1)))
+        logger.debug("Avg best round:" + str(total_best_round / (j + 1)))
+        Y_eval_total = Y_eval.mean(2)
+        logger.debug("Y eval size:" + str(Y_eval_total.shape))
+        logger.debug("Total training time:" + str(total_time))
+        return Y_eval_total
+
     def predict_data(self, Y_pred=None):
         # PREDICTION
         logger.debug("Prediction")
         if Y_pred is None:
             X_eval = self.get_keras_data(self.eval_data)
-            Y_pred = self.model.predict([X_eval[key] for key in X_eval])
+            X_eval['num_vars'] = self.scaler.transform(X_eval['num_vars'])
+            Y_pred = self.model.predict([X_eval[key]
+                                         for key in sorted(X_eval)])
         eval_output = pd.read_csv(DATA_DIR + '/sample_submission.csv')
         eval_output.loc[:, 'project_is_approved'] = Y_pred
         today = str(dtime.date.today())
@@ -1039,6 +1163,32 @@ class DonnorsChoose():
         plt.legend(['train', 'test'], loc='upper left')
         plt.savefig(DATA_DIR + "/history.png")
 
+    def plot_kfold_history(self):
+        history = self.history_total
+        plt.figure(figsize=(20, 15))
+        plt.subplot(2, 1, 1)
+        plt.title('model AUC')
+        plt.ylabel('AUC')
+        plt.xlabel('epoch')
+        for i, history in enumerate(self.history_total):
+            plt.plot(history.history['auc'],
+                     label='train-' + str(i + 1))
+            plt.plot(history.history['val_auc'],
+                     label='test-' + str(i + 1))
+        plt.legend()
+        # Summmary loss score
+        plt.subplot(2, 1, 2)
+        plt.title('model loss')
+        plt.ylabel('loss')
+        plt.xlabel('epoch')
+        for i, history in enumerate(self.history_total):
+            plt.plot(history.history['loss'],
+                     label='train-' + str(i + 1))
+            plt.plot(history.history['val_loss'],
+                     label='test-' + str(i + 1))
+        plt.legend()
+        plt.savefig(DATA_DIR + "/history.png")
+
 
 # ---------------- Main -------------------------
 if __name__ == "__main__":
@@ -1064,12 +1214,13 @@ if __name__ == "__main__":
     # KTF.set_image_dim_ordering('tf')
     # object = DonnorsChoose(word2vec=1, model_choice=MODEL_FASTEXT,
     #                        model_choice2=MODEL_INPUT2_DENSE)
-    # object = DonnorsChoose(
-    #     word2vec=1, model_choice=MODEL_CUDNNLSTM, model_choice2=MODEL_INPUT2_DENSE)
+    object = DonnorsChoose(
+        word2vec=1, model_choice=MODEL_CUDNNLSTM,
+        model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_CNN4, model_choice2=MODEL_INPUT2_DENSE)
-    object = DonnorsChoose(word2vec=1, model_choice=MODEL_CAPSULE,
-                           model_choice2=MODEL_INPUT2_DENSE)
+    # object = DonnorsChoose(word2vec=1, model_choice=MODEL_CAPSULE,
+    #                        model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_FASTEXT, model_choice2=MODEL_FASTEXT)
     option = 1
@@ -1082,6 +1233,12 @@ if __name__ == "__main__":
         object.train_single_model()
         object.predict_data()
         object.plot_history()
+    elif option == 2:
+        object.load_data()
+        object.prepare_data()
+        Y_pred = object.train_kfold_single()
+        object.predict_data(Y_pred)
+        object.plot_kfold_history()
 
     end = time.time() - start
     logger.info("Total time:" + str(end))
