@@ -106,7 +106,7 @@ GLOBAL_DATA_DIR = "/home/latuan/Programming/machine-learning/data"
 
 KERAS_N_ROUNDS = 50
 # KERAS_N_ROUNDS = 2
-VOCAB_SIZE = 8000
+VOCAB_SIZE = 100000
 # VOCAB_SIZE = 4000  # => best
 # SEQUENCE_LENGTH = 1000  # => best
 # SEQUENCE_LENGTH = 2000
@@ -163,6 +163,7 @@ MODEL_CUDNNLSTM = 5
 MODEL_CUDNNLSTM2 = 6
 MODEL_LSTM = 7
 MODEL_CAPSULE = 8
+MODEL_CUDNNGRU = 9
 MODEL_INPUT2_DENSE = 10
 
 
@@ -618,7 +619,7 @@ class DonnorsChoose():
 
     def handle_missing(self, dataset):
         for key in self.text_features:
-            dataset[key].fillna(value="missing", inplace=True)
+            dataset[key].fillna(value=" ", inplace=True)
         return (dataset)
 
     def convert_datetime(self):
@@ -824,6 +825,22 @@ class DonnorsChoose():
         # model = BatchNormalization()(model)
         return embbeding_input, model
 
+    def model_cudnngru(self, name, vocab_size, output_dim, input_length, word2vec=0):
+        logger.debug(
+            "Building Bidirectional CuDNN GRU model for %s ...", name)
+        embbeding_input = Input(shape=(None,), name=name)
+        embedding_layer = self.buil_embbeding_layer(name,
+                                                    vocab_size, output_dim, input_length, word2vec)(embbeding_input)
+        model = Dropout(dropout, seed=random_state)(embedding_layer)
+        # LSTM
+        model = Bidirectional(
+            CuDNNGRU(output_dim // 2, return_sequences=True))(model)
+        model = Conv1D(output_dim, KERAS_KERNEL_SIZE, activation="relu")(model)
+        model = GlobalMaxPooling1D()(model)
+        model = Dropout(dropout, seed=random_state)(model)
+        # model = BatchNormalization()(model)
+        return embbeding_input, model
+
     def model_lstm(self, input_length):
         logger.debug("Building LSTM model for %s ...", name)
         embbeding_input = Input(shape=(None,))
@@ -912,6 +929,9 @@ class DonnorsChoose():
 
         elif self.model_choice == MODEL_CAPSULE:
             model = self.model_capsule
+
+        elif self.model_choice == MODEL_CUDNNGRU:
+            model = self.model_cudnngru
 
         # Build models for each features in dataset
         inputs = []
@@ -1007,6 +1027,10 @@ class DonnorsChoose():
                                                        verbose=VERBOSE,
                                                        epsilon=1e-4,
                                                        mode='max')
+        # Compute class weigth to balance label
+        cw = class_weight.compute_class_weight(
+            'balanced', np.unique(self.target[:, 0]), self.target[:, 0])
+        class_weight_dict = dict(enumerate(cw))
         logger.debug("Training ...")
         start = time.time()
         # Training model
@@ -1021,6 +1045,7 @@ class DonnorsChoose():
             callback_checkpoint,
             lr_reduced
         ],
+            class_weight=class_weight_dict,
             verbose=VERBOSE
         )
         end = time.time() - start
@@ -1060,6 +1085,10 @@ class DonnorsChoose():
         self.build_model(X)
         # Save initilize model weigth for reseting weigth after each loop
         model_init_weights = self.model.get_weights()
+        # Compute class weigth to balance label
+        cw = class_weight.compute_class_weight(
+            'balanced', np.unique(self.target[:, 0]), self.target[:, 0])
+        class_weight_dict = dict(enumerate(cw))
         # Setup KFold
         kfolds = KFold(n_splits=N_FOLDS, shuffle=True, random_state=321)
         for j, (train_idx, test_idx) in enumerate(kfolds.split(X_Kfold)):
@@ -1085,8 +1114,15 @@ class DonnorsChoose():
                 write_graph=True, write_grads=True, write_images=False)
             callback_checkpoint = keras.callbacks.ModelCheckpoint(
                 model_weight_path, monitor='val_auc', verbose=VERBOSE, save_best_only=True, mode='max')
+            lr_reduced = keras.callbacks.ReduceLROnPlateau(monitor='val_auc',
+                                                           factor=0.1,
+                                                           patience=KERAS_EARLY_STOPPING - 2,
+                                                           verbose=VERBOSE,
+                                                           epsilon=1e-4,
+                                                           mode='max')
             # Training
-            history = self.model.fit([X_train[key] for key in sorted(X_train)], Y_train,
+            history = self.model.fit([X_train[key] for key in sorted(X_train)],
+                                     Y_train,
                                      validation_data=(
                 [X_test[key] for key in sorted(X_test)], Y_test),
                 batch_size=KERAS_BATCH_SIZE,
@@ -1095,7 +1131,9 @@ class DonnorsChoose():
                 # callback_tensorboard,
                 callback_early_stopping,
                 callback_checkpoint,
+                lr_reduced
             ],
+                class_weight=class_weight_dict,
                 verbose=VERBOSE
             )
 
@@ -1217,6 +1255,9 @@ if __name__ == "__main__":
     object = DonnorsChoose(
         word2vec=1, model_choice=MODEL_CUDNNLSTM,
         model_choice2=MODEL_INPUT2_DENSE)
+    # object = DonnorsChoose(
+    #     word2vec=1, model_choice=MODEL_CUDNNGRU,
+    #     model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(
     #     word2vec=1, model_choice=MODEL_CNN4, model_choice2=MODEL_INPUT2_DENSE)
     # object = DonnorsChoose(word2vec=1, model_choice=MODEL_CAPSULE,
